@@ -1,0 +1,32 @@
+[build-system]
+requires = ["poetry_core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "golem-api"
+version = "0.01"
+description = "Python Golem (https://www.golem.network/) API"
+authors = ["Jan Betley <jan.betley@golem.network>", "GolemFactory <contact@golem.network>"]
+license = "LGPL-3.0-or-later"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: AsyncIO",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Distributed Computing"
+]
+repository = "https://github.com/golemfactory/golem-api-python"
+documentation = "NOPE"  # TODO
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8.0"
+yapapi = "^0.9.2"
+
+#   TODO: why isn't this auto-installed by mypy?
+types-prettytable = "^3.3.0"
+types-click = "^7.1.2"
+
+# Docs
+sphinx = { version = "^4.0.1", optional = true }
+sphinx-autodoc-typehints = { version = "^1.12.0", optional = true }
+sphinx-rtd-theme = { version = "^1.0.0", optional = true}
