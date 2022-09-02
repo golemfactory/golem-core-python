@@ -26,6 +26,10 @@ python = "^3.8.0"
 #         golem_api, yapapi and how they are related.
 yapapi = "^0.9.2"
 
+#   CLI
+prettytable = "^3.3.0"
+click = "^7.1.2"
+
 #   TODO: why isn't this auto-installed by mypy?
 types-prettytable = "^3.3.0"
 types-click = "^7.1.2"

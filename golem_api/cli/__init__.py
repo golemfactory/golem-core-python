@@ -5,7 +5,7 @@ import click
 
 from yapapi.engine import DEFAULT_NETWORK, DEFAULT_DRIVER, DEFAULT_SUBNET
 
-from yapapi.mid.golem_node import GolemNode
+from golem_api import GolemNode
 from .utils import (
     format_allocations, format_demands, format_proposals,
     CliPayload, async_golem_wrapper, parse_timedelta_str

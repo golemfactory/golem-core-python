@@ -1,4 +1,4 @@
-from yapapi.mid.cli import cli
+from golem_api.cli import cli
 
 
 if __name__ == '__main__':

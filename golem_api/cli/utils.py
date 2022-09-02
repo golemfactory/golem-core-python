@@ -12,9 +12,8 @@ from yapapi.payload import Payload
 from yapapi.props.base import constraint
 from yapapi.props import inf
 
-from yapapi.mid.payment import Allocation
-from yapapi.mid.market import Demand, Proposal
-from yapapi.mid.golem_node import GolemNode
+from golem_api import GolemNode
+from golem_api.low import Allocation, Demand, Proposal
 
 
 def format_allocations(allocations: List[Allocation]) -> str:
