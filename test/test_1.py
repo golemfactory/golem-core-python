@@ -1,13 +1,14 @@
 import pytest
+import pytest_asyncio
 from random import random
 
 from yapapi.payload import vm
 
-from yapapi.mid.golem_node import GolemNode
-from yapapi.mid.exceptions import NoMatchingAccount, ResourceNotFound
+from golem_api.golem_node import GolemNode
+from golem_api.low.exceptions import NoMatchingAccount, ResourceNotFound
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def golem():
     try:
         yield GolemNode()
@@ -20,7 +21,7 @@ async def golem():
                 await allocation.release()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def any_payload():
     image_hash = "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
     return await vm.repo(image_hash=image_hash)
