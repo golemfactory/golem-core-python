@@ -43,6 +43,7 @@ sphinx = "^5.1.1"
 sphinx-autodoc-typehints = "^1.19.2"
 sphinx-rtd-theme = "^1.0.0"
 
+poethepoet = "^0.8.0"
 [tool.mypy]
 namespace_packages = true
 
@@ -50,3 +51,12 @@ strict = true
 allow_any_generics = true
 implicit_reexport = true
 allow_untyped_calls = true
+
+[tool.poe.tasks]
+test = "pytest"
+typecheck = "mypy ."
+check = ["test", "typecheck"]
+
+sphinx = "sphinx-build docs/sphinx/ build -E"
+
+#   TODO check licence? Maybe just copy from yapapi?
