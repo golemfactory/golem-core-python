@@ -35,7 +35,7 @@ class DefaultLogger:
         return self._logger
 
     def _prepare_logger(self) -> logging.Logger:
-        logger = logging.getLogger("yapapi")
+        logger = logging.getLogger("golem_api")
         logger.setLevel(logging.DEBUG)
 
         format_ = "[%(asctime)s %(levelname)s %(name)s] %(message)s"
