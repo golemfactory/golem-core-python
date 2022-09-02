@@ -2,19 +2,8 @@
 
 ## Current state
 
-1. Things described in WO\_1 should be ready.
-2. Interface of WO\_1 objects is not super-polished, but there are few other things instead:
-    * `Proposal` - except for mocked negotiations, it is quite ready
-    * `Agreement` - can be created/approved/terminated (only)
-    * POC of the higher-level interface
-3. Code quality:
-    * There is a bunch of TODOs left in the code, but none of them should be important now.
-    * `Resource` class inheritance is not very simple/pretty. This could be improved either
-      by extending the tree with additional classes, or by repeating parts of the logic in 
-      different places. I believe current approach is better than the alternatives.
-    * Mid-level API (`Chain`) is rather a POC than a final version.
-    * Except for the above, it should be good.
-    * Typing is good, checked with almost-strict mypy (details: `mypy.sh`).
+First stage is ready.
+Second stage starts.
 
 ## Start
 
@@ -26,62 +15,54 @@ poetry install
 
 ### Examples
 
-1. `example.py` - simple functions demonstrating selected parts of the interface
-2. `run.py` - POC of the higher-level interface
+1. `low_example.py` - example usage of the low-level interface
+2. `mid_example.py` - POC of a mid-level interface
 3. `cli_example.sh` - command line interface
 4. `t/test_1.py` - few simple tests
 
 ### Docs
 
-[API docs on readthedocs](https://jb-yapapi.readthedocs.io/en/latest/api.html)
-
-Or:
-
 ```
-poetry install -E docs
-sphinx-build docs/mid_sphinx/ build -E
+poetry run poe sphinx
 firefox build/api.html
 ```
 
 ## Code
 
-General note: code will be almost certainly reordered (also: namespace `yapapi/mid` is not final), this is TBD.
-For me, this looks more like a new, separate library than refreshed `yapapi`. This should be discussed before WO\_2.
-
 Important parts of the code:
 
-* yapapi/mid/golem\_node.py - GolemNode, the only entrypoint
-* yapapi/mid/resource.py    - base class for all resources (defined as "any object in the Golem Network with an ID")
-* yapapi/mid/market.py      - market API resources
-* yapapi/mid/payment.py     - payment API resources
-* yapapi/mid/cli            - cli (imported in `yapapi/__main__`)
-* yapapi/mid/yagna\_event\_collector.py - Class that processes `yagna` events
+* golem\_api/golem\_node.py - GolemNode, the only entrypoint
+* golem\_api/low/resource.py - base class for all resources (defined as "any object in the Golem Network with an ID")
+* golem\_api/low/market.py   - market API resources
+* golem\_api/low/payment.py  - payment API resources
+* golem\_api/low/exceptions.py  - exceptions raised from the `golem_api/low` code
+* golem\_api/cli             - cli (imported in `golem_api/__main__`)
+* golem\_api/low/yagna\_event\_collector.py - Class that processes `yagna` events
 
 Parts that will be important in the future, but now they are far-from-ready drafts:
 
-* yapapi/mid/chain          - POC of the higher-level interface
-* yapapi/mid/events.py      - new version of the current `yapapi/events.py`
-* yapapi/mid/event\_bus.py  - interface for emitting/receiving events
-* yapapi/mid/exceptions.py  - exceptions raised from the `yapapi/mid` code
-* yapapi/mid/api\_call\_wrapper.py - a wrapper for all API calls
-* yapapi/mid/default\_logger.py - listens for events, prints them to a file
+* golem\_api/mid            - POC of the mid-level interface
+* golem\_api/events.py      - events emitted when something important happens
+* golem\_api/event\_bus.py  - interface for emitting/receiving events
+* golem\_api/low/api\_call\_wrapper.py - a wrapper for all API calls
+* golem\_api/default\_logger.py - listens for events, prints them to a file
 
 ## CLI
 
 ```bash
-python3 -m yapapi status
+python3 -m golem_api status
 
-python3 -m yapapi find-node --runtime vm
-python3 -m yapapi find-node --runtime vm --subnet public-beta 
-python3 -m yapapi find-node --runtime vm --timeout 7  # stops after 7  seconds
-python3 -m yapapi find-node --runtime vm --timeout 1m # stops after 60 seconds
+python3 -m golem_api find-node --runtime vm
+python3 -m golem_api find-node --runtime vm --subnet public-beta 
+python3 -m golem_api find-node --runtime vm --timeout 7  # stops after 7  seconds
+python3 -m golem_api find-node --runtime vm --timeout 1m # stops after 60 seconds
 
-python3 -m yapapi allocation list
+python3 -m golem_api allocation list
 
-python3 -m yapapi allocation new 1
-python3 -m yapapi allocation new 2 --driver erc20 --network rinkeby
+python3 -m golem_api allocation new 1
+python3 -m golem_api allocation new 2 --driver erc20 --network rinkeby
 
-python3 -m yapapi allocation clean
+python3 -m golem_api allocation clean
 ```
 
 "Status" command is not really useful now, but we don't yet have components to make it good.
@@ -89,6 +70,7 @@ python3 -m yapapi allocation clean
 ## NEXT STEPS
 
 How I think we should continue with this project.
+[NOTE: this section is obslete now, stages 1 + 2 are being more-or-less implemented now]
 
 ### 1. Implement necessary low-level objects and create a first "working" app
 
@@ -111,7 +93,7 @@ Rough estimate: 10 MD
 ### 2. Implement few more apps, as diverse as possible
 
 Purpose: 
-* Writing/modifying apps with yapapi should be easy & fun. Here we try to find things that are not easy/fun
+* Writing/modifying apps with golem\_api should be easy & fun. Here we try to find things that are not easy/fun
   and make them easier/more fun.
 * We should try different "hard" things and ensure they are not that hard.
   + E.g. activity/agreement recycyling

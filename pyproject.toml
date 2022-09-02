@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "golem-api"
-version = "0.01"
+version = "0.0.1"
 description = "Python Golem (https://www.golem.network/) API"
 authors = ["Jan Betley <jan.betley@golem.network>", "GolemFactory <contact@golem.network>"]
 license = "LGPL-3.0-or-later"
@@ -15,7 +15,7 @@ classifiers = [
     "Topic :: System :: Distributed Computing"
 ]
 repository = "https://github.com/golemfactory/golem-api-python"
-documentation = "NOPE"  # TODO
+documentation = "NOPE"  # TODO - readthedocs is waiting for a public repo
 readme = "README.md"
 
 [tool.poetry.dependencies]
@@ -44,6 +44,7 @@ sphinx-autodoc-typehints = "^1.19.2"
 sphinx-rtd-theme = "^1.0.0"
 
 poethepoet = "^0.8.0"
+
 [tool.mypy]
 namespace_packages = true
 
