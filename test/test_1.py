@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import pytest
 import pytest_asyncio
 from random import random

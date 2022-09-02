@@ -111,7 +111,7 @@ class Resource(
     def events(self) -> List[EventType]:
         """Returns a list of all `yagna` events related to this :class:`Resource`.
 
-        Note: these are **yagna** events and should not be confused with `yapapi.mid.events`.
+        Note: these are **yagna** events and should not be confused with `golem_api.events`.
         """
         return self._events.copy()
 

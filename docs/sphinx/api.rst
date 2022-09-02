@@ -7,7 +7,7 @@ Golem Python API Reference
 GolemNode
 =========
 
-.. autoclass:: yapapi.mid.golem_node.GolemNode
+.. autoclass:: golem_api.GolemNode
     :members: __init__, __aenter__, __aexit__, 
               create_allocation, create_demand, 
               allocation, demand, proposal, agreement, 
@@ -30,20 +30,20 @@ Important temporary note: this will be easier to understand after reading the `r
 Chain
 -----
 
-.. autoclass:: yapapi.mid.chain.Chain
+.. autoclass:: golem_api.mid.Chain
 
 Chain components
 ----------------
 
 Components in this section can be used as parts of the Chain (but don't have to).
 
-.. autoclass:: yapapi.mid.chain.SimpleScorer
+.. autoclass:: golem_api.mid.SimpleScorer
     :members: __init__, __call__
 
-.. autoclass:: yapapi.mid.chain.DefaultNegotiator
+.. autoclass:: golem_api.mid.DefaultNegotiator
     :members: __init__, __call__
 
-.. autoclass:: yapapi.mid.chain.AgreementCreator
+.. autoclass:: golem_api.mid.AgreementCreator
     :members: __call__
 
 
@@ -59,7 +59,7 @@ by performing operations on the low-level objects.
 Resource
 --------
 
-.. autoclass:: yapapi.mid.resource.Resource
+.. autoclass:: golem_api.low.resource.Resource
     :members: id, node,
               get_data, data,
               parent, children, child_aiter, 
@@ -68,33 +68,33 @@ Resource
 Market API
 ----------
 
-.. autoclass:: yapapi.mid.market.Demand
+.. autoclass:: golem_api.low.market.Demand
     :members: initial_proposals, start_collecting_events, stop_collecting_events, unsubscribe, proposal
 
-.. autoclass:: yapapi.mid.market.Proposal
+.. autoclass:: golem_api.low.market.Proposal
     :members: initial, draft, rejected, demand,
               respond, responses, reject, create_agreement
 
-.. autoclass:: yapapi.mid.market.Agreement
+.. autoclass:: golem_api.low.market.Agreement
     :members: confirm, wait_for_approval, terminate
 
 Payment API
 -----------
 
-.. autoclass:: yapapi.mid.payment.Allocation
+.. autoclass:: golem_api.low.payment.Allocation
     :members: release
 
 Events
 ======
 
-.. autoclass:: yapapi.mid.event_bus.EventBus
+.. autoclass:: golem_api.event_bus.EventBus
     :members: listen, resource_listen, emit
 
-.. automodule:: yapapi.mid.events
+.. automodule:: golem_api.events
     :members:
 
 Logging
 =======
 
-.. autoclass:: yapapi.mid.default_logger.DefaultLogger
+.. autoclass:: golem_api.default_logger.DefaultLogger
     :members: __init__, file_name, logger, on_event

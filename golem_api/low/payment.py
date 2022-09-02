@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL]):
     """A single allocation on the Golem Network.
 
-    Created with one of the :class:`Allocation`-returning methods of the :class:`~yapapi.mid.golem_node.GolemNode`.
+    Created with one of the :class:`Allocation`-returning methods of the :any:`GolemNode`.
     """
     @api_call_wrapper(ignore=[404, 410])
     async def release(self) -> None:

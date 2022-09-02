@@ -148,9 +148,9 @@ class GolemNode:
         :param expiration: Timestamp when all agreements based on this demand will expire (TODO: is this correct?)
         :param allocations: Allocations that will be included in the description of this demand.
         :param autoclose: Unsubscribe demand on :func:`__aexit__`
-        :param autostart: Immediately start collecting yagna events for this :class:`~yapapi.mid.market.Demand`.
+        :param autostart: Immediately start collecting yagna events for this :any:`Demand`.
                           Without autostart events for this demand will start being collected after a call to
-                          :func:`~yapapi.mid.market.Demand.start_collecting_events`.
+                          :any:`Demand.start_collecting_events`.
         """
         if expiration is None:
             expiration = datetime.now(timezone.utc) + DEFAULT_EXPIRATION_TIMEOUT

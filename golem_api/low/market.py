@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL]):
     """A single demand on the Golem Network.
 
-    Created with one of the :class:`Demand`-returning methods of the :class:`~yapapi.mid.golem_node.GolemNode`.
+    Created with one of the :class:`Demand`-returning methods of the :any:`GolemNode`.
     """
     _event_collecting_task: Optional[asyncio.Task] = None
 
@@ -218,7 +218,7 @@ class Proposal(
     async def create_agreement(self, autoclose: bool = True, timeout: timedelta = timedelta(seconds=60)) -> "Agreement":
         """Promote this proposal to an agreement.
 
-        :param autoclose: Terminate the agreement when the :class:`~yapapi.mid.golem_node.GolemNode` closes.
+        :param autoclose: Terminate the agreement when the :any:`GolemNode` closes.
         :param timeout: TODO - this is used as `AgreementValidTo`, but what is it exactly?
         """
         proposal = models.AgreementProposal(
