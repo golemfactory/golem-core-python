@@ -2,14 +2,14 @@ import asyncio
 from abc import ABC, ABCMeta
 from typing import AsyncIterator, Awaitable, Callable, Generic, List, Optional, TYPE_CHECKING, Type
 
-from yapapi.mid.events import NewResource, ResourceDataChanged
-from yapapi.mid.api_call_wrapper import api_call_wrapper
-from yapapi.mid.resource_internals import (
+from golem_api.events import NewResource, ResourceDataChanged
+from golem_api.low.api_call_wrapper import api_call_wrapper
+from golem_api.low.resource_internals import (
     get_requestor_api, ResourceType, RequestorApiType, ModelType, ParentType, ChildType, EventType
 )
 
 if TYPE_CHECKING:
-    from .golem_node import GolemNode
+    from golem_api import GolemNode
 
 
 class ResourceMeta(ABCMeta):

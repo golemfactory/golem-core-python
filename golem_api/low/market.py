@@ -4,15 +4,15 @@ from datetime import datetime, timedelta, timezone
 
 from ya_market import RequestorApi, models as models, exceptions
 
+from golem_api.events import ResourceClosed
 from .api_call_wrapper import api_call_wrapper
 from .exceptions import ResourceNotFound
 from .resource import Resource
 from .resource_internals import _NULL
 from .yagna_event_collector import YagnaEventCollector
-from .events import ResourceClosed
 
 if TYPE_CHECKING:
-    from .golem_node import GolemNode
+    from golem_api.golem_node import GolemNode
 
 
 class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL]):

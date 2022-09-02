@@ -4,14 +4,14 @@ from decimal import Decimal
 
 from ya_payment import RequestorApi, models
 
-from .api_call_wrapper import api_call_wrapper
+from golem_api.events import ResourceClosed
 from .exceptions import NoMatchingAccount
+from .api_call_wrapper import api_call_wrapper
 from .resource import Resource
 from .resource_internals import _NULL
-from .events import ResourceClosed
 
 if TYPE_CHECKING:
-    from .golem_node import GolemNode
+    from golem_api.golem_node import GolemNode
 
 
 class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL]):

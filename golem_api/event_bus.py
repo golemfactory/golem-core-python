@@ -4,12 +4,11 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, DefaultDict, Iterable, List, Optional, Tuple, Type, TypeVar
 
-from yapapi.mid import events
-from yapapi.mid.events import Event, ResourceEvent
-from yapapi.mid.resource import Resource
+from golem_api.events import Event, ResourceEvent
+from golem_api.low.resource import Resource
 
-EventType = TypeVar("EventType", bound=events.Event)
-ResourceEventType = TypeVar("ResourceEventType", bound=events.ResourceEvent)
+EventType = TypeVar("EventType", bound=Event)
+ResourceEventType = TypeVar("ResourceEventType", bound=ResourceEvent)
 
 
 ######################################
