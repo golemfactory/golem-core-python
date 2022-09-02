@@ -7,9 +7,9 @@ from ya_payment import models as payment_models, RequestorApi as PaymentApi
 from ya_market import models as market_models, RequestorApi as MarketApi
 
 if TYPE_CHECKING:
-    from yapapi.mid.golem_node import GolemNode
-    from yapapi.mid.resource import Resource
-    from yapapi.mid import market
+    from golem_api import GolemNode
+    from golem_api.low.resource import Resource
+    from golem_api.low import market
 
 
 #########################

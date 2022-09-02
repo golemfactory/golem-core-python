@@ -2,7 +2,7 @@ from abc import ABC
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from yapapi.mid.resource import Resource
+    from golem_api.low.resource import Resource
 
 
 class Event(ABC):

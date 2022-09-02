@@ -128,7 +128,7 @@ class EventBus:
         :param callback: An async function to be executed.
         :param event_classes: A list of :any:`ResourceEvent` subclasses - if not empty,
             `callback` will only be executed only on events of matching classes.
-        :param resource_classes: A list of :class:`~yapapi.mid.resource.Resource` subclasses - if not empty,
+        :param resource_classes: A list of :class:`~golem_api.low.Resource` subclasses - if not empty,
             `callback` will only be executed on events related to resources of a matching class.
         :param ids: A list of resource IDs - if not empty,
             `callback` will only be executed on events related to resources with a matching ID.

@@ -2,9 +2,9 @@
 mypy \
     --namespace-packages            \
     --install-types                 \
-    example.py                      \
-    run.py                          \
-    yapapi/mid                      \
+    low_example.py                  \
+    mid_example.py                  \
+    golem_api                       \
     --warn-unused-configs           \
     --disallow-incomplete-defs      \
     --disallow-subclassing-any      \
