@@ -1,6 +1,6 @@
 from typing import AsyncIterator, Optional
 
-from yapapi.mid.market import Agreement, Proposal
+from golem_api.low.market import Agreement, Proposal
 
 
 class AgreementCreator:

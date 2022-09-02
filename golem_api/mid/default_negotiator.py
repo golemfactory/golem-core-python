@@ -1,7 +1,7 @@
 import asyncio
 from typing import AsyncIterator, List, Optional
 
-from yapapi.mid.market import Proposal
+from golem_api.low.market import Proposal
 
 
 class DefaultNegotiator:

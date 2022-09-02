@@ -2,7 +2,7 @@ import logging
 
 from yapapi.log import _YagnaDatetimeFormatter
 
-from yapapi.mid.events import Event
+from golem_api.events import Event
 
 
 class DefaultLogger:

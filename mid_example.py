@@ -5,11 +5,11 @@ from typing import AsyncIterator, AsyncGenerator, TypeVar
 
 from yapapi.payload import vm
 
-from yapapi.mid.golem_node import GolemNode
-from yapapi.mid.market import Agreement, Proposal
+from golem_api import GolemNode
+from golem_api.low import Agreement, Proposal
 
-from yapapi.mid.chain import Chain, SimpleScorer, DefaultNegotiator, AgreementCreator
-from yapapi.mid.default_logger import DefaultLogger
+from golem_api.mid import Chain, SimpleScorer, DefaultNegotiator, AgreementCreator
+from golem_api.default_logger import DefaultLogger
 
 
 IMAGE_HASH = "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"

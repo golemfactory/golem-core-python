@@ -5,7 +5,7 @@ import heapq
 
 from typing import AsyncIterator, Awaitable, Callable, List, Optional, Tuple
 
-from yapapi.mid.market import Proposal
+from golem_api.low.market import Proposal
 
 
 @dataclass(order=True)
