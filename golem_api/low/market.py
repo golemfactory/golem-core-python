@@ -13,6 +13,7 @@ from .yagna_event_collector import YagnaEventCollector
 
 if TYPE_CHECKING:
     from golem_api.golem_node import GolemNode
+    from .activity import Activity  # TODO: do we really need this?
 
 
 class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL]):
@@ -295,7 +296,8 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", _NULL, _NUL
         agreement = await proposal.create_agreement()
         await agreement.confirm()
         await agreement.wait_for_approval()
-        #   Create activity, use the activity
+        activity = await agreement.create_activity()
+        # Use the activity
         await agreement.terminate()
     """
     @api_call_wrapper()
@@ -325,6 +327,12 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", _NULL, _NUL
                 return await self.wait_for_approval()
             else:
                 raise
+
+    @api_call_wrapper()
+    async def create_activity(self) -> "Activity":
+        """Create an activity for given `agreement_id`."""
+        from .activity import Activity
+        return await Activity.create(self.node, self.id)
 
     @api_call_wrapper()
     async def terminate(self, reason: str = '') -> None:

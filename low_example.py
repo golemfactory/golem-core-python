@@ -121,6 +121,32 @@ async def example_5() -> None:
     assert isinstance(got_events[1], events.ResourceClosed)
 
 
+async def example_6() -> None:
+    """Get an activity. Execute a hello world on it."""
+    golem = GolemNode()
+    async with golem:
+        allocation = await golem.create_allocation(1)
+        payload = await vm.repo(image_hash=IMAGE_HASH)
+        demand = await golem.create_demand(payload, allocations=[allocation])
+
+        #   Respond to proposals until we get a counterproposal
+        async for proposal in demand.initial_proposals():
+            our_response = await proposal.respond()
+            try:
+                their_response = await our_response.responses().__anext__()
+                break
+            except StopAsyncIteration:
+                pass
+
+        agreement = await their_response.create_agreement()
+        await agreement.confirm()
+        await agreement.wait_for_approval()
+        print(agreement)
+
+        activity = await agreement.create_activity()
+        print(activity)
+
+
 async def main() -> None:
     # NOTE: this example assumes correct allocation/demand/proposal IDs
     # print("\n---------- EXAMPLE 1 -------------\n")
@@ -140,6 +166,9 @@ async def main() -> None:
 
     print("\n---------- EXAMPLE 5 -------------\n")
     await example_5()
+
+    print("\n---------- EXAMPLE 6 -------------\n")
+    await example_6()
 
 
 if __name__ == '__main__':

@@ -11,8 +11,9 @@ from yapapi.props.builder import DemandBuilder
 from yapapi import props
 
 from .event_bus import EventBus
-from .low.payment import Allocation
+from .low.activity import Activity
 from .low.market import Demand, Proposal, Agreement
+from .low.payment import Allocation
 from .low.resource import Resource
 
 
@@ -201,6 +202,10 @@ class GolemNode:
     def agreement(self, agreement_id: str) -> Agreement:
         """Returns an :any:`Agreement` with a given id (assumed to be correct, there is no validation)."""
         return Agreement(self, agreement_id)
+
+    def activity(self, activity_id: str) -> Activity:
+        """Returns an :any:`Activity` with a given id (assumed to be correct, there is no validation)."""
+        return Activity(self, activity_id)
 
     ##########################
     #   Multi-resource factories for already existing resources
