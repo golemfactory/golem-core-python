@@ -11,7 +11,7 @@ from yapapi.props.builder import DemandBuilder
 from yapapi import props
 
 from .event_bus import EventBus
-from .low.activity import Activity
+from .low.activity import Activity, PoolingBatch
 from .low.market import Demand, Proposal, Agreement
 from .low.payment import Allocation
 from .low.resource import Resource
@@ -77,9 +77,13 @@ class GolemNode:
         await self._event_bus.stop()
 
     async def _stop_event_collectors(self) -> None:
-        #   NOTE: now only Demands collect events, but this will change in the future
         demands = self._all_resources(Demand)
-        tasks = [demand.stop_collecting_events() for demand in demands]
+        batches = self._all_resources(PoolingBatch)
+
+        tasks = []
+        tasks += [demand.stop_collecting_events() for demand in demands]
+        tasks += [batch.stop_collecting_events() for batch in batches]
+
         if tasks:
             await asyncio.gather(*tasks)
 
@@ -209,6 +213,14 @@ class GolemNode:
     def activity(self, activity_id: str) -> Activity:
         """Returns an :any:`Activity` with a given id (assumed to be correct, there is no validation)."""
         return Activity(self, activity_id)
+
+    def batch(self, batch_id: str, activity_id: str) -> PoolingBatch:
+        """Returns a :any:`Batch` with given id (assumed to be correct, there is no validation).
+
+        Id of a batch has a meaning only in the context of an activity,
+        so activity_id is also necessary (and also not validated)."""
+        activity = self.activity(activity_id)
+        return activity.batch(batch_id)
 
     ##########################
     #   Multi-resource factories for already existing resources

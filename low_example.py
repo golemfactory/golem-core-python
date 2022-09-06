@@ -167,13 +167,26 @@ async def example_6() -> None:
                         "stream": {},
                     },
                 }
-            }}
+            }},
+            {"run": {
+                "entry_point": "/bin/sleep",
+                "args": ["5"],
+                "capture": {
+                    "stdout": {
+                        "stream": {},
+                    },
+                    "stderr": {
+                        "stream": {},
+                    },
+                }
+            }},
         ])
 
-        print(batch)
         await batch.finished
-        for event in batch.events:
-            print("STDOUT", event.stdout)
+        for ix, event in enumerate(batch.events):
+            print("STDOUT", ix, event.index)
+            print(event.stdout)
+            print()
 
         print("STOPPING")
     print("STOPPED")

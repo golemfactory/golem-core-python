@@ -35,6 +35,12 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
 
         return batch
 
+    def batch(self, batch_id) -> "PoolingBatch":
+        batch = PoolingBatch(self.node, batch_id)
+        if batch._parent is None:
+            self.add_child(batch)
+        return batch
+
 
 class PoolingBatch(Resource[ActivityApi, _NULL, Activity, _NULL, models.ExeScriptCommandResult]):
     """A single batch of commands.
@@ -66,6 +72,12 @@ class PoolingBatch(Resource[ActivityApi, _NULL, Activity, _NULL, models.ExeScrip
             task = asyncio.get_event_loop().create_task(self._process_yagna_events())
             self._event_collecting_task = task
 
+    async def stop_collecting_events(self) -> None:
+        """Stop collecting events, after a prior call to :func:`start_collecting_events`."""
+        if self._event_collecting_task is not None:
+            self._event_collecting_task.cancel()
+            self._event_collecting_task = None
+
     async def _process_yagna_events(self) -> None:
         event_collector = YagnaEventCollector(
             self.api.get_exec_batch_results,
@@ -74,9 +86,17 @@ class PoolingBatch(Resource[ActivityApi, _NULL, Activity, _NULL, models.ExeScrip
         )
         async with event_collector:
             queue: asyncio.Queue = event_collector.event_queue()
-            print("START COLLECTING")
             while True:
                 event = await queue.get()
+                if event.index < len(self.events):
+                    #   YagnaEventCollector assumes events don't repeat
+                    #   (this is true e.g. for Demand events), but they do repeat -
+                    #   each time YagnaEventCollector asks for batch events it gets all
+                    #   already finished events.
+                    #
+                    #   (this is not very pretty, but quite harmless -> possible TODO
+                    #   for YagnaEventCollector).
+                    continue
                 self.add_event(event)
                 if event.is_batch_finished:
                     self._finished.set_result(None)
