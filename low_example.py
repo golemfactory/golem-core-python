@@ -122,29 +122,61 @@ async def example_5() -> None:
 
 
 async def example_6() -> None:
-    """Get an activity. Execute a hello world on it."""
+    """Get an activity. Execute a hello world on it, using the "lowest level" interface."""
     golem = GolemNode()
     async with golem:
         allocation = await golem.create_allocation(1)
         payload = await vm.repo(image_hash=IMAGE_HASH)
         demand = await golem.create_demand(payload, allocations=[allocation])
 
-        #   Respond to proposals until we get a counterproposal
         async for proposal in demand.initial_proposals():
-            our_response = await proposal.respond()
+            try:
+                our_response = await proposal.respond()
+            except Exception as e:
+                print(str(e))
+                continue
+
             try:
                 their_response = await our_response.responses().__anext__()
-                break
             except StopAsyncIteration:
-                pass
+                continue
 
-        agreement = await their_response.create_agreement()
-        await agreement.confirm()
-        await agreement.wait_for_approval()
-        print(agreement)
+            agreement = await their_response.create_agreement()
+            await agreement.confirm()
+            await agreement.wait_for_approval()
+            print(agreement)
 
-        activity = await agreement.create_activity()
+            try:
+                activity = await agreement.create_activity()
+                break
+            except Exception as e:
+                print(str(e))
+
         print(activity)
+        batch = await activity.raw_exec([
+            {"deploy": {}},
+            {"start": {}},
+            {"run": {
+                "entry_point": "/bin/echo",
+                "args": ["hello", "world"],
+                "capture": {
+                    "stdout": {
+                        "stream": {},
+                    },
+                    "stderr": {
+                        "stream": {},
+                    },
+                }
+            }}
+        ])
+
+        print(batch)
+        await batch.finished
+        for event in batch.events:
+            print("STDOUT", event.stdout)
+
+        print("STOPPING")
+    print("STOPPED")
 
 
 async def main() -> None:
@@ -155,17 +187,17 @@ async def main() -> None:
     # proposal_id = "R-8da944668deeade9d59dfe451656419e68fb04cf88c78c02ad905a7b0276ded6"
     # await example_1(allocation_id, demand_id, proposal_id)
 
-    print("\n---------- EXAMPLE 2 -------------\n")
-    await example_2()
+    # print("\n---------- EXAMPLE 2 -------------\n")
+    # await example_2()
 
-    print("\n---------- EXAMPLE 3 -------------\n")
-    await example_3()
+    # print("\n---------- EXAMPLE 3 -------------\n")
+    # await example_3()
 
-    print("\n---------- EXAMPLE 4 -------------\n")
-    await example_4()
+    # print("\n---------- EXAMPLE 4 -------------\n")
+    # await example_4()
 
-    print("\n---------- EXAMPLE 5 -------------\n")
-    await example_5()
+    # print("\n---------- EXAMPLE 5 -------------\n")
+    # await example_5()
 
     print("\n---------- EXAMPLE 6 -------------\n")
     await example_6()
