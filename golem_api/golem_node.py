@@ -98,9 +98,12 @@ class GolemNode:
 
     async def _close_autoclose_resources(self) -> None:
         agreement_msg = "Work finished"
+        activity_tasks = [r.destroy() for r in self._autoclose_resources if isinstance(r, Activity)]
         agreement_tasks = [r.terminate(agreement_msg) for r in self._autoclose_resources if isinstance(r, Agreement)]
         demand_tasks = [r.unsubscribe() for r in self._autoclose_resources if isinstance(r, Demand)]
         allocation_tasks = [r.release() for r in self._autoclose_resources if isinstance(r, Allocation)]
+        if activity_tasks:
+            await asyncio.gather(*activity_tasks)
         if agreement_tasks:
             await asyncio.gather(*agreement_tasks)
         if demand_tasks:

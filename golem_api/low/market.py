@@ -329,10 +329,13 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", _NULL, _NUL
                 raise
 
     @api_call_wrapper()
-    async def create_activity(self) -> "Activity":
+    async def create_activity(self, autoclose: bool = True, timeout: timedelta = timedelta(seconds=60)) -> "Activity":
         """Create an activity for given `agreement_id`."""
         from .activity import Activity
-        return await Activity.create(self.node, self.id)
+        activity = await Activity.create(self.node, self.id, timeout)
+        if autoclose:
+            self.node.add_autoclose_resource(activity)
+        return activity
 
     @api_call_wrapper()
     async def terminate(self, reason: str = '') -> None:
