@@ -10,7 +10,7 @@ from .payment import DebitNote
 from .market import Agreement
 from .resource import Resource
 from .resource_internals import ActivityApi, _NULL
-from .yagna_event_collector import YagnaEventCollector
+from .event_collector import EventCollector
 
 if TYPE_CHECKING:
     from golem_api import GolemNode
@@ -49,7 +49,10 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
         return [child for child in self.children if isinstance(child, DebitNote)]
 
 
-class PoolingBatch(Resource[ActivityApi, _NULL, Activity, _NULL, models.ExeScriptCommandResult]):
+class PoolingBatch(
+    Resource[ActivityApi, _NULL, Activity, _NULL, models.ExeScriptCommandResult],
+    EventCollector
+):
     """A single batch of commands.
 
     Usage::
@@ -74,37 +77,23 @@ class PoolingBatch(Resource[ActivityApi, _NULL, Activity, _NULL, models.ExeScrip
     async def finished(self) -> None:
         await self._finished
 
-    def start_collecting_events(self) -> None:
-        if self._event_collecting_task is None:
-            task = asyncio.get_event_loop().create_task(self._process_yagna_events())
-            self._event_collecting_task = task
+    ###########################
+    #   Event collector methods
+    def _collect_events_kwargs(self):
+        return {"timeout": 5, "_request_timeout": 5.5}
 
-    async def stop_collecting_events(self) -> None:
-        """Stop collecting events, after a prior call to :func:`start_collecting_events`."""
-        if self._event_collecting_task is not None:
-            self._event_collecting_task.cancel()
-            self._event_collecting_task = None
+    def _collect_events_args(self):
+        return [self.activity.id, self.id]
 
-    async def _process_yagna_events(self) -> None:
-        event_collector = YagnaEventCollector(
-            self.api.get_exec_batch_results,
-            [self.activity.id, self.id],
-            {"timeout": 5, "_request_timeout": 5.5},
-        )
-        async with event_collector:
-            queue: asyncio.Queue = event_collector.event_queue()
-            while True:
-                event = await queue.get()
-                if event.index < len(self.events):
-                    #   YagnaEventCollector assumes events don't repeat
-                    #   (this is true e.g. for Demand events), but they do repeat -
-                    #   each time YagnaEventCollector asks for batch events it gets all
-                    #   already finished events.
-                    #
-                    #   (this is not very pretty, but quite harmless -> possible TODO
-                    #   for YagnaEventCollector).
-                    continue
-                self.add_event(event)
-                if event.is_batch_finished:
-                    self._finished.set_result(None)
-                    break
+    @property
+    def _collect_events_func(self):
+        return self.api.get_exec_batch_results
+
+    async def _process_event(self, event):
+        if event.index < len(self.events):
+            #   Repeated event
+            return
+        self.add_event(event)
+        if event.is_batch_finished:
+            self._finished.set_result(None)
+            await self.stop_collecting_events()

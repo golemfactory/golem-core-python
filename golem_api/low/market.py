@@ -21,28 +21,6 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], Ev
 
     Created with one of the :class:`Demand`-returning methods of the :any:`GolemNode`.
     """
-    ###########################
-    #   Event collector methods
-    def _collect_events_kwargs(self):
-        return {"timeout": 5, "max_events": 10}
-
-    def _collect_events_args(self):
-        return [self.id]
-
-    @property
-    def _collect_events_func(self):
-        return self.api.collect_offers
-
-    async def _process_event(self, event):
-        if isinstance(event, models.ProposalEvent):
-            proposal = Proposal.from_proposal_event(self.node, event)
-            parent = self._get_proposal_parent(proposal)
-            parent.add_child(proposal)
-        elif isinstance(event, models.ProposalRejectedEvent):
-            assert event.proposal_id is not None  # mypy
-            proposal = self.proposal(event.proposal_id)
-            proposal.add_event(event)
-
     ######################
     #   EXTERNAL INTERFACE
     @api_call_wrapper(ignore=[404, 410])
@@ -71,6 +49,29 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], Ev
             proposal.demand = self
 
         return proposal
+    
+    ###########################
+    #   Event collector methods
+    def _collect_events_kwargs(self):
+        return {"timeout": 5, "max_events": 10}
+
+    def _collect_events_args(self):
+        return [self.id]
+
+    @property
+    def _collect_events_func(self):
+        return self.api.collect_offers
+
+    async def _process_event(self, event):
+        if isinstance(event, models.ProposalEvent):
+            proposal = Proposal.from_proposal_event(self.node, event)
+            parent = self._get_proposal_parent(proposal)
+            parent.add_child(proposal)
+        elif isinstance(event, models.ProposalRejectedEvent):
+            assert event.proposal_id is not None  # mypy
+            proposal = self.proposal(event.proposal_id)
+            proposal.add_event(event)
+
 
     #################
     #   OTHER METHODS

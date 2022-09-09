@@ -1,56 +1,42 @@
+from abc import ABC, abstractmethod
 import asyncio
+#   TODO: replace Any here
+from typing import Any, Dict, List, Optional
 
-from typing import Any, Callable, Dict, List, Optional
 
+class EventCollector(ABC):
+    _event_collecting_task: Optional[asyncio.Task] = None
 
-class YagnaEventCollector:
-    """Utility class that listens for yagna events on a given endpoint and puts them in queue(s).
+    def start_collecting_events(self) -> None:
+        if self._event_collecting_task is None:
+            task = asyncio.get_event_loop().create_task(self._collect_yagna_events())
+            self._event_collecting_task = task
 
-    There should be at most a single YagnaEventCollector listening on a given endpoint, but multiple
-    cliens talking to a single instance of a YagnaEventCollector will get the same events.
-    """
+    async def stop_collecting_events(self) -> None:
+        if self._event_collecting_task is not None:
+            self._event_collecting_task.cancel()
+            self._event_collecting_task = None
 
-    def __init__(self, func: Callable, func_args: List[Any], func_kwargs: Dict[Any, Any]):
-        self.func = func
-        self.func_args = func_args
-        self.func_kwargs = func_kwargs
-
-        self._task: Optional[asyncio.Task] = None
-        self._events: List[Any] = []
-        self._queues: List[asyncio.Queue] = []
-
-    async def __aenter__(self) -> "YagnaEventCollector":
-        self._task = asyncio.create_task(self._collect_events())
-        return self
-
-    async def __aexit__(self, *exc_info: Any) -> None:
-        if self._task is not None:
-            self._task.cancel()
-            self._task = None
-
-    async def _collect_events(self) -> None:
+    async def _collect_yagna_events(self) -> None:
         while True:
-            events = await self.func(*self.func_args, **self.func_kwargs)
-            self._events += events
+            args = self._collect_events_args()
+            kwargs = self._collect_events_kwargs()
+            events = await self._collect_events_func(*args, **kwargs)
+            if events:
+                for event in events:
+                    await self._process_event(event)
 
-            for event in events:
-                for queue in self._queues:
-                    queue.put_nowait(event)
+    @property
+    @abstractmethod
+    def _collect_events_func(self) -> Any:
+        raise NotImplementedError
 
-            if not events:
-                await asyncio.sleep(0.1)
+    @abstractmethod
+    async def _process_event(self, event) -> None:
+        raise NotImplementedError
 
-    def event_queue(self, past_events: bool = True) -> asyncio.Queue:
-        """Returns :class:`asyncio.Queue` where all incoming events will be put.
+    def _collect_events_args(self) -> List:
+        return []
 
-        Multiple calls to this method create multiple queues that don't interfere with each other.
-
-        If `past_events` is True, returned queue will contain all past events known to this YagnaEventCollector.
-        """
-        queue: asyncio.Queue[Any] = asyncio.Queue()
-        self._queues.append(queue)
-
-        if past_events:
-            for event in self._events:
-                queue.put_nowait(event)
-        return queue
+    def _collect_events_kwargs(self) -> Dict:
+        return {}
