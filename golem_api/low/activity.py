@@ -5,6 +5,7 @@ import json
 
 from ya_activity import models
 
+from golem_api.events import ResourceClosed
 from .market import Agreement
 from .resource import Resource
 from .resource_internals import ActivityApi, _NULL
@@ -23,6 +24,7 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
 
     async def destroy(self) -> None:
         await self.api.destroy_activity(self.id)
+        self.node.event_bus.emit(ResourceClosed(self))
 
     async def raw_exec(self, commands: List[dict], autostart: bool = True) -> "PoolingBatch":
         commands_str = json.dumps(commands)

@@ -15,6 +15,7 @@ from .low.activity import Activity, PoolingBatch
 from .low.market import Demand, Proposal, Agreement
 from .low.payment import Allocation
 from .low.resource import Resource
+from .low.payment_event_collector import DebitNoteEventCollector, InvoiceEventCollector
 
 
 DEFAULT_EXPIRATION_TIMEOUT = timedelta(seconds=1800)
@@ -51,6 +52,9 @@ class GolemNode:
         self._autoclose_resources: Set[Resource] = set()
         self._event_bus: EventBus = EventBus()
 
+        self._invoice_event_collector = InvoiceEventCollector(self)
+        self._debit_note_event_collector = DebitNoteEventCollector(self)
+
     ########################
     #   Start/stop interface
     async def __aenter__(self) -> "GolemNode":
@@ -64,10 +68,14 @@ class GolemNode:
 
     async def start(self) -> None:
         self._event_bus.start()
+
         self._ya_market_api = self._api_config.market()
         self._ya_activity_api = self._api_config.activity()
         self._ya_payment_api = self._api_config.payment()
         self._ya_net_api = self._api_config.net()
+
+        self._invoice_event_collector.start_collecting_events()
+        self._debit_note_event_collector.start_collecting_events()
 
     async def aclose(self) -> None:
         self._set_no_more_children()
@@ -80,7 +88,10 @@ class GolemNode:
         demands = self._all_resources(Demand)
         batches = self._all_resources(PoolingBatch)
 
-        tasks = []
+        tasks = [
+            self._invoice_event_collector.stop_collecting_events(),
+            self._debit_note_event_collector.stop_collecting_events(),
+        ]
         tasks += [demand.stop_collecting_events() for demand in demands]
         tasks += [batch.stop_collecting_events() for batch in batches]
 
