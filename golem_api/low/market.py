@@ -7,6 +7,7 @@ from ya_market import RequestorApi, models as models, exceptions
 from golem_api.events import ResourceClosed
 from .api_call_wrapper import api_call_wrapper
 from .exceptions import ResourceNotFound
+from .payment import Invoice
 from .resource import Resource
 from .resource_internals import _NULL
 from .yagna_event_collector import YagnaEventCollector
@@ -344,3 +345,10 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity",
         #   FIXME: check our state first
         await self.api.terminate_agreement(self.id, request_body={"message": reason})
         self.node.event_bus.emit(ResourceClosed(self))
+
+    @property
+    def invoice(self) -> Optional[Invoice]:
+        try:
+            return [child for child in self.children if isinstance(child, Invoice)][0]
+        except IndexError:
+            return None

@@ -6,6 +6,7 @@ import json
 from ya_activity import models
 
 from golem_api.events import ResourceClosed
+from .payment import DebitNote
 from .market import Agreement
 from .resource import Resource
 from .resource_internals import ActivityApi, _NULL
@@ -42,6 +43,10 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
         if batch._parent is None:
             self.add_child(batch)
         return batch
+
+    @property
+    def debit_notes(self) -> List[DebitNote]:
+        return [child for child in self.children if isinstance(child, DebitNote)]
 
 
 class PoolingBatch(Resource[ActivityApi, _NULL, Activity, _NULL, models.ExeScriptCommandResult]):

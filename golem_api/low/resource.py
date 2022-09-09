@@ -1,5 +1,6 @@
 import asyncio
 from abc import ABC, ABCMeta
+import re
 from typing import AsyncIterator, Awaitable, Callable, Generic, List, Optional, TYPE_CHECKING, Type
 
 from golem_api.events import NewResource, ResourceDataChanged
@@ -201,7 +202,8 @@ class Resource(
     @property
     def _get_method_name(self) -> str:
         """Name of the single GET ya_client method, e.g. get_allocation."""
-        return f'get_{type(self).__name__.lower()}'
+        snake_case_name = re.sub('([A-Z]+)', r'_\1', type(self).__name__).lower()
+        return f'get' + snake_case_name
 
     @classmethod
     def _get_all_method_name(cls) -> str:

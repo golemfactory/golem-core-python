@@ -13,7 +13,7 @@ from yapapi import props
 from .event_bus import EventBus
 from .low.activity import Activity, PoolingBatch
 from .low.market import Demand, Proposal, Agreement
-from .low.payment import Allocation
+from .low.payment import Allocation, DebitNote, Invoice
 from .low.resource import Resource
 from .low.payment_event_collector import DebitNoteEventCollector, InvoiceEventCollector
 
@@ -204,6 +204,14 @@ class GolemNode:
     def allocation(self, allocation_id: str) -> Allocation:
         """Returns an :any:`Allocation` with a given id (assumed to be correct, there is no validation)."""
         return Allocation(self, allocation_id)
+
+    def debit_note(self, debit_note_id: str) -> DebitNote:
+        """Returns an :any:`DebitNote` with a given id (assumed to be correct, there is no validation)."""
+        return DebitNote(self, debit_note_id)
+
+    def invoice(self, invoice_id: str) -> Invoice:
+        """Returns an :any:`Invoice` with a given id (assumed to be correct, there is no validation)."""
+        return Invoice(self, invoice_id)
 
     def demand(self, demand_id: str) -> Demand:
         """Returns a :any:`Demand` with a given id (assumed to be correct, there is no validation)."""

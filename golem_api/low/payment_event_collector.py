@@ -1,75 +1,50 @@
-from abc import ABC, abstractmethod
-import asyncio
-from typing import Optional, TYPE_CHECKING
+from typing import Tuple, TYPE_CHECKING
+from datetime import datetime, timezone
 
 if TYPE_CHECKING:
     from golem_api import GolemNode
 
 from .payment import DebitNote, Invoice
-from .yagna_event_collector import YagnaEventCollector
+from .market import Agreement
+from .activity import Activity
+from .event_collector import EventCollector
 
 
-class PaymentEventCollector(ABC):
-    #   TODO (maybe?):
-    #   1. Demand and PoolingBatch should also inherit from this class
-    #   2. Merge YagnaEventCollector into it
-    _event_collecting_task: Optional[asyncio.Task] = None
-
+class PaymentEventCollector(EventCollector):
     def __init__(self, node: "GolemNode"):
         self.node = node
+        self.min_ts = datetime.now(timezone.utc)
 
-    def start_collecting_events(self) -> None:
-        if self._event_collecting_task is None:
-            task = asyncio.get_event_loop().create_task(self._process_yagna_events())
-            self._event_collecting_task = task
+    def _collect_events_kwargs(self):
+        return {'after_timestamp': self.min_ts}
 
-    async def stop_collecting_events(self) -> None:
-        if self._event_collecting_task is not None:
-            self._event_collecting_task.cancel()
-            await self._event_collecting_task
-            self._event_collecting_task = None
-
-    @abstractmethod
-    async def _process_yagna_events(self) -> None:
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def api(self):
-        raise NotImplementedError
+    async def _process_event(self, event):
+        self.min_ts = max(event.event_date, self.min_ts)
+        resource, parent_resource = await self._get_event_resources(event)
+        resource.add_event(event)
+        if resource._parent is None:
+            parent_resource.add_child(resource)
 
 
 class DebitNoteEventCollector(PaymentEventCollector):
     @property
-    def api(self):
-        return DebitNote._get_api(self.node)
+    def _collect_events_func(self):
+        return DebitNote._get_api(self.node).get_debit_note_events
 
-    async def _process_yagna_events(self) -> None:
-        event_collector = YagnaEventCollector(
-            self.api.get_debit_note_events,
-            [],
-            {},
-        )
-        async with event_collector:
-            queue: asyncio.Queue = event_collector.event_queue()
-            while True:
-                event = await queue.get()
-                print("---> GOT EVENT!", event)
+    async def _get_event_resources(self, event) -> Tuple[DebitNote, Activity]:
+        debit_note = self.node.debit_note(event.debit_note_id)
+        await debit_note.get_data()
+        activity = self.node.activity(debit_note.data.activity_id)
+        return debit_note, activity
 
 
 class InvoiceEventCollector(PaymentEventCollector):
     @property
-    def api(self):
-        return Invoice._get_api(self.node)
+    def _collect_events_func(self):
+        return Invoice._get_api(self.node).get_invoice_events
 
-    async def _process_yagna_events(self) -> None:
-        event_collector = YagnaEventCollector(
-            self.api.get_invoice_events,
-            [],
-            {},
-        )
-        async with event_collector:
-            queue: asyncio.Queue = event_collector.event_queue()
-            while True:
-                event = await queue.get()
-                print("---> GOT EVENT!", event)
+    async def _get_event_resources(self, event) -> Tuple[Invoice, Agreement]:
+        invoice = self.node.invoice(event.invoice_id)
+        await invoice.get_data()
+        agreement = self.node.agreement(invoice.data.agreement_id)
+        return invoice, agreement
