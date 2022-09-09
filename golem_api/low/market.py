@@ -1,4 +1,3 @@
-import asyncio
 from typing import AsyncIterator, Dict, List, Optional, TYPE_CHECKING, Union
 from datetime import datetime, timedelta, timezone
 
@@ -10,39 +9,42 @@ from .exceptions import ResourceNotFound
 from .payment import Invoice
 from .resource import Resource
 from .resource_internals import _NULL
-from .yagna_event_collector import YagnaEventCollector
+from .event_collector import EventCollector
 
 if TYPE_CHECKING:
     from golem_api.golem_node import GolemNode
     from .activity import Activity  # TODO: do we really need this?
 
 
-class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL]):
+class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], EventCollector):
     """A single demand on the Golem Network.
 
     Created with one of the :class:`Demand`-returning methods of the :any:`GolemNode`.
     """
-    _event_collecting_task: Optional[asyncio.Task] = None
+    ###########################
+    #   Event collector methods
+    def _collect_events_kwargs(self):
+        return {"timeout": 5, "max_events": 10}
+
+    def _collect_events_args(self):
+        return [self.id]
+
+    @property
+    def _collect_events_func(self):
+        return self.api.collect_offers
+
+    async def _process_event(self, event):
+        if isinstance(event, models.ProposalEvent):
+            proposal = Proposal.from_proposal_event(self.node, event)
+            parent = self._get_proposal_parent(proposal)
+            parent.add_child(proposal)
+        elif isinstance(event, models.ProposalRejectedEvent):
+            assert event.proposal_id is not None  # mypy
+            proposal = self.proposal(event.proposal_id)
+            proposal.add_event(event)
 
     ######################
     #   EXTERNAL INTERFACE
-    def start_collecting_events(self) -> None:
-        """Start collecting `yagna` events in response to this demand.
-
-        Each event is either a new initial :class:`Proposal` (yielded in :func:`initial_proposals`),
-        a response to our counter-proposal (accessible via :func:`Proposal.responses`),
-        or a rejection of a proposal.
-        """
-        if self._event_collecting_task is None:
-            task = asyncio.get_event_loop().create_task(self._process_yagna_events())
-            self._event_collecting_task = task
-
-    async def stop_collecting_events(self) -> None:
-        """Stop collecting events, after a prior call to :func:`start_collecting_events`."""
-        if self._event_collecting_task is not None:
-            self._event_collecting_task.cancel()
-            self._event_collecting_task = None
-
     @api_call_wrapper(ignore=[404, 410])
     async def unsubscribe(self) -> None:
         """Stop all operations related to this demand and remove it.
@@ -100,25 +102,6 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL]):
         api = cls._get_api(node)
         demand_id = await api.subscribe_demand(data)
         return cls(node, demand_id)
-
-    async def _process_yagna_events(self) -> None:
-        event_collector = YagnaEventCollector(
-            self.api.collect_offers,
-            [self.id],
-            {"timeout": 5, "max_events": 10},
-        )
-        async with event_collector:
-            queue: asyncio.Queue = event_collector.event_queue()
-            while True:
-                event = await queue.get()
-                if isinstance(event, models.ProposalEvent):
-                    proposal = Proposal.from_proposal_event(self.node, event)
-                    parent = self._get_proposal_parent(proposal)
-                    parent.add_child(proposal)
-                elif isinstance(event, models.ProposalRejectedEvent):
-                    assert event.proposal_id is not None  # mypy
-                    proposal = self.proposal(event.proposal_id)
-                    proposal.add_event(event)
 
     def _get_proposal_parent(self, proposal: "Proposal") -> Union["Demand", "Proposal"]:
         if proposal.initial:
