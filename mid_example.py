@@ -6,9 +6,9 @@ from typing import AsyncIterator, AsyncGenerator, TypeVar
 from yapapi.payload import vm
 
 from golem_api import GolemNode
-from golem_api.low import Agreement, Proposal
+from golem_api.low import Activity, Proposal
 
-from golem_api.mid import Chain, SimpleScorer, DefaultNegotiator, AgreementCreator
+from golem_api.mid import Chain, SimpleScorer, DefaultNegotiator, AgreementCreator, ActivityCreator
 from golem_api.default_logger import DefaultLogger
 
 
@@ -45,19 +45,44 @@ async def main() -> None:
             SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=1)),
             DefaultNegotiator(buffer_size=5),
             AgreementCreator(),
+            ActivityCreator(),
             max_3,
         )
-        agreement: Agreement  # I don't know if it's possible to modify Chain typing to make this redundant
-        async for agreement in chain:
-            print(f"--> {agreement}")
+        activity: Activity
+        async for activity in chain:
+            print(f"--> {activity}")
+            batch = await activity.raw_exec([
+                {"deploy": {}},
+                {"start": {}},
+                {"run": {
+                    "entry_point": "/bin/echo",
+                    "args": ["hello", "world"],
+                    "capture": {
+                        "stdout": {
+                            "stream": {},
+                        },
+                        "stderr": {
+                            "stream": {},
+                        },
+                    }
+                }},
+                {"run": {
+                    "entry_point": "/bin/sleep",
+                    "args": ["5"],
+                    "capture": {
+                        "stdout": {
+                            "stream": {},
+                        },
+                        "stderr": {
+                            "stream": {},
+                        },
+                    }
+                }},
+            ])
 
-            #   Low-level objects form a tree - each has a parent and children.
-            #   E.g. agreement.parent is the final proposal, and agreement.parent.parent
-            #   is our last response that lead us to the final proposal.
-            #   Proposal state is not auto-updated, but we can update it manually:
-            assert agreement.parent.data.state == "Draft"
-            await agreement.parent.get_data(force=True)
-            assert agreement.parent.data.state == "Accepted"  # type: ignore  # ya_client TODO?
+            await batch.finished
+            for event in batch.events:
+                print("STDOUT", event.stdout)
 
 
 if __name__ == '__main__':
