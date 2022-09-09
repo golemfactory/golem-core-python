@@ -7,10 +7,10 @@ if TYPE_CHECKING:
 from .payment import DebitNote, Invoice
 from .market import Agreement
 from .activity import Activity
-from .event_collector import EventCollector
+from .yagna_event_collector import YagnaEventCollector
 
 
-class PaymentEventCollector(EventCollector):
+class PaymentEventCollector(YagnaEventCollector):
     def __init__(self, node: "GolemNode"):
         self.node = node
         self.min_ts = datetime.now(timezone.utc)

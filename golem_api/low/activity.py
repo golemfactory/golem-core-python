@@ -10,7 +10,7 @@ from .payment import DebitNote
 from .market import Agreement
 from .resource import Resource
 from .resource_internals import ActivityApi, _NULL
-from .event_collector import EventCollector
+from .yagna_event_collector import YagnaEventCollector
 
 if TYPE_CHECKING:
     from golem_api import GolemNode
@@ -51,7 +51,7 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
 
 class PoolingBatch(
     Resource[ActivityApi, _NULL, Activity, _NULL, models.ExeScriptCommandResult],
-    EventCollector
+    YagnaEventCollector
 ):
     """A single batch of commands.
 

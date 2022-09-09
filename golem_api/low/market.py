@@ -9,14 +9,14 @@ from .exceptions import ResourceNotFound
 from .payment import Invoice
 from .resource import Resource
 from .resource_internals import _NULL
-from .event_collector import EventCollector
+from .yagna_event_collector import YagnaEventCollector
 
 if TYPE_CHECKING:
     from golem_api.golem_node import GolemNode
     from .activity import Activity  # TODO: do we really need this?
 
 
-class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], EventCollector):
+class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], YagnaEventCollector):
     """A single demand on the Golem Network.
 
     Created with one of the :class:`Demand`-returning methods of the :any:`GolemNode`.
@@ -49,7 +49,7 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], Ev
             proposal.demand = self
 
         return proposal
-    
+
     ###########################
     #   Event collector methods
     def _collect_events_kwargs(self):
@@ -71,7 +71,6 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], Ev
             assert event.proposal_id is not None  # mypy
             proposal = self.proposal(event.proposal_id)
             proposal.add_event(event)
-
 
     #################
     #   OTHER METHODS

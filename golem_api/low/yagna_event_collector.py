@@ -4,7 +4,7 @@ import asyncio
 from typing import Any, Dict, List, Optional
 
 
-class EventCollector(ABC):
+class YagnaEventCollector(ABC):
     _event_collecting_task: Optional[asyncio.Task] = None
 
     def start_collecting_events(self) -> None:
