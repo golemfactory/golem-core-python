@@ -35,7 +35,7 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
 
         return batch
 
-    def batch(self, batch_id) -> "PoolingBatch":
+    def batch(self, batch_id: str) -> "PoolingBatch":
         batch = PoolingBatch(self.node, batch_id)
         if batch._parent is None:
             self.add_child(batch)
@@ -64,10 +64,10 @@ class PoolingBatch(Resource[ActivityApi, _NULL, Activity, _NULL, models.ExeScrip
         return self.parent
 
     @property
-    async def finished(self):
+    async def finished(self) -> None:
         await self._finished
 
-    def start_collecting_events(self):
+    def start_collecting_events(self) -> None:
         if self._event_collecting_task is None:
             task = asyncio.get_event_loop().create_task(self._process_yagna_events())
             self._event_collecting_task = task

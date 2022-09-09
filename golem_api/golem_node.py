@@ -253,7 +253,7 @@ class GolemNode:
 
     #########
     #   Other
-    def add_autoclose_resource(self, resource: Union["Allocation", "Demand", "Agreement"]) -> None:
+    def add_autoclose_resource(self, resource: Union["Allocation", "Demand", "Agreement", "Activity"]) -> None:
         self._autoclose_resources.add(resource)
 
     def _all_resources(self, cls: Type[ResourceType]) -> List[ResourceType]:

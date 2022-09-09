@@ -1,11 +1,11 @@
 """The only purpose of this file is to increase code readability by separating "deep" internals
 from the "important" part od the app logic"""
 
-from typing import get_args, no_type_check, Type, TypeVar, TYPE_CHECKING, Union
+from typing import get_args, no_type_check, Any, Type, TypeVar, TYPE_CHECKING, Union
 
 from ya_payment import models as payment_models, RequestorApi as PaymentApi
 from ya_market import models as market_models, RequestorApi as MarketApi
-from ya_activity import RequestorControlApi, RequestorStateApi
+from ya_activity import ApiClient as ActivityApiClient, RequestorControlApi, RequestorStateApi
 
 if TYPE_CHECKING:
     from golem_api import GolemNode
@@ -57,11 +57,11 @@ class ActivityApi:
     A: Because we want to keep internal interface as unified as possible, at least for now -
        - we might want to change this in the future.
     """
-    def __init__(self, ya_activity_api):
+    def __init__(self, ya_activity_api: ActivityApiClient):
         self.__control_api = RequestorControlApi(ya_activity_api)
         self.__state_api = RequestorStateApi(ya_activity_api)
 
-    def __getattr__(self, attr_name):
+    def __getattr__(self, attr_name: str) -> Any:
         try:
             return getattr(self.__control_api, attr_name)
         except AttributeError:
