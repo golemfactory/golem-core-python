@@ -82,3 +82,11 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
     async def demand_properties_constraints(self) -> Tuple[List[models.MarketProperty], List[str]]:
         data = await self.api.get_demand_decorations([self.id])
         return data.properties, data.constraints
+
+
+class DebitNote(Resource[RequestorApi, models.DebitNote, _NULL, _NULL, _NULL]):
+    pass
+
+
+class Invoice(Resource[RequestorApi, models.Invoice, _NULL, _NULL, _NULL]):
+    pass

@@ -288,7 +288,7 @@ class Proposal(
         return proposal
 
 
-class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", _NULL, _NULL]):
+class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity", _NULL]):
     """A single agreement on the Golem Network.
 
     Sample usage::
@@ -335,6 +335,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", _NULL, _NUL
         activity = await Activity.create(self.node, self.id, timeout)
         if autoclose:
             self.node.add_autoclose_resource(activity)
+        self.add_child(activity)
         return activity
 
     @api_call_wrapper()
