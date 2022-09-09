@@ -1,9 +1,11 @@
+from abc import abstractmethod
 from typing import Tuple, TYPE_CHECKING
 from datetime import datetime, timezone
 
 if TYPE_CHECKING:
     from golem_api import GolemNode
 
+from .resource import Resource
 from .payment import DebitNote, Invoice
 from .market import Agreement
 from .activity import Activity
@@ -24,6 +26,10 @@ class PaymentEventCollector(YagnaEventCollector):
         resource.add_event(event)
         if resource._parent is None:
             parent_resource.add_child(resource)
+
+    @abstractmethod
+    async def _get_event_resources(self, event) -> Tuple[Resource, Resource]:
+        raise NotImplementedError
 
 
 class DebitNoteEventCollector(PaymentEventCollector):

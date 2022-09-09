@@ -5,48 +5,17 @@ from typing import get_args, no_type_check, Any, Type, TypeVar, TYPE_CHECKING, U
 
 from ya_payment import models as payment_models, RequestorApi as PaymentApi
 from ya_market import models as market_models, RequestorApi as MarketApi
-from ya_activity import ApiClient as ActivityApiClient, RequestorControlApi, RequestorStateApi
+from ya_activity import (
+    ApiClient as ActivityApiClient,
+    RequestorControlApi,
+    RequestorStateApi,
+    models as activity_models
+)
 
 if TYPE_CHECKING:
     from golem_api import GolemNode
     from golem_api.low.resource import Resource
-    from golem_api.low import market
-
-
-#########################
-#   TYPING BLACK MAGIC
-class _NULL:
-    """Set this as a type to tell the typechecker that call is just invalid.
-
-    This might be ugly, but keeps Resource inheritance tree simple."""
-
-
-ResourceType = TypeVar("ResourceType", bound="Resource")
-RequestorApiType = TypeVar("RequestorApiType", PaymentApi, MarketApi)
-ModelType = TypeVar(
-    "ModelType",
-    payment_models.Allocation,
-    market_models.Demand,
-    market_models.Proposal,
-    market_models.Agreement,
-)
-ParentType = TypeVar(
-    "ParentType",
-    _NULL,
-    "market.Proposal",
-    Union["market.Demand", "market.Proposal"]
-)
-ChildType = TypeVar(
-    "ChildType",
-    _NULL,
-    "market.Proposal",
-    Union["market.Proposal", "market.Agreement"],
-)
-EventType = TypeVar(
-    "EventType",
-    _NULL,
-    Union[market_models.ProposalEvent, market_models.ProposalRejectedEvent],
-)
+    from golem_api.low import market, activity
 
 
 class ActivityApi:
@@ -66,6 +35,50 @@ class ActivityApi:
             return getattr(self.__control_api, attr_name)
         except AttributeError:
             return getattr(self.__state_api, attr_name)
+
+
+#########################
+#   TYPING BLACK MAGIC
+class _NULL:
+    """Set this as a type to tell the typechecker that call is just invalid.
+
+    This might be ugly, but keeps Resource inheritance tree simple."""
+
+
+ResourceType = TypeVar("ResourceType", bound="Resource")
+RequestorApiType = TypeVar("RequestorApiType", PaymentApi, MarketApi, ActivityApi)
+ModelType = TypeVar(
+    "ModelType",
+    _NULL,
+    payment_models.Allocation,
+    payment_models.DebitNote,
+    payment_models.Invoice,
+    market_models.Demand,
+    market_models.Proposal,
+    market_models.Agreement,
+)
+ParentType = TypeVar(
+    "ParentType",
+    _NULL,
+    "market.Proposal",
+    "market.Agreement",
+    "market.Activity",
+    Union["market.Demand", "market.Proposal"]
+)
+ChildType = TypeVar(
+    "ChildType",
+    _NULL,
+    "market.Proposal",
+    "activity.Activity",
+    "activity.PoolingBatch",
+    Union["market.Proposal", "market.Agreement"],
+)
+EventType = TypeVar(
+    "EventType",
+    _NULL,
+    Union[market_models.ProposalEvent, market_models.ProposalRejectedEvent],
+    activity_models.ExeScriptCommandResult,
+)
 
 
 @no_type_check
