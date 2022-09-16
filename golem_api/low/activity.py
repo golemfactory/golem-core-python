@@ -12,6 +12,7 @@ from .market import Agreement
 from .resource import Resource
 from .resource_internals import ActivityApi, _NULL
 from .yagna_event_collector import YagnaEventCollector
+from .api_call_wrapper import api_call_wrapper
 
 if TYPE_CHECKING:
     from golem_api import GolemNode
@@ -24,10 +25,12 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
         activity_id = await api.create_activity(agreement_id, timeout=timeout.total_seconds())
         return cls(node, activity_id)
 
+    @api_call_wrapper()
     async def destroy(self) -> None:
         await self.api.destroy_activity(self.id)
         self.node.event_bus.emit(ResourceClosed(self))
 
+    @api_call_wrapper()
     async def execute(self, script: models.ExeScriptRequest) -> "PoolingBatch":
         batch_id = await self.api.call_exec(self.id, script)
         batch = PoolingBatch(self.node, batch_id)
