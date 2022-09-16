@@ -187,7 +187,7 @@ class Resource(
         data = await get_all_method()
 
         resources = []
-        id_field = f'{cls.__name__.lower()}_id'
+        id_field = f'{cls._snake_case_name()}_id'
         for raw in data:
             id_ = getattr(raw, id_field)
             resources.append(cls(node, id_, raw))
@@ -202,13 +202,17 @@ class Resource(
     @property
     def _get_method_name(self) -> str:
         """Name of the single GET ya_client method, e.g. get_allocation."""
-        snake_case_name = re.sub('([A-Z]+)', r'_\1', type(self).__name__).lower()
-        return f'get' + snake_case_name
+        return f'get_{self._snake_case_name()}'
 
     @classmethod
     def _get_all_method_name(cls) -> str:
         """Name of the collection GET ya_client method, e.g. get_allocations."""
-        return f'get_{cls.__name__.lower()}s'
+        return f'get_{cls._snake_case_name()}s'
+    
+    @classmethod
+    def _snake_case_name(cls) -> str:
+        replaced = re.sub('([A-Z]+)', r'_\1', cls.__name__).lower()
+        return replaced[1:]
 
     def __str__(self) -> str:
         return f'{type(self).__name__}({self._id})'

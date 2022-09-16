@@ -192,6 +192,19 @@ async def example_6() -> None:
     print("STOPPED")
 
 
+async def example_7():
+    """Print most recent invoice and debit note received by this node"""
+    golem = GolemNode()
+    async with golem:
+        invoice = (await golem.invoices())[-1]
+        print(invoice)
+        print(await invoice.get_data())
+
+        debit_note = (await golem.debit_notes())[-1]
+        print(debit_note)
+        print(await debit_note.get_data())
+
+
 async def main() -> None:
     # NOTE: this example assumes correct allocation/demand/proposal IDs
     # print("\n---------- EXAMPLE 1 -------------\n")
@@ -212,8 +225,11 @@ async def main() -> None:
     # print("\n---------- EXAMPLE 5 -------------\n")
     # await example_5()
 
-    print("\n---------- EXAMPLE 6 -------------\n")
-    await example_6()
+    # print("\n---------- EXAMPLE 6 -------------\n")
+    # await example_6()
+
+    print("\n---------- EXAMPLE 7 -------------\n")
+    await example_7()
 
 
 if __name__ == '__main__':

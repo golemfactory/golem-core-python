@@ -259,6 +259,14 @@ class GolemNode:
         """
         return await Demand.get_all(self)
 
+    async def invoices(self) -> List[Invoice]:
+        """Returns a list of :any:`Invoice` objects corresponding to all invoices received by this node."""
+        return await Invoice.get_all(self)
+
+    async def debit_notes(self) -> List[DebitNote]:
+        """Returns a list of :any:`DebitNote` objects corresponding to all debit notes received by this node."""
+        return await DebitNote.get_all(self)
+
     ##########################
     #   Events
     @property
