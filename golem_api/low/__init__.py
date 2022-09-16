@@ -1,3 +1,3 @@
 from .market import Demand, Proposal, Agreement
-from .payment import Allocation
+from .payment import Allocation, DebitNote, Invoice
 from .activity import Activity, PoolingBatch

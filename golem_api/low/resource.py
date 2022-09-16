@@ -168,7 +168,7 @@ class Resource(
             if self._data is None or force:
                 old_data = self._data
                 self._data = await self._get_data()
-                if old_data != self._data:
+                if old_data is not None and old_data != self._data:
                     self.node.event_bus.emit(ResourceDataChanged(self, old_data))
 
         assert self._data is not None  # mypy
@@ -208,7 +208,7 @@ class Resource(
     def _get_all_method_name(cls) -> str:
         """Name of the collection GET ya_client method, e.g. get_allocations."""
         return f'get_{cls._snake_case_name()}s'
-    
+
     @classmethod
     def _snake_case_name(cls) -> str:
         replaced = re.sub('([A-Z]+)', r'_\1', cls.__name__).lower()

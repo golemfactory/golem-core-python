@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import List, Tuple, TYPE_CHECKING
+from typing import List, Tuple, TYPE_CHECKING, Union
 from decimal import Decimal
 
 from ya_payment import RequestorApi, models
@@ -85,8 +85,20 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
 
 
 class DebitNote(Resource[RequestorApi, models.DebitNote, _NULL, _NULL, _NULL]):
-    pass
+    async def accept_full(self, allocation: Allocation) -> None:
+        amount_str = (await self.get_data()).total_amount_due
+        await self.accept(allocation, Decimal(amount_str))
+
+    async def accept(self, allocation: Allocation, amount: Union[Decimal, float]) -> None:
+        acceptance = models.Acceptance(total_amount_accepted=str(amount), allocation_id=allocation.id)
+        await self.api.accept_debit_note(self.id, acceptance)
 
 
 class Invoice(Resource[RequestorApi, models.Invoice, _NULL, _NULL, _NULL]):
-    pass
+    async def accept_full(self, allocation: Allocation) -> None:
+        amount_str = (await self.get_data()).amount
+        await self.accept(allocation, Decimal(amount_str))
+
+    async def accept(self, allocation: Allocation, amount: Union[Decimal, float]) -> None:
+        acceptance = models.Acceptance(total_amount_accepted=str(amount), allocation_id=allocation.id)
+        await self.api.accept_invoice(self.id, acceptance)

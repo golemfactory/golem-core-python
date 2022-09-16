@@ -6,10 +6,12 @@ from typing import AsyncIterator, AsyncGenerator, TypeVar
 from yapapi.payload import vm
 
 from golem_api import GolemNode
-from golem_api.low import Activity, Proposal
+from golem_api.low import Activity, DebitNote, Invoice, Proposal
 
 from golem_api.mid import Chain, SimpleScorer, DefaultNegotiator, AgreementCreator, ActivityCreator
 from golem_api.default_logger import DefaultLogger
+from golem_api.default_payment_manager import DefaultPaymentManager
+from golem_api.events import NewResource
 
 
 IMAGE_HASH = "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
@@ -30,6 +32,35 @@ async def max_3(any_generator: AsyncIterator[X]) -> AsyncGenerator[X, None]:
         if cnt == 3:
             break
 
+batch_data = [
+    {"deploy": {}},
+    {"start": {}},
+    {"run": {
+        "entry_point": "/bin/echo",
+        "args": ["hello", "world"],
+        "capture": {
+            "stdout": {
+                "stream": {},
+            },
+            "stderr": {
+                "stream": {},
+            },
+        }
+    }},
+    {"run": {
+        "entry_point": "/bin/sleep",
+        "args": ["5"],
+        "capture": {
+            "stdout": {
+                "stream": {},
+            },
+            "stderr": {
+                "stream": {},
+            },
+        }
+    }},
+]
+
 
 async def main() -> None:
     golem = GolemNode()
@@ -37,6 +68,11 @@ async def main() -> None:
 
     async with golem:
         allocation = await golem.create_allocation(1)
+
+        payment_manager = DefaultPaymentManager(allocation)
+        golem.event_bus.resource_listen(payment_manager.on_invoice, [NewResource], [Invoice])
+        golem.event_bus.resource_listen(payment_manager.on_debit_note, [NewResource], [DebitNote])
+
         payload = await vm.repo(image_hash=IMAGE_HASH)
         demand = await golem.create_demand(payload, allocations=[allocation])
 
@@ -51,35 +87,7 @@ async def main() -> None:
         activity: Activity
         async for activity in chain:
             print(f"--> {activity}")
-            batch = await activity.raw_exec([
-                {"deploy": {}},
-                {"start": {}},
-                {"run": {
-                    "entry_point": "/bin/echo",
-                    "args": ["hello", "world"],
-                    "capture": {
-                        "stdout": {
-                            "stream": {},
-                        },
-                        "stderr": {
-                            "stream": {},
-                        },
-                    }
-                }},
-                {"run": {
-                    "entry_point": "/bin/sleep",
-                    "args": ["5"],
-                    "capture": {
-                        "stdout": {
-                            "stream": {},
-                        },
-                        "stderr": {
-                            "stream": {},
-                        },
-                    }
-                }},
-            ])
-
+            batch = await activity.raw_exec(batch_data)
             await batch.finished
             for event in batch.events:
                 print("STDOUT", event.stdout)
