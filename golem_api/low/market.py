@@ -322,7 +322,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity",
         self.add_child(activity)
         return activity
 
-    @api_call_wrapper()
+    @api_call_wrapper(ignore=[410])  # 410 is "you can't terminate this and this is permanent"
     async def terminate(self, reason: str = '') -> None:
         """Terminate the agreement."""
         #   FIXME: check our state first
