@@ -5,7 +5,7 @@ from typing import AsyncIterator, AsyncGenerator, TypeVar
 
 from yapapi.payload import vm
 
-from golem_api import GolemNode
+from golem_api import GolemNode, commands
 from golem_api.low import Activity, DebitNote, Invoice, Proposal
 
 from golem_api.mid import Chain, SimpleScorer, DefaultNegotiator, AgreementCreator, ActivityCreator
@@ -31,35 +31,6 @@ async def max_3(any_generator: AsyncIterator[X]) -> AsyncGenerator[X, None]:
         cnt += 1
         if cnt == 3:
             break
-
-batch_data = [
-    {"deploy": {}},
-    {"start": {}},
-    {"run": {
-        "entry_point": "/bin/echo",
-        "args": ["hello", "world"],
-        "capture": {
-            "stdout": {
-                "stream": {},
-            },
-            "stderr": {
-                "stream": {},
-            },
-        }
-    }},
-    {"run": {
-        "entry_point": "/bin/sleep",
-        "args": ["5"],
-        "capture": {
-            "stdout": {
-                "stream": {},
-            },
-            "stderr": {
-                "stream": {},
-            },
-        }
-    }},
-]
 
 
 async def main() -> None:
@@ -87,7 +58,12 @@ async def main() -> None:
         activity: Activity
         async for activity in chain:
             print(f"--> {activity}")
-            batch = await activity.raw_exec(batch_data)
+            batch = await activity.execute_commands(
+                commands.Deploy(),
+                commands.Start(),
+                commands.Run("/bin/echo", ["hello", "world"]),
+                commands.Run("/bin/sleep", ["5"]),
+            )
             await batch.finished
             for event in batch.events:
                 print("STDOUT", event.stdout)

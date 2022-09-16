@@ -2,7 +2,7 @@ import asyncio
 
 from yapapi.payload import vm
 
-from golem_api import GolemNode
+from golem_api import GolemNode, commands
 from golem_api.events import ResourceEvent
 
 IMAGE_HASH = "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
@@ -153,34 +153,12 @@ async def example_6() -> None:
                 print(str(e))
 
         print(activity)
-        batch = await activity.raw_exec([
-            {"deploy": {}},
-            {"start": {}},
-            {"run": {
-                "entry_point": "/bin/echo",
-                "args": ["hello", "world"],
-                "capture": {
-                    "stdout": {
-                        "stream": {},
-                    },
-                    "stderr": {
-                        "stream": {},
-                    },
-                }
-            }},
-            {"run": {
-                "entry_point": "/bin/sleep",
-                "args": ["5"],
-                "capture": {
-                    "stdout": {
-                        "stream": {},
-                    },
-                    "stderr": {
-                        "stream": {},
-                    },
-                }
-            }},
-        ])
+        batch = await activity.execute_commands(
+            commands.Deploy(),
+            commands.Start(),
+            commands.Run("/bin/echo", ["hello", "world"]),
+            commands.Run("/bin/sleep", ["5"]),
+        )
 
         await batch.finished
         for ix, event in enumerate(batch.events):
@@ -225,8 +203,8 @@ async def main() -> None:
     # print("\n---------- EXAMPLE 5 -------------\n")
     # await example_5()
 
-    # print("\n---------- EXAMPLE 6 -------------\n")
-    # await example_6()
+    print("\n---------- EXAMPLE 6 -------------\n")
+    await example_6()
 
     print("\n---------- EXAMPLE 7 -------------\n")
     await example_7()

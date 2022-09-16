@@ -6,6 +6,7 @@ import json
 from ya_activity import models
 
 from golem_api.events import ResourceClosed
+from golem_api.commands import Command
 from .payment import DebitNote
 from .market import Agreement
 from .resource import Resource
@@ -27,16 +28,16 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
         await self.api.destroy_activity(self.id)
         self.node.event_bus.emit(ResourceClosed(self))
 
-    async def raw_exec(self, commands: List[dict], autostart: bool = True) -> "PoolingBatch":
-        commands_str = json.dumps(commands)
-        batch_id = await self.api.call_exec(self.id, models.ExeScriptRequest(text=commands_str))
+    async def execute(self, script: models.ExeScriptRequest) -> "PoolingBatch":
+        batch_id = await self.api.call_exec(self.id, script)
         batch = PoolingBatch(self.node, batch_id)
+        batch.start_collecting_events()
         self.add_child(batch)
-
-        if autostart:
-            batch.start_collecting_events()
-
         return batch
+
+    async def execute_commands(self, *commands: Command) -> "PoolingBatch":
+        commands_str = json.dumps([c.text() for c in commands])
+        return await self.execute(models.ExeScriptRequest(text=commands_str))
 
     def batch(self, batch_id: str) -> "PoolingBatch":
         batch = PoolingBatch(self.node, batch_id)
@@ -57,7 +58,7 @@ class PoolingBatch(
 
     Usage::
 
-        batch = activity.raw_exec([{"deploy": {}}, {"start": {}}])
+        batch = activity.execute_commands(Deploy(), Start())
         await batch.finished
         for event in batch.events:
             print(event.stdout)
