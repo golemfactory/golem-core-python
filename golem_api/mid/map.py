@@ -1,32 +1,57 @@
 import asyncio
-from typing import AsyncIterator, Awaitable, Optional, TypeVar, Callable
+import inspect
+from typing import AsyncIterator, Awaitable, Generic, Optional, TypeVar, Callable, Union
 
 
 InType = TypeVar("InType")
 OutType = TypeVar("OutType")
 
 
-class Map:
-    def __init__(self, func: Callable[[Awaitable[InType]], Awaitable[OutType]]):
+class Map(Generic[InType, OutType]):
+    def __init__(self, func: Callable[[InType], Awaitable[Optional[OutType]]], async_: bool):
         self.func = func
+        self.async_ = async_
 
-    async def __call__(self, in_stream: AsyncIterator[Awaitable[InType]]) -> AsyncIterator[Awaitable[OutType]]:
+    async def __call__(
+        self,
+        in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]],
+    ) -> Union[AsyncIterator[OutType], AsyncIterator[Awaitable[OutType]]]:
         while True:
-            yield asyncio.create_task(self._process_next(in_stream))
+            result_coroutine: Awaitable[OutType] = self._next_value(in_stream)
+            if self.async_:
+                yield asyncio.create_task(result_coroutine)  # type: ignore  # mypy, why?
+            else:
+                yield await result_coroutine
 
-    async def _process_next(self, in_stream: AsyncIterator[Awaitable[InType]]) -> OutType:
+    async def _next_value(
+        self,
+        in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]],
+    ) -> OutType:
+        #   1.  Get a value from in_stream
+        #   2.  If it is awaitable, await it
+        #   3.  Execute self.func on it
+        #   4.  Return first result that is not None
+        while True:
+            in_val = await self._next_from_stream(in_stream)
+            if inspect.isawaitable(in_val):
+                in_val = await in_val
+
+            try:
+                result = await self.func(in_val)  # type: ignore
+                if result is not None:
+                    return result
+            except Exception as e:
+                print(e)
+
+    @staticmethod
+    async def _next_from_stream(
+        in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]],
+    ) -> Union[InType, Awaitable[InType]]:
+        #   TODO: this is ugly, but fixes the "anext(): asynchronous generator is already running: exception
+        #   TODO: overload maybe?
         while True:
             try:
-                in_val = await in_stream.__anext__()
-                break
+                return await in_stream.__anext__()  # type: ignore  # mypy, why?
             except RuntimeError:
                 await asyncio.sleep(0.01)
-        return await self._process_single_item(in_val)
-
-    async def _process_single_item(self, in_task: Awaitable[InType]) -> Optional[Awaitable[OutType]]:
-        try:
-            in_ = await in_task
-            return await self.func(in_)
-        except Exception as e:
-            print(e)
-            return None
+                continue

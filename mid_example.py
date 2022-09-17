@@ -44,6 +44,8 @@ async def prepare_activity(activity: Activity) -> Activity:
     print("PREPARE ACTIVITY", activity)
     return activity
 
+async def x(a):
+    return 'AAA' + str(a)
 
 async def main() -> None:
     golem = GolemNode()
@@ -61,20 +63,24 @@ async def main() -> None:
 
         chain = Chain(
             demand.initial_proposals(),
-            SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=1)),
-            DefaultNegotiator(),
-            AgreementCreator(),
-            ActivityCreator(),
-            Map(prepare_activity),
+            SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=0.1)),
+            Map(x, True),
+            Map(x, False),
+            # DefaultNegotiator(),
+            # AgreementCreator(),
+            # ActivityCreator(),
+            # Map(prepare_activity),
             max_3,
         )
-        tasks = []
-        async for task in chain:
-            tasks.append(task)
-        print("TASKS", tasks)
-        await asyncio.gather(*tasks)
-        results = [task.result() for task in tasks]
-        print("RESULTS", results)
+        async for val in chain:
+            print(val)
+        # tasks = []
+        # async for task in chain:
+        #     tasks.append(task)
+        # print("TASKS", tasks)
+        # await asyncio.gather(*tasks)
+        # results = [task.result() for task in tasks]
+        # print("RESULTS", results)
 
 
 if __name__ == '__main__':

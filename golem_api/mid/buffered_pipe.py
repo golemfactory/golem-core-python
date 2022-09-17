@@ -8,6 +8,7 @@ OutType = TypeVar("OutType")
 
 
 class BufferedPipe(ABC, Generic[InType, OutType]):
+    #   TODO: Is this class used at all? Maybe should be removed?
     def __init__(self, *, buffer_size: int = 0):
         """A generic base class for all buffered Chain elements.
 
