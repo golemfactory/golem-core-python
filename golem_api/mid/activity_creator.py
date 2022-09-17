@@ -1,16 +1,10 @@
-from typing import Optional
-
 from golem_api.low.market import Agreement
 from golem_api.low.activity import Activity
 from .map import Map
 
 
-async def create_activity(agreement: Agreement) -> Optional[Activity]:
-    try:
-        return await agreement.create_activity()
-    except Exception as e:
-        print(e)
-        return None
+async def create_activity(agreement: Agreement) -> Activity:
+    return await agreement.create_activity()
 
 
 class ActivityCreator(Map[Agreement, Activity]):

@@ -1,14 +1,12 @@
-from typing import Optional
-
 from golem_api.low.market import Proposal
 from .map import Map
 
 
-async def negotiate(proposal: Proposal) -> Optional[Proposal]:
+async def negotiate(proposal: Proposal) -> Proposal:
     our_response = await proposal.respond()
     async for their_response in our_response.responses():
         return their_response
-    return None
+    raise Exception(f"Negotiations based on {proposal} failed")
 
 
 class DefaultNegotiator(Map[Proposal, Proposal]):

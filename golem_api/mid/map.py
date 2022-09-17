@@ -1,6 +1,6 @@
 import asyncio
 import inspect
-from typing import AsyncIterator, Awaitable, Generic, Optional, TypeVar, Callable, Union
+from typing import AsyncIterator, Awaitable, Generic, TypeVar, Callable, Union
 
 
 InType = TypeVar("InType")
@@ -8,7 +8,7 @@ OutType = TypeVar("OutType")
 
 
 class Map(Generic[InType, OutType]):
-    def __init__(self, func: Callable[[InType], Awaitable[Optional[OutType]]], async_: bool):
+    def __init__(self, func: Callable[[InType], Awaitable[OutType]], async_: bool):
         self.func = func
         self.async_ = async_
 
@@ -37,10 +37,9 @@ class Map(Generic[InType, OutType]):
                 in_val = await in_val
 
             try:
-                result = await self.func(in_val)  # type: ignore
-                if result is not None:
-                    return result
+                return await self.func(in_val)  # type: ignore
             except Exception as e:
+                #   TODO: emit MapFailed event (? - where is the event emitter?)
                 print(e)
 
     @staticmethod
