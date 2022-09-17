@@ -8,7 +8,7 @@ from yapapi.payload import vm
 from golem_api import GolemNode, commands
 from golem_api.low import Activity, DebitNote, Invoice, Proposal
 
-from golem_api.mid import Chain, SimpleScorer, DefaultNegotiator, AgreementCreator, ActivityCreator
+from golem_api.mid import Chain, SimpleScorer, DefaultNegotiator, AgreementCreator, ActivityCreator, Map
 from golem_api.default_logger import DefaultLogger
 from golem_api.default_payment_manager import DefaultPaymentManager
 from golem_api.events import NewResource
@@ -33,6 +33,17 @@ async def max_3(any_generator: AsyncIterator[X]) -> AsyncGenerator[X, None]:
             break
 
 
+async def x(activity: Activity) -> Activity:
+    batch = await activity.execute_commands(
+        commands.Deploy(),
+        commands.Start(),
+        commands.Run("/bin/echo", ["-n", f"This is activity {activity.id}"]),
+    )
+    await batch.finished
+    print(batch.events[-1].stdout)
+    return activity
+
+
 async def main() -> None:
     golem = GolemNode()
     golem.event_bus.listen(DefaultLogger().on_event)
@@ -53,20 +64,11 @@ async def main() -> None:
             DefaultNegotiator(buffer_size=5),
             AgreementCreator(),
             ActivityCreator(),
+            Map(x),
             max_3,
         )
-        activity: Activity
-        async for activity in chain:
-            print(f"--> {activity}")
-            batch = await activity.execute_commands(
-                commands.Deploy(),
-                commands.Start(),
-                commands.Run("/bin/echo", ["hello", "world"]),
-                commands.Run("/bin/sleep", ["5"]),
-            )
-            await batch.finished
-            for event in batch.events:
-                print("STDOUT", event.stdout)
+        async for val in chain:
+            print(val)
 
 
 if __name__ == '__main__':
