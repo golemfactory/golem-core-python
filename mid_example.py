@@ -33,7 +33,7 @@ async def max_3(any_generator: AsyncIterator[X]) -> AsyncGenerator[X, None]:
             break
 
 
-async def x(activity: Activity) -> Activity:
+async def prepare_activity(activity: Activity) -> Activity:
     batch = await activity.execute_commands(
         commands.Deploy(),
         commands.Start(),
@@ -41,6 +41,7 @@ async def x(activity: Activity) -> Activity:
     )
     await batch.finished
     print(batch.events[-1].stdout)
+    print("PREPARE ACTIVITY", activity)
     return activity
 
 
@@ -61,14 +62,19 @@ async def main() -> None:
         chain = Chain(
             demand.initial_proposals(),
             SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=1)),
-            DefaultNegotiator(buffer_size=5),
+            DefaultNegotiator(),
             AgreementCreator(),
             ActivityCreator(),
-            Map(x),
+            Map(prepare_activity),
             max_3,
         )
-        async for val in chain:
-            print(val)
+        tasks = []
+        async for task in chain:
+            tasks.append(task)
+        print("TASKS", tasks)
+        await asyncio.gather(*tasks)
+        results = [task.result() for task in tasks]
+        print("RESULTS", results)
 
 
 if __name__ == '__main__':
