@@ -37,15 +37,12 @@ async def prepare_activity(activity: Activity) -> Activity:
     batch = await activity.execute_commands(
         commands.Deploy(),
         commands.Start(),
-        commands.Run("/bin/echo", ["-n", f"This is activity {activity.id}"]),
+        commands.Run("/bin/echo", ["-n", f"ACTIVITY {activity.id} IS READY"]),
     )
     await batch.finished
     print(batch.events[-1].stdout)
-    print("PREPARE ACTIVITY", activity)
     return activity
 
-async def x(a):
-    return 'AAA' + str(a)
 
 async def main() -> None:
     golem = GolemNode()
@@ -61,26 +58,23 @@ async def main() -> None:
         payload = await vm.repo(image_hash=IMAGE_HASH)
         demand = await golem.create_demand(payload, allocations=[allocation])
 
-        chain = Chain(
+        #   Create a stream of awaitables returning ready-to-use activities
+        activity_generator = Chain(
             demand.initial_proposals(),
             SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=0.1)),
-            Map(x, True),
-            Map(x, False),
-            # DefaultNegotiator(),
-            # AgreementCreator(),
-            # ActivityCreator(),
-            # Map(prepare_activity),
-            max_3,
+            DefaultNegotiator(),
+            AgreementCreator(),
+            ActivityCreator(),
+            Map(prepare_activity, True),
         )
-        async for val in chain:
-            print(val)
-        # tasks = []
-        # async for task in chain:
-        #     tasks.append(task)
-        # print("TASKS", tasks)
-        # await asyncio.gather(*tasks)
-        # results = [task.result() for task in tasks]
-        # print("RESULTS", results)
+
+        #   Use the stream
+        tasks = []
+        for i in range(3):
+            tasks.append(await activity_generator.__anext__())
+
+        await asyncio.gather(*tasks)
+        print([task.result() for task in tasks])
 
 
 if __name__ == '__main__':
