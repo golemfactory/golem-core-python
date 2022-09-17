@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, TYPE_CHECKING
+from typing import Any, Dict, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from golem_api.low.resource import Resource
@@ -62,6 +62,26 @@ class ResourceDataChanged(ResourceEvent):
     def old_data(self) -> Any:
         """Value of `self.resource.data` before the change."""
         return self._old_data
+    
+    def diff(self) -> Dict[str, Tuple[Any, Any]]:
+        old_dict = self.old_data.to_dict()
+        new_dict = self.resource.data.to_dict()
+        diff_dict = {}
+
+        for key in old_dict.keys():
+            old_val = old_dict[key]
+            new_val = new_dict[key]
+            if old_val != new_val:
+                diff_dict[key] = (old_val, new_val)
+
+        return diff_dict
+
+    def __repr__(self) -> str:
+        diff = []
+        for key, (old_val, new_val) in self.diff().items():
+            diff.append(f'{key}: {old_val} -> {new_val}')
+        diff_str = ", ".join(diff)
+        return f'{type(self).__name__}({self.resource}, {diff_str})'
 
 
 class ResourceChangePossible(ResourceEvent):
