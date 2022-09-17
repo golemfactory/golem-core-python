@@ -1,36 +1,23 @@
 import asyncio
 from datetime import timedelta
 from random import random
-from typing import AsyncIterator, AsyncGenerator, TypeVar
 
 from yapapi.payload import vm
 
 from golem_api import GolemNode, commands
 from golem_api.low import Activity, DebitNote, Invoice, Proposal
 
-from golem_api.mid import Chain, SimpleScorer, DefaultNegotiator, AgreementCreator, ActivityCreator, Map
+from golem_api.mid import Chain, SimpleScorer, DefaultNegotiator, AgreementCreator, ActivityCreator, Map, TaskExecutor
 from golem_api.default_logger import DefaultLogger
 from golem_api.default_payment_manager import DefaultPaymentManager
 from golem_api.events import NewResource
 
 
 IMAGE_HASH = "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
-X = TypeVar('X')
 
 
 async def score_proposal(proposal: Proposal) -> float:
     return random()
-
-
-async def max_3(any_generator: AsyncIterator[X]) -> AsyncGenerator[X, None]:
-    #   This function can be inserted anywhere in the example chain
-    #   (except as the first element)
-    cnt = 0
-    async for x in any_generator:
-        yield x
-        cnt += 1
-        if cnt == 3:
-            break
 
 
 async def prepare_activity(activity: Activity) -> Activity:
@@ -42,6 +29,13 @@ async def prepare_activity(activity: Activity) -> Activity:
     await batch.finished
     print(batch.events[-1].stdout)
     return activity
+
+
+async def execute_task(activity: Activity, task_data: int) -> str:
+    command = commands.Run("/bin/echo", ["-n", f"Executed task {task_data} on {activity}"])
+    batch = await activity.execute_commands(command)
+    await batch.finished
+    return batch.events[-1].stdout  # type: ignore
 
 
 async def main() -> None:
@@ -59,7 +53,7 @@ async def main() -> None:
         demand = await golem.create_demand(payload, allocations=[allocation])
 
         #   Create a stream of awaitables returning ready-to-use activities
-        activity_generator = Chain(
+        activity_stream = Chain(
             demand.initial_proposals(),
             SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=0.1)),
             DefaultNegotiator(),
@@ -68,13 +62,10 @@ async def main() -> None:
             Map(prepare_activity, True),
         )
 
-        #   Use the stream
-        tasks = []
-        for i in range(3):
-            tasks.append(await activity_generator.__anext__())
-
-        await asyncio.gather(*tasks)
-        print([task.result() for task in tasks])
+        executor = TaskExecutor(execute_task, activity_stream, list(range(5)))
+        result: str
+        async for result in executor.results():
+            print(result)
 
 
 if __name__ == '__main__':
