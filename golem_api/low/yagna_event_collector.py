@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import asyncio
 #   TODO: replace Any here
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 
 class YagnaEventCollector(ABC):
@@ -28,11 +28,11 @@ class YagnaEventCollector(ABC):
 
     @property
     @abstractmethod
-    def _collect_events_func(self) -> Any:
+    def _collect_events_func(self) -> Callable:
         raise NotImplementedError
 
     @abstractmethod
-    async def _process_event(self, event) -> None:
+    async def _process_event(self, event: Any) -> None:
         raise NotImplementedError
 
     def _collect_events_args(self) -> List:

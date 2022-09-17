@@ -170,7 +170,7 @@ async def example_6() -> None:
     print("STOPPED")
 
 
-async def example_7():
+async def example_7() -> None:
     """Print most recent invoice and debit note received by this node"""
     golem = GolemNode()
     async with golem:

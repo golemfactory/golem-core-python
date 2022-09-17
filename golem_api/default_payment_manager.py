@@ -1,10 +1,9 @@
 from golem_api.events import ResourceEvent, NewResource
-from golem_api.low import Allocation
+from golem_api.low import Allocation, DebitNote, Invoice
 
 
 #   NOTE: alternative approach would be to emit these events in
 #   Invoice.accept()/DebitNote.accept() methods, but I think this is better:
-#   *   They could emit a generic ResourceDataChanged
 #   *   Set of events is related to the PaymentManager and different PaymentManagers could
 #       have different events - we don't want to have multiple events hardcoded in low-level api
 class InvoiceAccepted(ResourceEvent):
@@ -27,22 +26,22 @@ class DefaultPaymentManager:
     def __init__(self, allocation: Allocation):
         self.allocation = allocation
 
-    async def on_invoice(self, event: NewResource):
+    async def on_invoice(self, event: NewResource) -> None:
         invoice = event.resource
-        if (await invoice.get_data(force=True)).status == 'RECEIVED':
+        assert isinstance(invoice, Invoice)
+        if (await invoice.get_data(force=True)).status == 'RECEIVED':  # type: ignore
             await invoice.accept_full(self.allocation)
 
             invoice.node.event_bus.emit(InvoiceAccepted(invoice))
 
             await invoice.get_data(force=True)
-            print("STATUS IN", invoice.data.status)
 
-    async def on_debit_note(self, event: NewResource):
+    async def on_debit_note(self, event: NewResource) -> None:
         debit_note = event.resource
-        if (await debit_note.get_data(force=True)).status == 'RECEIVED':
+        assert isinstance(debit_note, DebitNote)
+        if (await debit_note.get_data(force=True)).status == 'RECEIVED':  # type: ignore
             await debit_note.accept_full(self.allocation)
 
             debit_note.node.event_bus.emit(DebitNoteAccepted(debit_note))
 
             await debit_note.get_data(force=True)
-            print("STATUS DN", debit_note.data.status)

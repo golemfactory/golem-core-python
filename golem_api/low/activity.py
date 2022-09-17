@@ -1,5 +1,5 @@
 import asyncio
-from typing import List, Optional, TYPE_CHECKING
+from typing import Callable, Dict, List, Optional, TYPE_CHECKING
 from datetime import timedelta
 import json
 
@@ -83,17 +83,17 @@ class PoolingBatch(
 
     ###########################
     #   Event collector methods
-    def _collect_events_kwargs(self):
+    def _collect_events_kwargs(self) -> Dict:
         return {"timeout": 5, "_request_timeout": 5.5}
 
-    def _collect_events_args(self):
+    def _collect_events_args(self) -> List:
         return [self.activity.id, self.id]
 
     @property
-    def _collect_events_func(self):
-        return self.api.get_exec_batch_results
+    def _collect_events_func(self) -> Callable:
+        return self.api.get_exec_batch_results  # type: ignore
 
-    async def _process_event(self, event):
+    async def _process_event(self, event: models.ExeScriptCommandResult) -> None:
         if event.index < len(self.events):
             #   Repeated event
             return

@@ -1,4 +1,4 @@
-from typing import AsyncIterator, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import AsyncIterator, Callable, Dict, List, Optional, TYPE_CHECKING, Union
 from datetime import datetime, timedelta, timezone
 
 from ya_market import RequestorApi, models as models, exceptions
@@ -52,17 +52,17 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], Ya
 
     ###########################
     #   Event collector methods
-    def _collect_events_kwargs(self):
+    def _collect_events_kwargs(self) -> Dict:
         return {"timeout": 5, "max_events": 10}
 
-    def _collect_events_args(self):
+    def _collect_events_args(self) -> List:
         return [self.id]
 
     @property
-    def _collect_events_func(self):
+    def _collect_events_func(self) -> Callable:
         return self.api.collect_offers
 
-    async def _process_event(self, event):
+    async def _process_event(self, event: Union[models.ProposalEvent, models.ProposalRejectedEvent]) -> None:
         if isinstance(event, models.ProposalEvent):
             proposal = Proposal.from_proposal_event(self.node, event)
             parent = self._get_proposal_parent(proposal)
