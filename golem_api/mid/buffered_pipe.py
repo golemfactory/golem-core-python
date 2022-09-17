@@ -8,7 +8,7 @@ OutType = TypeVar("OutType")
 
 
 class BufferedPipe(ABC, Generic[InType, OutType]):
-    def __init__(self, buffer_size: int = 0):
+    def __init__(self, *, buffer_size: int = 0):
         """A generic base class for all buffered Chain elements.
 
         :param buffer_size: (number_of_current_negotiations + number_of_values_ready_to_return) will always
@@ -61,7 +61,7 @@ class BufferedPipe(ABC, Generic[InType, OutType]):
         self._in_stream_exhausted = True
 
     async def _process_single_item_wrapper(self, in_val: InType) -> None:
-        print(f"START {in_val}")
+        # print(f"START {in_val}")
         try:
             out_val = await self._process_single_item(in_val)
             if out_val is not None:
@@ -70,7 +70,7 @@ class BufferedPipe(ABC, Generic[InType, OutType]):
                 self.semaphore.release()
         except Exception:
             self.semaphore.release()
-        print(f"STOP {in_val}")
+        # print(f"STOP {in_val}")
 
     @abstractmethod
     async def _process_single_item(self, in_val: InType) -> Optional[OutType]:
