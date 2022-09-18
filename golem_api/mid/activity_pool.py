@@ -5,13 +5,21 @@ from golem_api.low.activity import Activity
 
 
 class ActivityPool:
-    def __init__(self):
+    def __init__(self, max_size: int = 0):
+        self.max_size = max_size
+
         self._idle_activities: List[Activity] = []
         self._activity_manager_tasks: List[asyncio.Task] = []
 
+    def full(self) -> bool:
+        if self.max_size == 0:
+            return False
+        running_managers = [task for task in self._activity_manager_tasks if not task.done()]
+        return len(running_managers) >= self.max_size
+
     async def __call__(self, activity_stream: AsyncIterator[Awaitable[Activity]]) -> AsyncIterator[Awaitable[Activity]]:
         while True:
-            if not self._idle_activities:
+            if not self._idle_activities and not self.full():
                 future_activity = await activity_stream.__anext__()
                 manager_task = asyncio.create_task(self._manage_activity(future_activity))
                 self._activity_manager_tasks.append(manager_task)
