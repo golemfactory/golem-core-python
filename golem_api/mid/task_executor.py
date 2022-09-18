@@ -33,14 +33,21 @@ class TaskExecutor:
 
     async def _main_task(self):
         for task_data in self.task_data:
-            task = asyncio.create_task(self._process_single_task(task_data))
-            self._current_tasks.append(task)
+            self._create_task(task_data)
         self._task_data_stream_exhausted = True
+
+    def _create_task(self, task_data: TaskData) -> None:
+        task = asyncio.create_task(self._process_single_task(task_data))
+        self._current_tasks.append(task)
 
     async def _process_single_task(self, task_data: TaskData):
         activity = await self._get_activity()
-        result = await self.execute_task(activity, task_data)
-        self._result_queue.put_nowait(result)
+        try:
+            result = await self.execute_task(activity, task_data)
+            self._result_queue.put_nowait(result)
+        except Exception as e:
+            print("EXCEPTION", e)
+            self._create_task(task_data)
 
     async def _get_activity(self) -> Activity:
         activity = await self.activity_stream.__anext__()
