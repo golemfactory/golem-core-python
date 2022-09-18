@@ -26,7 +26,7 @@ class ActivityPool:
 
     async def _manage_activity(self, future_activity: Awaitable[Activity]):
         activity = await future_activity
-        while True:
+        while not activity.terminated:
             self._idle_activities.append(activity)
             await activity.busy_event.wait()
             if activity in self._idle_activities:

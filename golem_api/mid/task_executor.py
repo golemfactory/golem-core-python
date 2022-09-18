@@ -59,7 +59,8 @@ class TaskExecutor:
             if self._semaphore is not None:
                 self._semaphore.release()
         except Exception as e:
-            print("EXCEPTION", e)
+            print(f"EXCEPTION ON {activity} for task {task_data}: {e}")
+            await activity.destroy()
             self._create_task(task_data)
 
     async def _get_activity(self) -> Activity:

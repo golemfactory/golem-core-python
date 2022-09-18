@@ -27,8 +27,21 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
         self.idle_event = asyncio.Event()
         self.idle = True
 
+        #   TODO: state management is just a draft now, but it's far from obvious how
+        #         it should be implemented (--> maybe this draft is enough?)
+        self._terminated: Optional[bool] = None
+
     ###################
-    #   State management - idle / busy
+    #   State management - terminated / idle / busy
+    @property
+    def terminated(self) -> bool:
+        if self._terminated is None:
+            #   This is a case where we didn't create a new activity, but got an activity via
+            #   GolemNode.activity(activity_id), for activity created in some other way.
+            #   We don't need this now.
+            raise NotImplementedError("State of activity is supported only for newly created activities")
+        return self._terminated
+
     @property
     def idle(self) -> bool:
         return self.idle_event.is_set()
@@ -62,10 +75,13 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
     async def create(cls, node: "GolemNode", agreement_id: str, timeout: timedelta) -> "Activity":
         api = cls._get_api(node)
         activity_id = await api.create_activity(agreement_id, timeout=timeout.total_seconds())
-        return cls(node, activity_id)
+        activity = cls(node, activity_id)
+        activity._terminated = False
+        return activity
 
     @api_call_wrapper()
     async def destroy(self) -> None:
+        self._terminated = True
         await self.api.destroy_activity(self.id)
         self.node.event_bus.emit(ResourceClosed(self))
 
