@@ -40,7 +40,7 @@ class Map(Generic[InType, OutType]):
                 return await self.func(in_val)  # type: ignore
             except Exception as e:
                 #   TODO: emit MapFailed event (? - where is the event emitter?)
-                print(e)
+                print("Map exception", type(e).__name__, str(e))
 
     @staticmethod
     async def _next_from_stream(

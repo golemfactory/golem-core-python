@@ -34,10 +34,15 @@ async def prepare_activity(activity: Activity) -> Activity:
 
 
 async def execute_task(activity: Activity, task_data: int) -> str:
+    assert activity.idle, f"Got a non-idle activity {activity}"
     command = commands.Run("/bin/echo", ["-n", f"Executed task {task_data} on {activity}"])
     batch = await activity.execute_commands(command)
     await batch.finished
-    return batch.events[-1].stdout  # type: ignore
+
+    result = batch.events[-1].stdout
+    assert "Executed task" in result, f"Got an incorrect result for {task_data}: {result}"
+
+    return result  # type: ignore
 
 
 async def main() -> None:
@@ -64,10 +69,10 @@ async def main() -> None:
             ActivityPool(),
         )
 
-        executor = TaskExecutor(execute_task, activity_stream, list(range(10)), max_concurrent=3)
+        executor = TaskExecutor(execute_task, activity_stream, list(range(20)), max_concurrent=3)
         result: str
         async for result in executor.results():
-            print(result)
+            print("RESULT", result)
 
 
 if __name__ == '__main__':
