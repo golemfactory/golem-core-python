@@ -19,8 +19,8 @@ if TYPE_CHECKING:
 
 
 class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, node: "GolemNode", id_: str):
+        super().__init__(node, id_)
         self._running_batch_counter = 0
 
         self.busy_event = asyncio.Event()
@@ -60,7 +60,7 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
         return self._running_batch_counter
 
     @running_batch_counter.setter
-    def running_batch_counter(self, new_val) -> None:
+    def running_batch_counter(self, new_val: int) -> None:
         assert abs(self._running_batch_counter - new_val) == 1  # change by max 1
         assert new_val >= 0
         self._running_batch_counter = new_val

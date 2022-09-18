@@ -153,14 +153,16 @@ async def example_6() -> None:
                 print(str(e))
 
         print(activity)
+        assert activity.idle
         batch = await activity.execute_commands(
             commands.Deploy(),
             commands.Start(),
             commands.Run("/bin/echo", ["hello", "world"]),
             commands.Run("/bin/sleep", ["5"]),
         )
-
+        assert not activity.idle
         await batch.finished
+        assert activity.idle
         for ix, event in enumerate(batch.events):
             print("STDOUT", ix, event.index)
             print(event.stdout)
@@ -203,8 +205,8 @@ async def main() -> None:
     # print("\n---------- EXAMPLE 5 -------------\n")
     # await example_5()
 
-    print("\n---------- EXAMPLE 6 -------------\n")
-    await example_6()
+    # print("\n---------- EXAMPLE 6 -------------\n")
+    # await example_6()
 
     print("\n---------- EXAMPLE 7 -------------\n")
     await example_7()

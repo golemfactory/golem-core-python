@@ -32,7 +32,7 @@ class ActivityPool:
             else:
                 await asyncio.sleep(0.1)
 
-    async def _manage_activity(self, future_activity: Awaitable[Activity]):
+    async def _manage_activity(self, future_activity: Awaitable[Activity]) -> None:
         activity = await future_activity
         while not activity.terminated:
             self._idle_activities.append(activity)

@@ -29,7 +29,7 @@ class TaskExecutor:
 
         #   TODO: remove finished tasks?
         self._current_tasks: List[asyncio.Task] = []
-        self._main_task: asyncio.Task = asyncio.create_task(self._main_task())
+        self._main_task: asyncio.Task = asyncio.create_task(self._process_task_data_stream())
 
     async def results(self) -> AsyncIterator[TaskResult]:
         while not (
@@ -38,9 +38,9 @@ class TaskExecutor:
             and all(task.done() for task in self._current_tasks)
         ):
             result = await self._result_queue.get()
-            yield result
+            yield result  # type: ignore  # mypy, why?
 
-    async def _main_task(self):
+    async def _process_task_data_stream(self) -> None:
         for task_data in self.task_data:
             if self._semaphore is not None:
                 await self._semaphore.acquire()
@@ -51,7 +51,7 @@ class TaskExecutor:
         task = asyncio.create_task(self._process_single_task(task_data))
         self._current_tasks.append(task)
 
-    async def _process_single_task(self, task_data: TaskData):
+    async def _process_single_task(self, task_data: TaskData) -> None:
         activity = await self._get_activity()
         try:
             result = await self.execute_task(activity, task_data)

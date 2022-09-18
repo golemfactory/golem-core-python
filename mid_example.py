@@ -40,9 +40,9 @@ async def execute_task(activity: Activity, task_data: int) -> str:
     await batch.finished
 
     result = batch.events[-1].stdout
-    assert "Executed task" in result, f"Got an incorrect result for {task_data}: {result}"
+    assert result is not None and "Executed task" in result, f"Got an incorrect result for {task_data}: {result}"
 
-    return result  # type: ignore
+    return result
 
 
 async def main() -> None:
