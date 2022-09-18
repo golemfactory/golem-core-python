@@ -19,6 +19,45 @@ if TYPE_CHECKING:
 
 
 class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._running_batch_counter = 0
+
+        self.busy_event = asyncio.Event()
+        self.idle_event = asyncio.Event()
+        self.idle = True
+
+    ###################
+    #   State management - idle / busy
+    @property
+    def idle(self) -> bool:
+        return self.idle_event.is_set()
+
+    @idle.setter
+    def idle(self, val: bool) -> None:
+        if val:
+            self.busy_event.clear()
+            self.idle_event.set()
+        else:
+            self.busy_event.set()
+            self.idle_event.clear()
+
+    @property
+    def running_batch_counter(self) -> int:
+        return self._running_batch_counter
+
+    @running_batch_counter.setter
+    def running_batch_counter(self, new_val) -> None:
+        assert abs(self._running_batch_counter - new_val) == 1  # change by max 1
+        assert new_val >= 0
+        self._running_batch_counter = new_val
+        if new_val == 0:
+            self.idle = True
+        elif self.idle:
+            self.idle = False
+
+    ####################
+    #   API
     @classmethod
     async def create(cls, node: "GolemNode", agreement_id: str, timeout: timedelta) -> "Activity":
         api = cls._get_api(node)
@@ -36,6 +75,7 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
         batch = PoolingBatch(self.node, batch_id)
         batch.start_collecting_events()
         self.add_child(batch)
+        self.running_batch_counter += 1
         return batch
 
     async def execute_commands(self, *commands: Command) -> "PoolingBatch":
@@ -100,4 +140,5 @@ class PoolingBatch(
         self.add_event(event)
         if event.is_batch_finished:
             self._finished.set_result(None)
+            self.parent.running_batch_counter -= 1
             await self.stop_collecting_events()
