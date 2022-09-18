@@ -7,7 +7,9 @@ from yapapi.payload import vm
 from golem_api import GolemNode, commands
 from golem_api.low import Activity, DebitNote, Invoice, Proposal
 
-from golem_api.mid import Chain, SimpleScorer, DefaultNegotiator, AgreementCreator, ActivityCreator, Map, TaskExecutor
+from golem_api.mid import (
+    Chain, SimpleScorer, DefaultNegotiator, AgreementCreator, ActivityCreator, Map, TaskExecutor, ActivityPool
+)
 from golem_api.default_logger import DefaultLogger
 from golem_api.default_payment_manager import DefaultPaymentManager
 from golem_api.events import NewResource
@@ -60,9 +62,10 @@ async def main() -> None:
             AgreementCreator(),
             ActivityCreator(),
             Map(prepare_activity, True),
+            # ActivityPool(),
         )
 
-        executor = TaskExecutor(execute_task, activity_stream, list(range(5)))
+        executor = TaskExecutor(execute_task, activity_stream, list(range(5)), max_concurrent=3)
         result: str
         async for result in executor.results():
             print(result)
