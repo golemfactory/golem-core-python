@@ -62,25 +62,13 @@ async def main() -> None:
             AgreementCreator(),
             ActivityCreator(),
             Map(prepare_activity, True),
-            # ActivityPool(),
+            ActivityPool(),
         )
-        activity = await(await activity_stream.__anext__())
-        assert activity.idle
-        batches = []
-        for i in range(5):
-            command = commands.Run("/bin/echo", ["-n", f"BATCH {i}"])
-            batch = await activity.execute_commands(command)
-            batches.append(batch)
-        assert not activity.idle
-        while not all(b._finished.done() for b in batches):
-            await asyncio.sleep(0.1)
-        assert activity.idle
 
-
-        # executor = TaskExecutor(execute_task, activity_stream, list(range(5)), max_concurrent=3)
-        # result: str
-        # async for result in executor.results():
-        #     print(result)
+        executor = TaskExecutor(execute_task, activity_stream, list(range(10)), max_concurrent=3)
+        result: str
+        async for result in executor.results():
+            print(result)
 
 
 if __name__ == '__main__':
