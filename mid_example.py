@@ -54,7 +54,6 @@ async def main() -> None:
         payload = await vm.repo(image_hash=IMAGE_HASH)
         demand = await golem.create_demand(payload, allocations=[allocation])
 
-        #   Create a stream of awaitables returning ready-to-use activities
         activity_stream = Chain(
             demand.initial_proposals(),
             SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=0.1)),

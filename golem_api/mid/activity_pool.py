@@ -11,18 +11,18 @@ class ActivityPool:
 
     async def __call__(self, activity_stream: AsyncIterator[Awaitable[Activity]]) -> AsyncIterator[Awaitable[Activity]]:
         while True:
-            if self._idle_activities:
-                activity = self._idle_activities.pop(0)
-
-                #   Compatibility - always yields awaitable
-                future_activity = asyncio.Future()
-                future_activity.set_result(activity)
-                yield future_activity
-            else:
+            if not self._idle_activities:
                 future_activity = await activity_stream.__anext__()
                 manager_task = asyncio.create_task(self._manage_activity(future_activity))
                 self._activity_manager_tasks.append(manager_task)
-                yield future_activity
+            yield self._get_next_idle_activity()
+
+    async def _get_next_idle_activity(self) -> Activity:
+        while True:
+            if self._idle_activities:
+                return self._idle_activities.pop(0)
+            else:
+                await asyncio.sleep(0.1)
 
     async def _manage_activity(self, future_activity: Awaitable[Activity]):
         activity = await future_activity
