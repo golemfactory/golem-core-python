@@ -77,7 +77,7 @@ async def main() -> None:
         result_cnt = 0
         async for result in chain:
             result_cnt += 1
-            print("RESULT", result)
+            print(f"RESULT {result_cnt}/{task_cnt} {result}")
 
         print("ALL TASKS DONE")
         assert task_cnt == result_cnt

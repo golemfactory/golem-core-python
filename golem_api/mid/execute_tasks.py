@@ -1,5 +1,4 @@
 import asyncio
-import inspect
 from typing import AsyncIterator, Awaitable, Callable, Iterable, List, Optional, TypeVar
 
 from golem_api.low import Activity
@@ -24,6 +23,8 @@ class ExecuteTasks:
 
         self._task_data_stream_exhausted = False
         self._result_queue: asyncio.Queue[TaskResult] = asyncio.Queue()
+
+        self._activity_stream_lock = asyncio.Lock()
 
         self._semaphore = None
         if max_concurrent > 0:
@@ -68,7 +69,7 @@ class ExecuteTasks:
             self._create_task(task_data)
 
     async def _get_activity(self) -> Activity:
-        activity = await self._activity_stream.__anext__()
-        if inspect.isawaitable(activity):  # TODO: remove
-            activity = await activity
-        return activity  # type: ignore
+        async with self._activity_stream_lock:
+            future_activity = await self._activity_stream.__anext__()
+
+        return await future_activity

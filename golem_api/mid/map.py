@@ -12,6 +12,8 @@ class Map(Generic[InType, OutType]):
         self.func = func
         self.async_ = async_
 
+        self._in_stream_lock = asyncio.Lock()
+
     async def __call__(
         self,
         in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]],
@@ -42,15 +44,8 @@ class Map(Generic[InType, OutType]):
                 #   TODO: emit MapFailed event (? - where is the event emitter?)
                 print("Map exception", type(e).__name__, str(e))
 
-    @staticmethod
     async def _next_from_stream(
-        in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]],
+        self, in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]],
     ) -> Union[InType, Awaitable[InType]]:
-        #   TODO: this is ugly, but fixes the "anext(): asynchronous generator is already running: exception
-        #   TODO: overload maybe?
-        while True:
-            try:
-                return await in_stream.__anext__()  # type: ignore  # mypy, why?
-            except RuntimeError:
-                await asyncio.sleep(0.01)
-                continue
+        async with self._in_stream_lock:
+            return await in_stream.__anext__()  # type: ignore  # mypy, why?
