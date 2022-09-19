@@ -1,4 +1,6 @@
 import asyncio
+from contextlib import asynccontextmanager
+
 
 from yapapi.payload import vm
 
@@ -122,7 +124,21 @@ async def example_5() -> None:
 
 
 async def example_6() -> None:
-    """Get an activity. Execute a hello world on it, using the "lowest level" interface."""
+    """Print most recent invoice and debit note received by this node"""
+    golem = GolemNode()
+    async with golem:
+        invoice = (await golem.invoices())[-1]
+        print(invoice)
+        print(await invoice.get_data())
+
+        debit_note = (await golem.debit_notes())[-1]
+        print(debit_note)
+        print(await debit_note.get_data())
+
+
+@asynccontextmanager
+async def get_activity() -> None:
+    """Create a single activity"""
     golem = GolemNode()
     async with golem:
         allocation = await golem.create_allocation(1)
@@ -153,11 +169,18 @@ async def example_6() -> None:
                 print(str(e))
 
         print(activity)
+        yield activity
+    print("STOPPED")
+
+
+async def example_7():
+    """Use the direct interface of the activity"""
+    async with get_activity() as activity:
         assert activity.idle
         batch = await activity.execute_commands(
             commands.Deploy(),
             commands.Start(),
-            commands.Run("/bin/echo", ["hello", "world"]),
+            commands.Run("/bin/echo", ["-n", "hello", "world"]),
             commands.Run("/bin/sleep", ["5"]),
         )
         assert not activity.idle
@@ -165,26 +188,10 @@ async def example_6() -> None:
         assert batch.done
 
         assert activity.idle
-        for ix, event in enumerate(batch.events):
-            print("STDOUT", ix, event.index)
-            print(event.stdout)
-            print()
+        for event in batch.events:
+            print(f"Event {event.index} stdout: {event.stdout}")
 
         print("STOPPING")
-    print("STOPPED")
-
-
-async def example_7() -> None:
-    """Print most recent invoice and debit note received by this node"""
-    golem = GolemNode()
-    async with golem:
-        invoice = (await golem.invoices())[-1]
-        print(invoice)
-        print(await invoice.get_data())
-
-        debit_note = (await golem.debit_notes())[-1]
-        print(debit_note)
-        print(await debit_note.get_data())
 
 
 async def main() -> None:
@@ -207,11 +214,11 @@ async def main() -> None:
     # print("\n---------- EXAMPLE 5 -------------\n")
     # await example_5()
 
-    print("\n---------- EXAMPLE 6 -------------\n")
-    await example_6()
+    # print("\n---------- EXAMPLE 6 -------------\n")
+    # await example_6()
 
-    # print("\n---------- EXAMPLE 7 -------------\n")
-    # await example_7()
+    print("\n---------- EXAMPLE 7 -------------\n")
+    await example_7()
 
 
 if __name__ == '__main__':
