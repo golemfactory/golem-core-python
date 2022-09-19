@@ -49,6 +49,8 @@ class DefaultPaymentManager:
 
     async def wait_for_invoices(self, timeout: float = 5):
         stop = datetime.now() + timedelta(seconds=timeout)
+
+        #   Wait for incoming invoices
         while datetime.now() < stop and any(agreement.invoice is None for agreement in self._agreements):
             await asyncio.sleep(0.1)
 
@@ -56,3 +58,8 @@ class DefaultPaymentManager:
         if missing_invoices:
             missing_invoices_str = ", ".join([str(agreement) for agreement in missing_invoices])
             print(f"wait_for_invoices timed out, agreements without invoices: {missing_invoices_str}")
+        else:
+            #   There's some time left, let's wait for invoices to be processed
+            invoices = [agreement.invoice for agreement in self._agreements]
+            while datetime.now() < stop and any(invoice.data.status == 'RECEIVED' for invoice in invoices):
+                await asyncio.sleep(0.1)

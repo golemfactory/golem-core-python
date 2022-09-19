@@ -28,6 +28,7 @@ async def prepare_activity(activity: Activity) -> Activity:
         commands.Run("/bin/echo", ["-n", f"ACTIVITY {activity.id} IS READY"]),
     )
     await batch.finished
+    assert batch.events[-1].stdout is not None and "IS READY" in batch.events[-1].stdout, "Prepare activity failed"
     print(batch.events[-1].stdout)
     return activity
 
@@ -40,6 +41,9 @@ async def execute_task(activity: Activity, task_data: int) -> str:
 
     result = batch.events[-1].stdout
     assert result is not None and "Executed task" in result, f"Got an incorrect result for {task_data}: {result}"
+
+    # if random() > 0.98:
+    #     1 / 0
 
     return result
 
@@ -63,13 +67,13 @@ async def main() -> None:
             AgreementCreator(),
             ActivityCreator(),
             Map(prepare_activity, True),
-            ActivityPool(),
+            ActivityPool(max_size=4),
         )
 
-        task_cnt = 30
+        task_cnt = 10
         result_cnt = 0
 
-        executor = TaskExecutor(execute_task, activity_stream, list(range(task_cnt)), max_concurrent=3)
+        executor = TaskExecutor(execute_task, activity_stream, list(range(task_cnt)), max_concurrent=10)
         async for result in executor.results():
             result_cnt += 1
             print("RESULT", result)
