@@ -8,7 +8,7 @@ from golem_api import GolemNode, commands
 from golem_api.low import Activity, Proposal
 
 from golem_api.mid import (
-    Chain, SimpleScorer, DefaultNegotiator, AgreementCreator, ActivityCreator, Map, TaskExecutor, ActivityPool
+    Chain, SimpleScorer, DefaultNegotiator, AgreementCreator, ActivityCreator, Map, ExecuteTasks, ActivityPool
 )
 from golem_api.default_logger import DefaultLogger
 from golem_api.default_payment_manager import DefaultPaymentManager
@@ -60,7 +60,10 @@ async def main() -> None:
         payload = await vm.repo(image_hash=IMAGE_HASH)
         demand = await golem.create_demand(payload, allocations=[allocation])
 
-        activity_stream = Chain(
+        task_cnt = 10
+        task_data = list(range(task_cnt))
+
+        chain = Chain(
             demand.initial_proposals(),
             SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=0.1)),
             DefaultNegotiator(),
@@ -68,13 +71,11 @@ async def main() -> None:
             ActivityCreator(),
             Map(prepare_activity, True),
             ActivityPool(max_size=4),
+            ExecuteTasks(execute_task, task_data),
         )
 
-        task_cnt = 10
         result_cnt = 0
-
-        executor = TaskExecutor(execute_task, activity_stream, list(range(task_cnt)), max_concurrent=10)
-        async for result in executor.results():
+        async for result in chain:
             result_cnt += 1
             print("RESULT", result)
 

@@ -1,6 +1,6 @@
 import asyncio
 import inspect
-from typing import AsyncIterator, Awaitable, Callable, Iterable, List, TypeVar, Union
+from typing import AsyncIterator, Awaitable, Callable, Iterable, List, Optional, TypeVar
 
 from golem_api.low import Activity
 
@@ -8,17 +8,19 @@ TaskData = TypeVar("TaskData")
 TaskResult = TypeVar("TaskResult")
 
 
-class TaskExecutor:
+class ExecuteTasks:
     def __init__(
         self,
         execute_task: Callable[[Activity, TaskData], Awaitable[TaskResult]],
-        activity_stream: Union[AsyncIterator[Activity], AsyncIterator[Awaitable[Activity]]],
         task_data: Iterable[TaskData],
         max_concurrent: int = 0,
     ):
         self.execute_task = execute_task
-        self.activity_stream = activity_stream
         self.task_data = task_data
+
+        #   This is set in __call__
+        self._activity_stream: Optional[AsyncIterator[Awaitable[Activity]]] = None
+        self._main_task: Optional[asyncio.Task] = None
 
         self._task_data_stream_exhausted = False
         self._result_queue: asyncio.Queue[TaskResult] = asyncio.Queue()
@@ -29,9 +31,11 @@ class TaskExecutor:
 
         #   TODO: remove finished tasks?
         self._current_tasks: List[asyncio.Task] = []
-        self._main_task: asyncio.Task = asyncio.create_task(self._process_task_data_stream())
 
-    async def results(self) -> AsyncIterator[TaskResult]:
+    async def __call__(self, activity_stream: AsyncIterator[Awaitable[Activity]]) -> AsyncIterator[TaskResult]:
+        self._activity_stream = activity_stream
+        self._main_task = asyncio.create_task(self._process_task_data_stream())
+
         while not (
             self._task_data_stream_exhausted
             and self._result_queue.empty()
@@ -64,7 +68,7 @@ class TaskExecutor:
             self._create_task(task_data)
 
     async def _get_activity(self) -> Activity:
-        activity = await self.activity_stream.__anext__()
-        if inspect.isawaitable(activity):
+        activity = await self._activity_stream.__anext__()
+        if inspect.isawaitable(activity):  # TODO: remove
             activity = await activity
         return activity  # type: ignore
