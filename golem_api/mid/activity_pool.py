@@ -21,9 +21,25 @@ class ActivityPool:
         while True:
             if not self._idle_activities and not self.full():
                 future_activity = await activity_stream.__anext__()
-                manager_task = asyncio.create_task(self._manage_activity(future_activity))
-                self._activity_manager_tasks.append(manager_task)
+                self._create_manager_task(future_activity)
             yield self._get_next_idle_activity()
+
+    def _create_manager_task(self, future_activity: Awaitable[Activity]) -> None:
+        #   Create an activity manager task
+        manager_task = asyncio.create_task(self._manage_activity(future_activity))
+        self._activity_manager_tasks.append(manager_task)
+
+        #   Create a separate task that will stop the manager task
+        asyncio.create_task(self._activity_destroyed_cleanup(manager_task, future_activity))
+
+    async def _activity_destroyed_cleanup(
+        self, manager_task: asyncio.Task, future_activity: Awaitable[Activity]
+    ) -> None:
+        activity = await future_activity
+        await activity.destroyed_event.wait()
+        manager_task.cancel()
+        if activity in self._idle_activities:
+            self._idle_activities.remove(activity)
 
     async def _get_next_idle_activity(self) -> Activity:
         while True:
@@ -34,7 +50,7 @@ class ActivityPool:
 
     async def _manage_activity(self, future_activity: Awaitable[Activity]) -> None:
         activity = await future_activity
-        while not activity.terminated:
+        while True:
             self._idle_activities.append(activity)
             await activity.busy_event.wait()
             if activity in self._idle_activities:
