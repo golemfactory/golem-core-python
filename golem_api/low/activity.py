@@ -86,6 +86,11 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
         commands_str = json.dumps([c.text() for c in commands])
         return await self.execute(models.ExeScriptRequest(text=commands_str))
 
+    async def execute_script(self, script: "Script") -> "PoolingBatch":
+        batch = await self.execute_commands(*script.commands)
+        batch._futures = script.futures
+        return batch
+
     def batch(self, batch_id: str) -> "PoolingBatch":
         batch = PoolingBatch(self.node, batch_id)
         if batch._parent is None:
@@ -116,6 +121,7 @@ class PoolingBatch(
         super().__init__(node, id_)
 
         self.finished_event = asyncio.Event()
+        self._futures: Optional[List[asyncio.Future[models.ExeScriptCommandResult]]] = None
 
     @property
     def activity(self) -> "Activity":
@@ -158,8 +164,35 @@ class PoolingBatch(
         if event.index < len(self.events):
             #   Repeated event
             return
+
         self.add_event(event)
+
+        if self._futures is not None:
+            fut = self._futures[event.index]
+            assert not fut.done()
+            fut.set_result(event)
+
         if event.is_batch_finished:
             self.finished_event.set()
             self.parent.running_batch_counter -= 1
             await self.stop_collecting_events()
+
+
+class Script:
+    def __init__(self) -> None:
+        self._commands: List[Command] = []
+        self._futures: List[asyncio.Future[models.ExeScriptCommandResult]] = []
+
+    @property
+    def commands(self) -> List[Command]:
+        return self._commands.copy()
+
+    @property
+    def futures(self) -> "List[asyncio.Future[models.ExeScriptCommandResult]]":
+        return self._futures.copy()
+
+    def add_command(self, command: Command) -> "asyncio.Future[models.ExeScriptCommandResult]":
+        self._commands.append(command)
+        fut: asyncio.Future[models.ExeScriptCommandResult] = asyncio.Future()
+        self._futures.append(fut)
+        return fut

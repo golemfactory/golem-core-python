@@ -1,11 +1,14 @@
 import asyncio
 from contextlib import asynccontextmanager
 
+from typing import AsyncGenerator
+
 
 from yapapi.payload import vm
 
-from golem_api import GolemNode, commands
+from golem_api import GolemNode, commands, Script
 from golem_api.events import ResourceEvent
+from golem_api.low import Activity
 
 IMAGE_HASH = "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
 
@@ -137,7 +140,7 @@ async def example_6() -> None:
 
 
 @asynccontextmanager
-async def get_activity() -> None:
+async def get_activity() -> AsyncGenerator[Activity, None]:
     """Create a single activity"""
     golem = GolemNode()
     async with golem:
@@ -170,10 +173,9 @@ async def get_activity() -> None:
 
         print(activity)
         yield activity
-    print("STOPPED")
 
 
-async def example_7():
+async def example_7() -> None:
     """Use the direct interface of the activity"""
     async with get_activity() as activity:
         assert activity.idle
@@ -181,7 +183,7 @@ async def example_7():
             commands.Deploy(),
             commands.Start(),
             commands.Run("/bin/echo", ["-n", "hello", "world"]),
-            commands.Run("/bin/sleep", ["5"]),
+            commands.Run("/bin/sleep", ["2"]),
         )
         assert not activity.idle
         await batch.wait(timeout=10)
@@ -191,7 +193,23 @@ async def example_7():
         for event in batch.events:
             print(f"Event {event.index} stdout: {event.stdout}")
 
-        print("STOPPING")
+
+async def example_8() -> None:
+    async with get_activity() as activity:
+        script = Script()
+        script.add_command(commands.Deploy())
+        script.add_command(commands.Start())
+        x = script.add_command(commands.Run("/bin/echo", ["-n", "hello world from script"]))
+        script.add_command(commands.Run("/bin/sleep", ["5"]))
+        y = script.add_command(commands.Run("/bin/echo", ["-n", "another result"]))
+        script.add_command(commands.Run("/bin/sleep", ["5"]))
+
+        batch = await activity.execute_script(script)
+
+        print(await x)
+        print(await y)
+        await batch.wait(10)
+        print("Batch finished")
 
 
 async def main() -> None:
@@ -217,8 +235,11 @@ async def main() -> None:
     # print("\n---------- EXAMPLE 6 -------------\n")
     # await example_6()
 
-    print("\n---------- EXAMPLE 7 -------------\n")
-    await example_7()
+    # print("\n---------- EXAMPLE 7 -------------\n")
+    # await example_7()
+
+    print("\n---------- EXAMPLE 8 -------------\n")
+    await example_8()
 
 
 if __name__ == '__main__':
