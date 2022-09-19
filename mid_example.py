@@ -5,14 +5,13 @@ from random import random
 from yapapi.payload import vm
 
 from golem_api import GolemNode, commands
-from golem_api.low import Activity, DebitNote, Invoice, Proposal
+from golem_api.low import Activity, Proposal
 
 from golem_api.mid import (
     Chain, SimpleScorer, DefaultNegotiator, AgreementCreator, ActivityCreator, Map, TaskExecutor, ActivityPool
 )
 from golem_api.default_logger import DefaultLogger
 from golem_api.default_payment_manager import DefaultPaymentManager
-from golem_api.events import NewResource
 
 
 IMAGE_HASH = "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
@@ -52,9 +51,7 @@ async def main() -> None:
     async with golem:
         allocation = await golem.create_allocation(1)
 
-        payment_manager = DefaultPaymentManager(allocation)
-        golem.event_bus.resource_listen(payment_manager.on_invoice, [NewResource], [Invoice])
-        golem.event_bus.resource_listen(payment_manager.on_debit_note, [NewResource], [DebitNote])
+        payment_manager = DefaultPaymentManager(golem, allocation)
 
         payload = await vm.repo(image_hash=IMAGE_HASH)
         demand = await golem.create_demand(payload, allocations=[allocation])
@@ -69,10 +66,19 @@ async def main() -> None:
             ActivityPool(),
         )
 
-        executor = TaskExecutor(execute_task, activity_stream, list(range(20)), max_concurrent=3)
-        result: str
+        task_cnt = 30
+        result_cnt = 0
+
+        executor = TaskExecutor(execute_task, activity_stream, list(range(task_cnt)), max_concurrent=3)
         async for result in executor.results():
+            result_cnt += 1
             print("RESULT", result)
+
+        print("ALL TASKS DONE")
+        assert task_cnt == result_cnt
+
+        await payment_manager.terminate_agreements()
+        await payment_manager.wait_for_invoices()
 
 
 if __name__ == '__main__':
