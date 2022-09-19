@@ -125,7 +125,7 @@ class PoolingBatch(
     def done(self) -> bool:
         return self.finished_event.is_set()
 
-    async def wait(self, timeout: Optional[Union[timedelta, float]] = None) -> None:
+    async def wait(self, timeout: Optional[Union[timedelta, float]] = None) -> List[models.ExeScriptCommandResult]:
         #   NOTE: timeout doesn't stop the batch, just raises an exception
         timeout_seconds: Optional[float]
         if timeout is None:
@@ -137,6 +137,7 @@ class PoolingBatch(
 
         try:
             await asyncio.wait_for(self.finished_event.wait(), timeout_seconds)
+            return self.events
         except asyncio.TimeoutError:
             assert timeout_seconds is not None  # mypy
             raise BatchTimeoutError(self, timeout_seconds)
