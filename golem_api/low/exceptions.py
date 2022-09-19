@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from golem_api.low.activity import Batch
+    from golem_api.low.activity import PoolingBatch
 
 
 class ResourceNotFound(Exception):
@@ -23,9 +23,9 @@ class NoMatchingAccount(Exception):
 
 
 class BatchTimeoutError(Exception):
-    def __init__(self, batch: "Batch", timeout: float):
+    def __init__(self, batch: "PoolingBatch", timeout: float):
         self.batch = batch
         self.timeout = timeout
 
-        msg = f"Batch {batch} did not finish in {timeout} seconds"
+        msg = f"{batch} did not finish in {timeout} seconds"
         super().__init__(msg)

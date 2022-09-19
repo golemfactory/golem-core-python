@@ -138,6 +138,7 @@ class PoolingBatch(
         try:
             await asyncio.wait_for(self.finished_event.wait(), timeout_seconds)
         except asyncio.TimeoutError:
+            assert timeout_seconds is not None  # mypy
             raise BatchTimeoutError(self, timeout_seconds)
 
     ###########################

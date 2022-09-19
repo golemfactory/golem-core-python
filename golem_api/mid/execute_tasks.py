@@ -69,6 +69,7 @@ class ExecuteTasks:
             self._create_task(task_data)
 
     async def _get_activity(self) -> Activity:
+        assert self._activity_stream is not None
         async with self._activity_stream_lock:
             future_activity = await self._activity_stream.__anext__()
 

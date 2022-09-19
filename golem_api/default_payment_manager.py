@@ -47,7 +47,7 @@ class DefaultPaymentManager:
     async def terminate_agreements(self) -> None:
         await asyncio.gather(*[agreement.terminate() for agreement in self._agreements])
 
-    async def wait_for_invoices(self, timeout: float = 5):
+    async def wait_for_invoices(self, timeout: float = 5) -> None:
         stop = datetime.now() + timedelta(seconds=timeout)
 
         #   Wait for incoming invoices
@@ -61,5 +61,5 @@ class DefaultPaymentManager:
         else:
             #   There's some time left, let's wait for invoices to be processed
             invoices = [agreement.invoice for agreement in self._agreements]
-            while datetime.now() < stop and any(invoice.data.status == 'RECEIVED' for invoice in invoices):
+            while datetime.now() < stop and any(invoice.data.status == 'RECEIVED' for invoice in invoices):  # type: ignore  # TODO rewrite this method
                 await asyncio.sleep(0.1)
