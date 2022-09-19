@@ -1,5 +1,5 @@
 import asyncio
-from typing import Callable, Dict, List, Optional, TYPE_CHECKING
+from typing import Callable, Dict, List, Optional, TYPE_CHECKING, Union
 from datetime import timedelta
 import json
 
@@ -13,6 +13,7 @@ from .resource import Resource
 from .resource_internals import ActivityApi, _NULL
 from .yagna_event_collector import YagnaEventCollector
 from .api_call_wrapper import api_call_wrapper
+from .exceptions import BatchTimeoutError
 
 if TYPE_CHECKING:
     from golem_api import GolemNode
@@ -105,7 +106,7 @@ class PoolingBatch(
     Usage::
 
         batch = activity.execute_commands(Deploy(), Start())
-        await batch.finished
+        await batch.wait()
         for event in batch.events:
             print(event.stdout)
     """
@@ -114,15 +115,30 @@ class PoolingBatch(
     def __init__(self, node: "GolemNode", id_: str):
         super().__init__(node, id_)
 
-        self._finished: asyncio.Future = asyncio.Future()
+        self.finished_event = asyncio.Event()
 
     @property
     def activity(self) -> "Activity":
         return self.parent
 
     @property
-    async def finished(self) -> None:
-        await self._finished
+    def done(self) -> bool:
+        return self.finished_event.is_set()
+
+    async def wait(self, timeout: Optional[Union[timedelta, float]] = None) -> None:
+        #   NOTE: timeout doesn't stop the batch, just raises an exception
+        timeout_seconds: Optional[float]
+        if timeout is None:
+            timeout_seconds = None
+        elif isinstance(timeout, timedelta):
+            timeout_seconds = timeout.total_seconds()
+        else:
+            timeout_seconds = timeout
+
+        try:
+            await asyncio.wait_for(self.finished_event.wait(), timeout_seconds)
+        except asyncio.TimeoutError:
+            raise BatchTimeoutError(self, timeout_seconds)
 
     ###########################
     #   Event collector methods
@@ -142,6 +158,6 @@ class PoolingBatch(
             return
         self.add_event(event)
         if event.is_batch_finished:
-            self._finished.set_result(None)
+            self.finished_event.set()
             self.parent.running_batch_counter -= 1
             await self.stop_collecting_events()

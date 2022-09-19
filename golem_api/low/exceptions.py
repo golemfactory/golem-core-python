@@ -1,3 +1,9 @@
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from golem_api.low.activity import Batch
+
+
 class ResourceNotFound(Exception):
     def __init__(self, name: str, id_: str):
         self.name = name
@@ -13,4 +19,13 @@ class NoMatchingAccount(Exception):
         #         a message developers are used to so maybe it's worth reusing
         from yapapi.engine import NoPaymentAccountError
         msg = str(NoPaymentAccountError(driver, network))
+        super().__init__(msg)
+
+
+class BatchTimeoutError(Exception):
+    def __init__(self, batch: "Batch", timeout: float):
+        self.batch = batch
+        self.timeout = timeout
+
+        msg = f"Batch {batch} did not finish in {timeout} seconds"
         super().__init__(msg)

@@ -161,7 +161,9 @@ async def example_6() -> None:
             commands.Run("/bin/sleep", ["5"]),
         )
         assert not activity.idle
-        await batch.finished
+        await batch.wait(timeout=10)
+        assert batch.done
+
         assert activity.idle
         for ix, event in enumerate(batch.events):
             print("STDOUT", ix, event.index)
@@ -205,11 +207,11 @@ async def main() -> None:
     # print("\n---------- EXAMPLE 5 -------------\n")
     # await example_5()
 
-    # print("\n---------- EXAMPLE 6 -------------\n")
-    # await example_6()
+    print("\n---------- EXAMPLE 6 -------------\n")
+    await example_6()
 
-    print("\n---------- EXAMPLE 7 -------------\n")
-    await example_7()
+    # print("\n---------- EXAMPLE 7 -------------\n")
+    # await example_7()
 
 
 if __name__ == '__main__':
