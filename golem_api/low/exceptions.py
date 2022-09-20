@@ -32,7 +32,7 @@ class BatchTimeoutError(Exception):
 
 
 class BatchFailed(Exception):
-    def __init__(self, batch):
+    def __init__(self, batch: "PoolingBatch"):
         self.batch = batch
 
         event = batch.events[-1]

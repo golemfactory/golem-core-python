@@ -1,16 +1,30 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
+from pathlib import Path
+
+from yapapi.storage import Source
+from yapapi.storage.gftp import GftpProvider
 
 ArgsDict = Dict[str, Union[str, List[str], Dict[str, Any]]]
 
 
 class Command(ABC):
     def text(self) -> Dict[str, ArgsDict]:
-        return {type(self).__name__.lower(): self.args_dict()}
+        return {self.command_name: self.args_dict()}
+
+    @property
+    def command_name(self) -> str:
+        return type(self).__name__.lower()
 
     @abstractmethod
     def args_dict(self) -> ArgsDict:
         raise NotImplementedError
+
+    async def before(self) -> None:
+        pass
+
+    async def after(self) -> None:
+        pass
 
 
 class Deploy(Command):
@@ -40,4 +54,34 @@ class Run(Command):
                     "stream": {},
                 },
             }
+        }
+
+
+class SendFile(Command):
+    command_name = 'transfer'
+
+    def __init__(self, src_path: str, dst_path: str):
+        self.src_path = src_path
+        self.dst_path = dst_path
+
+        self._source: Optional[Source] = None
+        self._gftp = GftpProvider()
+
+    async def before(self) -> None:
+        print("BEFORE")
+        await self._gftp.__aenter__()
+        self._source = await self._gftp.upload_file(Path(self.src_path))
+        print(self._source.download_url)
+
+    async def after(self) -> None:
+        print("AFTER")
+        assert self._source is not None
+        await self._gftp.release_source(self._source)
+        await self._gftp.__aexit__(None, None, None)
+
+    def args_dict(self) -> ArgsDict:
+        assert self._source is not None
+        return {
+            "from": self._source.download_url,
+            "to": f"container:{self.dst_path}",
         }

@@ -1,5 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
+from tempfile import TemporaryDirectory
+from os import path
 
 from typing import AsyncGenerator
 
@@ -245,6 +247,26 @@ async def example_9() -> None:
         assert last_event.result == 'Error'
 
 
+async def example_10() -> None:
+    """Send a file. Download a file."""
+    async with get_activity() as activity:
+        with TemporaryDirectory() as tmpdir:
+            in_fname = path.join(tmpdir, "in_file.txt")
+
+            with open(in_fname, 'w') as f:
+                f.write("Hello world inside a file")
+
+            remote_in_fname = "/golem/resource/in_file.txt"
+            batch = await activity.execute_commands(
+                commands.Deploy(),
+                commands.Start(),
+                commands.SendFile(in_fname, remote_in_fname),
+                commands.Run("/bin/cat", [remote_in_fname]),
+            )
+            await batch.wait(10)
+            print(batch.events[-1])
+
+
 async def main() -> None:
     # NOTE: this example assumes correct allocation/demand/proposal IDs
     # print("\n---------- EXAMPLE 1 -------------\n")
@@ -274,8 +296,11 @@ async def main() -> None:
     # print("\n---------- EXAMPLE 8 -------------\n")
     # await example_8()
 
-    print("\n---------- EXAMPLE 9 -------------\n")
-    await example_9()
+    # print("\n---------- EXAMPLE 9 -------------\n")
+    # await example_9()
+
+    print("\n---------- EXAMPLE 10 -------------\n")
+    await example_10()
 
 
 if __name__ == '__main__':

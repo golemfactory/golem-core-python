@@ -83,8 +83,16 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
         return batch
 
     async def execute_commands(self, *commands: Command) -> "PoolingBatch":
+        await asyncio.gather(*[c.before() for c in commands])
         commands_str = json.dumps([c.text() for c in commands])
-        return await self.execute(models.ExeScriptRequest(text=commands_str))
+        batch = await self.execute(models.ExeScriptRequest(text=commands_str))
+
+        async def execute_after():
+            await batch.wait()
+            await asyncio.gather(*[c.after() for c in commands])
+
+        asyncio.create_task(execute_after())
+        return batch
 
     async def execute_script(self, script: "Script") -> "PoolingBatch":
         batch = await self.execute_commands(*script.commands)
