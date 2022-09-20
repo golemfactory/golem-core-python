@@ -9,6 +9,7 @@ from yapapi.payload import vm
 from golem_api import GolemNode, commands, Script
 from golem_api.events import ResourceEvent
 from golem_api.low import Activity
+from golem_api.low.exceptions import BatchFailed
 
 IMAGE_HASH = "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
 
@@ -182,7 +183,7 @@ async def example_7() -> None:
         batch = await activity.execute_commands(
             commands.Deploy(),
             commands.Start(),
-            commands.Run("/bin/echo", ["-n", "hello", "world"]),
+            commands.Run("/bin/echoaaa", ["-n", "hello", "world"]),
             commands.Run("/bin/sleep", ["2"]),
         )
         assert not activity.idle
@@ -191,10 +192,12 @@ async def example_7() -> None:
 
         assert activity.idle
         for event in batch.events:
-            print(f"Event {event.index} stdout: {event.stdout}")
+            print(event)
+            # print(f"Event {event.index} stdout: {event.stdout}")
 
 
 async def example_8() -> None:
+    """Send a batch using the Script interface"""
     async with get_activity() as activity:
         script = Script()
         script.add_command(commands.Deploy())
@@ -210,6 +213,36 @@ async def example_8() -> None:
         print(await y)
         await batch.wait(10)
         print("Batch finished")
+
+
+async def example_9() -> None:
+    """Send an invalid batch using the Script interface"""
+    async with get_activity() as activity:
+        script = Script()
+        script.add_command(commands.Deploy())
+        script.add_command(commands.Start())
+
+        success_result = script.add_command(commands.Run("/bin/echo", ["-n", "This works"]))
+        failed_result = script.add_command(commands.Run("/bin/ooops/this_looks_broken", []))
+        never_result = script.add_command(commands.Run("/bin/echo", ["We won't get here"]))
+
+        batch = await activity.execute_script(script)
+
+        success = await success_result
+        print(f"Command succesful: {success.stdout}")
+
+        try:
+            await failed_result
+        except BatchFailed as e:
+            print(f"Command failed: {e}")
+
+        try:
+            await never_result
+        except BatchFailed as e:
+            print(f"Previous command failed: {e}")
+
+        last_event = batch.events[-1]
+        assert last_event.result == 'Error'
 
 
 async def main() -> None:
@@ -238,8 +271,11 @@ async def main() -> None:
     # print("\n---------- EXAMPLE 7 -------------\n")
     # await example_7()
 
-    print("\n---------- EXAMPLE 8 -------------\n")
-    await example_8()
+    # print("\n---------- EXAMPLE 8 -------------\n")
+    # await example_8()
+
+    print("\n---------- EXAMPLE 9 -------------\n")
+    await example_9()
 
 
 if __name__ == '__main__':

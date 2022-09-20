@@ -29,3 +29,12 @@ class BatchTimeoutError(Exception):
 
         msg = f"{batch} did not finish in {timeout} seconds"
         super().__init__(msg)
+
+
+class BatchFailed(Exception):
+    def __init__(self, batch):
+        self.batch = batch
+
+        event = batch.events[-1]
+        msg = f"{batch} failed on command {event.index}: {event.message}"
+        super().__init__(msg)
