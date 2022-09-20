@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from tempfile import TemporaryDirectory
 from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
 
@@ -64,17 +65,16 @@ class SendFile(Command):
         self.src_path = src_path
         self.dst_path = dst_path
 
-        self._gftp = GftpProvider()
+        self._tmp_dir = TemporaryDirectory()
+        self._gftp = GftpProvider(tmpdir=self._tmp_dir.name)
         self._source: Optional[Source] = None
 
     async def before(self) -> None:
-        await self._gftp.__aenter__()
         self._source = await self._gftp.upload_file(Path(self.src_path))
 
     async def after(self) -> None:
         assert self._source is not None
         await self._gftp.release_source(self._source)
-        await self._gftp.__aexit__(None, None, None)
 
     def args_dict(self) -> ArgsDict:
         assert self._source is not None
@@ -91,17 +91,16 @@ class DownloadFile(Command):
         self.src_path = src_path
         self.dst_path = dst_path
 
-        self._gftp = GftpProvider()
+        self._tmp_dir = TemporaryDirectory()
+        self._gftp = GftpProvider(tmpdir=self._tmp_dir.name)
         self._destination: Optional[Destination] = None
 
     async def before(self) -> None:
-        await self._gftp.__aenter__()
         self._destination = await self._gftp.new_destination(Path(self.dst_path))
 
     async def after(self) -> None:
         assert self._destination is not None
         await self._destination.download_file(Path(self.dst_path))
-        await self._gftp.__aexit__(None, None, None)
 
     def args_dict(self) -> ArgsDict:
         assert self._destination is not None

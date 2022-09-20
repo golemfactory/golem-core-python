@@ -72,7 +72,7 @@ async def main() -> None:
             AgreementCreator(),
             ActivityCreator(),
             Map(prepare_activity, True),
-            ActivityPool(max_size=1),
+            ActivityPool(max_size=5),
             ExecuteTasks(execute_task, FRAMES),
         )
 
