@@ -248,23 +248,42 @@ async def example_9() -> None:
 
 
 async def example_10() -> None:
-    """Send a file. Download a file."""
+    """Send a file"""
     async with get_activity() as activity:
         with TemporaryDirectory() as tmpdir:
-            in_fname = path.join(tmpdir, "in_file.txt")
+            local_fname = path.join(tmpdir, "in_file.txt")
+            in_file_text = "Hello world inside a file"
 
-            with open(in_fname, 'w') as f:
-                f.write("Hello world inside a file")
+            with open(local_fname, 'w') as f:
+                f.write(in_file_text)
 
-            remote_in_fname = "/golem/resource/in_file.txt"
+            remote_fname = "/golem/resource/in_file.txt"
             batch = await activity.execute_commands(
                 commands.Deploy(),
                 commands.Start(),
-                commands.SendFile(in_fname, remote_in_fname),
-                commands.Run("/bin/cat", [remote_in_fname]),
+                commands.SendFile(local_fname, remote_fname),
+                commands.Run("/bin/cat", [remote_fname]),
             )
-            await batch.wait(10)
-            print(batch.events[-1])
+            await batch.wait(5)
+            assert batch.events[-1].stdout == in_file_text
+
+
+async def example_11() -> None:
+    """Download a file"""
+    async with get_activity() as activity:
+        with TemporaryDirectory() as tmpdir:
+            local_fname = path.join(tmpdir, "out_file.txt")
+            remote_fname = "/golem/output/out_file.txt"
+            out_file_text = "Provider wrote this"
+            batch = await activity.execute_commands(
+                commands.Deploy(),
+                commands.Start(),
+                commands.Run("/bin/sh", ["-c", f"echo -n '{out_file_text}' > {remote_fname}"]),
+                commands.DownloadFile(remote_fname, local_fname),
+            )
+            await batch.wait(5)
+            with open(local_fname, 'r') as f:
+                assert f.read() == out_file_text
 
 
 async def main() -> None:
@@ -301,6 +320,9 @@ async def main() -> None:
 
     print("\n---------- EXAMPLE 10 -------------\n")
     await example_10()
+
+    print("\n---------- EXAMPLE 11 -------------\n")
+    await example_11()
 
 
 if __name__ == '__main__':

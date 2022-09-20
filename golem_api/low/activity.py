@@ -87,7 +87,7 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
         commands_str = json.dumps([c.text() for c in commands])
         batch = await self.execute(models.ExeScriptRequest(text=commands_str))
 
-        async def execute_after():
+        async def execute_after() -> None:
             await batch.wait()
             await asyncio.gather(*[c.after() for c in commands])
 
