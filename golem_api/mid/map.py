@@ -28,12 +28,16 @@ class Map(Generic[InType, OutType]):
         self,
         in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]],
     ) -> OutType:
-        #   1.  Get a value from in_stream
-        #   2.  If it is awaitable, await it
-        #   3.  Execute self.func on it
-        #   4.  Return first result that is not None
         while True:
-            in_val = await self._next_from_stream(in_stream)
+            async with self._in_stream_lock:
+                in_val = await in_stream.__anext__()  # type: ignore  # mypy, why?
+
+            #   Q: Why this?
+            #   A: Because this way it's possible to wait chains of awaitables without
+            #      dealing with awaitables at all. E.g. We have Map(X -> Y) followed by Map(Y -> Z)
+            #      and first map returns Awaitable[Y] (because of return_awaitable = True),
+            #      and second map unpacks this Awaitable here.
+            #   (This probably has some downsides, but should be worth it)
             if inspect.isawaitable(in_val):
                 in_val = await in_val
 
@@ -42,9 +46,3 @@ class Map(Generic[InType, OutType]):
             except Exception as e:
                 #   TODO: emit MapFailed event (? - where is the event emitter?)
                 print("Map exception", type(e).__name__, str(e))
-
-    async def _next_from_stream(
-        self, in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]],
-    ) -> Union[InType, Awaitable[InType]]:
-        async with self._in_stream_lock:
-            return await in_stream.__anext__()  # type: ignore  # mypy, why?
