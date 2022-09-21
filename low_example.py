@@ -185,7 +185,7 @@ async def example_7() -> None:
         batch = await activity.execute_commands(
             commands.Deploy(),
             commands.Start(),
-            commands.Run("/bin/echoaaa", ["-n", "hello", "world"]),
+            commands.Run("/bin/echo", ["-n", "hello", "world"]),
             commands.Run("/bin/sleep", ["2"]),
         )
         assert not activity.idle

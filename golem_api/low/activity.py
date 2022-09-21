@@ -186,8 +186,7 @@ class PoolingBatch(
         if event.is_batch_finished:
             self.finished_event.set()
             self.parent.running_batch_counter -= 1
-
-            await self.stop_collecting_events()
+            self.stop_collecting_events()
 
 
 class Script:

@@ -12,7 +12,7 @@ class YagnaEventCollector(ABC):
             task = asyncio.get_event_loop().create_task(self._collect_yagna_events())
             self._event_collecting_task = task
 
-    async def stop_collecting_events(self) -> None:
+    def stop_collecting_events(self) -> None:
         if self._event_collecting_task is not None:
             self._event_collecting_task.cancel()
             self._event_collecting_task = None

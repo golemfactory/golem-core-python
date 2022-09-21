@@ -29,7 +29,7 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], Ya
 
         This is a final operation, unsubscribed demand is not available anymore."""
         self.set_no_more_children()
-        await self.stop_collecting_events()
+        self.stop_collecting_events()
         await self.api.unsubscribe_demand(self.id)
         self.node.event_bus.emit(ResourceClosed(self))
 

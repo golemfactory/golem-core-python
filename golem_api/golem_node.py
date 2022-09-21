@@ -79,24 +79,18 @@ class GolemNode:
 
     async def aclose(self) -> None:
         self._set_no_more_children()
-        await self._stop_event_collectors()
+        self._stop_event_collectors()
         await self._close_autoclose_resources()
         await self._close_apis()
         await self._event_bus.stop()
 
-    async def _stop_event_collectors(self) -> None:
+    def _stop_event_collectors(self) -> None:
         demands = self._all_resources(Demand)
         batches = self._all_resources(PoolingBatch)
+        payment_event_collectors = [self._invoice_event_collector, self._debit_note_event_collector]
 
-        tasks = [
-            self._invoice_event_collector.stop_collecting_events(),
-            self._debit_note_event_collector.stop_collecting_events(),
-        ]
-        tasks += [demand.stop_collecting_events() for demand in demands]
-        tasks += [batch.stop_collecting_events() for batch in batches]
-
-        if tasks:
-            await asyncio.gather(*tasks)
+        for event_collector in demands + batches + payment_event_collectors:
+            event_collector.stop_collecting_events()
 
     def _set_no_more_children(self) -> None:
         for resources in self._resources.values():
