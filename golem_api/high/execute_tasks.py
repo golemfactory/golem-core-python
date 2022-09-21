@@ -37,6 +37,7 @@ async def execute_tasks(
     prepare_activity: Callable[[Activity], Awaitable[Activity]] = default_prepare_activity,
     score_proposal: Callable[[Proposal], Awaitable[float]] = default_score_proposal,
 ) -> AsyncIterator[TaskResult]:
+
     golem = GolemNode()
     golem.event_bus.listen(DefaultLogger().on_event)
 
