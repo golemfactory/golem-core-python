@@ -89,7 +89,7 @@ class GolemNode:
         batches = self._all_resources(PoolingBatch)
         payment_event_collectors = [self._invoice_event_collector, self._debit_note_event_collector]
 
-        for event_collector in demands + batches + payment_event_collectors:
+        for event_collector in demands + batches + payment_event_collectors:  # type: ignore
             event_collector.stop_collecting_events()
 
     def _set_no_more_children(self) -> None:

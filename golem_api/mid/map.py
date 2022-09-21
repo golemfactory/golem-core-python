@@ -30,7 +30,7 @@ class Map(Generic[InType, OutType]):
     ) -> OutType:
         while True:
             async with self._in_stream_lock:
-                in_val = await in_stream.__anext__()  # type: ignore  # mypy, why?
+                in_val = await in_stream.__anext__()
 
             #   Q: Why this?
             #   A: Because this way it's possible to wait chains of awaitables without
@@ -42,7 +42,7 @@ class Map(Generic[InType, OutType]):
                 in_val = await in_val
 
             try:
-                return await self.func(in_val)  # type: ignore
+                return await self.func(in_val)
             except Exception as e:
                 #   TODO: emit MapFailed event (? - where is the event emitter?)
                 print("Map exception", type(e).__name__, str(e))
