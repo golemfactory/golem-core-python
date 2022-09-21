@@ -69,7 +69,7 @@ async def main() -> None:
             DefaultNegotiator(),
             AgreementCreator(),
             ActivityCreator(),
-            Map(prepare_activity, True),
+            Map(prepare_activity),
             ActivityPool(max_size=4),
             ExecuteTasks(execute_task, task_data),
         )
