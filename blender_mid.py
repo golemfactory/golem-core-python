@@ -17,7 +17,6 @@ from golem_api.default_payment_manager import DefaultPaymentManager
 
 
 IMAGE_HASH = "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
-SOURCE_FILE = "cubes.blend"
 FRAME_CONFIG_TEMPLATE = json.loads(Path("frame_params.json").read_text())
 FRAMES = list(range(0, 60, 10))
 
@@ -27,6 +26,7 @@ async def score_proposal(proposal: Proposal) -> float:
 
 
 async def prepare_activity(activity: Activity) -> Activity:
+    print(f"Prepare activity {activity}")
     batch = await activity.execute_commands(
         commands.Deploy(),
         commands.Start(),
@@ -38,6 +38,7 @@ async def prepare_activity(activity: Activity) -> Activity:
 
 
 async def execute_task(activity: Activity, frame_ix: int) -> str:
+    print(f"Execute task {frame_ix} on activity {activity}")
     frame_config = FRAME_CONFIG_TEMPLATE.copy()
     frame_config["frames"] = [frame_ix]
     fname = f"out{frame_ix:04d}.png"
