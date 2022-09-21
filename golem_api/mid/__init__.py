@@ -4,3 +4,4 @@ from .default_functions import default_negotiate, default_create_agreement, defa
 from .map import Map
 from .execute_tasks import ExecuteTasks
 from .activity_pool import ActivityPool
+from .zip import Zip

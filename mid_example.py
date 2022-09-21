@@ -8,7 +8,8 @@ from golem_api import GolemNode, commands
 from golem_api.low import Activity, Proposal
 
 from golem_api.mid import (
-    Chain, SimpleScorer, Map, ExecuteTasks, ActivityPool,
+    Chain, Map, Zip,
+    ActivityPool, SimpleScorer,
     default_negotiate, default_create_agreement, default_create_activity,
 )
 from golem_api.default_logger import DefaultLogger
@@ -64,6 +65,13 @@ async def main() -> None:
         task_cnt = 10
         task_data = list(range(task_cnt))
 
+        async def task_stream():
+            while True:
+                if task_data:
+                    yield task_data.pop(0)
+                else:
+                    await asyncio.sleep(0.1)
+
         chain = Chain(
             demand.initial_proposals(),
             SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=0.1)),
@@ -72,16 +80,21 @@ async def main() -> None:
             Map(default_create_activity),
             Map(prepare_activity),
             ActivityPool(max_size=4),
-            ExecuteTasks(execute_task, task_data),
+            Zip(task_stream()),
+            Map(execute_task),
         )
 
-        result_cnt = 0
+        returned = 0
+        tasks = []
         async for result in chain:
-            result_cnt += 1
-            print(f"RESULT {result_cnt}/{task_cnt} {result}")
+            tasks.append(result)
+            returned += 1
+            print(f"RESULT {returned}/{task_cnt} {result}")
+            if returned == task_cnt:
+                break
+        await asyncio.gather(*tasks)
 
         print("ALL TASKS DONE")
-        assert task_cnt == result_cnt
 
         await payment_manager.terminate_agreements()
         await payment_manager.wait_for_invoices()
