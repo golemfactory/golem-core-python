@@ -22,27 +22,18 @@ if TYPE_CHECKING:
 class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
     def __init__(self, node: "GolemNode", id_: str):
         super().__init__(node, id_)
-        self._running_batch_counter = 0
 
-        self.busy_event = asyncio.Event()
-        self.idle_event = asyncio.Event()
-        self.destroyed_event = asyncio.Event()
-        self.idle = True
+        self._running_batch_counter = 0
+        self._busy_event = asyncio.Event()
+        self._idle_event = asyncio.Event()
+        self._idle_event.set()
+        self._destroyed_event = asyncio.Event()
 
     ###################
-    #   State management - idle / busy
+    #   State management - idle / busy / destroyed
     @property
     def idle(self) -> bool:
-        return self.idle_event.is_set()
-
-    @idle.setter
-    def idle(self, val: bool) -> None:
-        if val:
-            self.busy_event.clear()
-            self.idle_event.set()
-        else:
-            self.busy_event.set()
-            self.idle_event.clear()
+        return self._idle_event.is_set()
 
     @property
     def running_batch_counter(self) -> int:
@@ -54,9 +45,20 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
         assert new_val >= 0
         self._running_batch_counter = new_val
         if new_val == 0:
-            self.idle = True
-        elif self.idle:
-            self.idle = False
+            self._busy_event.clear()
+            self._idle_event.set()
+        else:
+            self._busy_event.set()
+            self._idle_event.clear()
+
+    async def wait_busy(self) -> None:
+        await self._busy_event.wait()
+
+    async def wait_idle(self) -> None:
+        await self._idle_event.wait()
+
+    async def wait_destroyed(self) -> None:
+        await self._destroyed_event.wait()
 
     ####################
     #   API
@@ -69,7 +71,7 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
 
     @api_call_wrapper()
     async def destroy(self) -> None:
-        self.destroyed_event.set()
+        self._destroyed_event.set()
         await self.api.destroy_activity(self.id)
         self.node.event_bus.emit(ResourceClosed(self))
 

@@ -36,7 +36,7 @@ class ActivityPool:
         self, manager_task: asyncio.Task, future_activity: Awaitable[Activity]
     ) -> None:
         activity = await future_activity
-        await activity.destroyed_event.wait()
+        await activity.wait_destroyed()
         manager_task.cancel()
         if activity in self._idle_activities:
             self._idle_activities.remove(activity)
@@ -52,7 +52,7 @@ class ActivityPool:
         activity = await future_activity
         while True:
             self._idle_activities.append(activity)
-            await activity.busy_event.wait()
+            await activity.wait_busy()
             if activity in self._idle_activities:
                 self._idle_activities.remove(activity)
-            await activity.idle_event.wait()
+            await activity.wait_idle()
