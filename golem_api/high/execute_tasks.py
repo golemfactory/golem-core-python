@@ -54,7 +54,7 @@ async def execute_tasks(
             Map(default_negotiate),
             Map(default_create_agreement),
             Map(default_create_activity),
-            Map(prepare_activity, True),
+            Map(prepare_activity),
             ActivityPool(max_size=max_workers),
             ExecuteTasks(execute_task, task_data, max_concurrent=max_workers * 2),
         )

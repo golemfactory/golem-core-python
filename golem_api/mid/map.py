@@ -7,7 +7,7 @@ OutType = TypeVar("OutType")
 
 
 class Map(Generic[InType, OutType]):
-    def __init__(self, func: Callable[[InType], Awaitable[OutType]], return_awaitable: bool = True):
+    def __init__(self, func: Callable[[InType], Awaitable[OutType]], *, return_awaitable: bool = True):
         self.func = func
         self.return_awaitable = return_awaitable
 
