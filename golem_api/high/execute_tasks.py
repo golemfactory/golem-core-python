@@ -2,9 +2,7 @@ from typing import Awaitable, AsyncIterator, Callable, Iterable, TypeVar
 from random import random
 from datetime import timedelta
 
-from yapapi.payload import vm
-
-from golem_api import GolemNode, commands
+from golem_api import commands, GolemNode, Payload
 from golem_api.low import Activity, Proposal
 
 from golem_api.mid import (
@@ -31,9 +29,10 @@ async def default_score_proposal(proposal: Proposal) -> float:
 async def execute_tasks(
     *,
     budget: float,
+    payload: Payload,
     task_data: Iterable[TaskData],
     execute_task: Callable[[Activity, TaskData], Awaitable[TaskResult]],
-    vm_image_hash: str,
+
     max_workers: int = 1,
     prepare_activity: Callable[[Activity], Awaitable[Activity]] = default_prepare_activity,
     score_proposal: Callable[[Proposal], Awaitable[float]] = default_score_proposal,
@@ -45,8 +44,6 @@ async def execute_tasks(
         allocation = await golem.create_allocation(budget)
 
         payment_manager = DefaultPaymentManager(golem, allocation)
-
-        payload = await vm.repo(image_hash=vm_image_hash)
         demand = await golem.create_demand(payload, allocations=[allocation])
 
         chain = Chain(

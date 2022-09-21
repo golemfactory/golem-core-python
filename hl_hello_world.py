@@ -1,11 +1,10 @@
 import asyncio
-from golem_api.high.execute_tasks import execute_tasks
-from golem_api import commands
+from golem_api import commands, execute_tasks, Payload
 from golem_api.low import Activity
 
 TASK_DATA = list(range(7))
 BUDGET = 1
-VM_IMAGE_HASH = "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
+PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 
 async def execute_task(activity: Activity, in_data: int) -> str:
@@ -13,7 +12,7 @@ async def execute_task(activity: Activity, in_data: int) -> str:
         commands.Run("/bin/echo", ["-n", f"Executing task {in_data}"]),
     )
     await batch.wait(5)
-    result = batch.events[-1].stdout
+    result = batch.events[0].stdout
     assert result is not None and "Executing task" in result
     return result
 
@@ -23,7 +22,7 @@ async def main() -> None:
         execute_task=execute_task,
         task_data=TASK_DATA,
         budget=BUDGET,
-        vm_image_hash=VM_IMAGE_HASH,
+        payload=PAYLOAD,
     ):
         print("TASK RESULT", result)
 

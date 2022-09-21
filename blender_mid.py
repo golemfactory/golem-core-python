@@ -4,9 +4,7 @@ import json
 from pathlib import Path
 from random import random
 
-from yapapi.payload import vm
-
-from golem_api import GolemNode, commands
+from golem_api import commands, GolemNode, Payload
 from golem_api.low import Activity, Proposal
 
 from golem_api.mid import (
@@ -16,9 +14,9 @@ from golem_api.default_logger import DefaultLogger
 from golem_api.default_payment_manager import DefaultPaymentManager
 
 
-IMAGE_HASH = "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
 FRAME_CONFIG_TEMPLATE = json.loads(Path("frame_params.json").read_text())
 FRAMES = list(range(0, 60, 10))
+PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 
 async def score_proposal(proposal: Proposal) -> float:
@@ -63,8 +61,7 @@ async def main() -> None:
 
         payment_manager = DefaultPaymentManager(golem, allocation)
 
-        payload = await vm.repo(image_hash=IMAGE_HASH)
-        demand = await golem.create_demand(payload, allocations=[allocation])
+        demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
         chain = Chain(
             demand.initial_proposals(),
