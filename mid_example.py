@@ -8,7 +8,7 @@ from golem_api import GolemNode, commands
 from golem_api.low import Activity, Proposal
 
 from golem_api.mid import (
-    Chain, Map, Zip,
+    Buffer, Chain, Map, Zip,
     ActivityPool, SimpleScorer,
     default_negotiate, default_create_agreement, default_create_activity,
 )
@@ -82,17 +82,15 @@ async def main() -> None:
             ActivityPool(max_size=4),
             Zip(task_stream()),
             Map(execute_task),
+            Buffer(size=10),
         )
 
         returned = 0
-        tasks = []
         async for result in chain:
-            tasks.append(result)
             returned += 1
             print(f"RESULT {returned}/{task_cnt} {result}")
             if returned == task_cnt:
                 break
-        await asyncio.gather(*tasks)
 
         print("ALL TASKS DONE")
 
