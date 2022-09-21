@@ -8,7 +8,8 @@ from golem_api import GolemNode, commands
 from golem_api.low import Activity, Proposal
 
 from golem_api.mid import (
-    Chain, SimpleScorer, DefaultNegotiator, AgreementCreator, ActivityCreator, Map, ExecuteTasks, ActivityPool
+    Chain, SimpleScorer, Map, ExecuteTasks, ActivityPool,
+    default_negotiate, default_create_agreement, default_create_activity,
 )
 from golem_api.default_logger import DefaultLogger
 from golem_api.default_payment_manager import DefaultPaymentManager
@@ -66,9 +67,9 @@ async def main() -> None:
         chain = Chain(
             demand.initial_proposals(),
             SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=0.1)),
-            DefaultNegotiator(),
-            AgreementCreator(),
-            ActivityCreator(),
+            Map(default_negotiate),
+            Map(default_create_agreement),
+            Map(default_create_activity),
             Map(prepare_activity),
             ActivityPool(max_size=4),
             ExecuteTasks(execute_task, task_data),
