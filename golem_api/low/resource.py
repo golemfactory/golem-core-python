@@ -65,7 +65,7 @@ class Resource(
     @property
     def parent(self) -> ParentType:
         """Returns a :class:`Resource` we are a child of. Details: :func:`children`."""
-        assert self._parent is not None
+        assert self._parent is not None, f"Parent of {self} is not set"
         return self._parent
 
     def add_child(self, child: ChildType) -> None:
