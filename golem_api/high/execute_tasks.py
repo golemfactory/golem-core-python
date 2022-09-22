@@ -1,5 +1,5 @@
 import asyncio
-from typing import Awaitable, AsyncIterator, Callable, Iterable, Tuple, TypeVar
+from typing import Awaitable, AsyncIterator, Callable, Generic, Iterable, List, Tuple, TypeVar
 from random import random
 from datetime import timedelta
 
@@ -18,20 +18,21 @@ TaskData = TypeVar("TaskData")
 TaskResult = TypeVar("TaskResult")
 
 
-class TaskStream:
-    def __init__(self, in_stream: Iterable):
+class TaskStream(Generic[TaskData]):
+    def __init__(self, in_stream: Iterable[TaskData]):
+        #   TODO: in_stream could be AsyncIterable as well
         self.in_stream = iter(in_stream)
         self.task_cnt = 0
         self.in_stream_empty = False
-        self.repeated = []
+        self.repeated: List[TaskData] = []
 
-    def put(self, value):
+    def put(self, value: TaskData) -> None:
         self.repeated.append(value)
 
     def __aiter__(self) -> "TaskStream":
         return self
 
-    async def __anext__(self):
+    async def __anext__(self) -> TaskData:
         while True:
             if self.repeated:
                 return self.repeated.pop(0)
@@ -56,8 +57,14 @@ async def default_score_proposal(proposal: Proposal) -> float:
     return random()
 
 
-def close_agreement_repeat_task(task_stream: TaskStream) -> Callable[[Callable, Tuple, Exception], Awaitable[None]]:
-    async def on_exception(func, args, e):
+def close_agreement_repeat_task(
+    task_stream: TaskStream[TaskData]
+) -> Callable[[Callable, Tuple[Activity, TaskData], Exception], Awaitable[None]]:
+    async def on_exception(
+        func: Callable[[Activity, TaskData], Awaitable[TaskResult]],
+        args: Tuple[Activity, TaskData],
+        e: Exception
+    ) -> None:
         activity, in_data = args
         task_stream.put(in_data)
         print(f"Repeating task {in_data} because of {e}")
@@ -98,7 +105,7 @@ async def execute_tasks(
             Map(prepare_activity),
             ActivityPool(max_size=max_workers),
             Zip(task_stream),
-            Map(execute_task, on_exception=close_agreement_repeat_task(task_stream)),
+            Map(execute_task, on_exception=close_agreement_repeat_task(task_stream)),  # type: ignore  # unfixable (?)
             Buffer(size=max_workers * 2),
         )
 

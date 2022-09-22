@@ -6,7 +6,7 @@ InType = TypeVar("InType")
 OutType = TypeVar("OutType")
 
 
-async def default_on_exception(func: Callable, args: Tuple, orig_exc: Exception):
+async def default_on_exception(func: Callable, args: Tuple, orig_exc: Exception) -> None:
     args_str = ", ".join([str(arg) for arg in args])
     print(f"Exception in {func.__name__}({args_str}): {orig_exc}")
 
@@ -26,14 +26,11 @@ class Map(Generic[InType, OutType]):
     async def __call__(
         self,
         in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]],
-    ) -> Union[AsyncIterator[OutType], AsyncIterator[Awaitable[OutType]]]:
+    ) -> AsyncIterator[Awaitable[OutType]]:
         while True:
-            yield asyncio.create_task(self._next_value(in_stream))  # type: ignore  # mypy, why?
+            yield asyncio.create_task(self._next_value(in_stream))
 
-    async def _next_value(
-        self,
-        in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]],
-    ) -> OutType:
+    async def _next_value(self, in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]]) -> OutType:
         while True:
             async with self._in_stream_lock:
                 in_val = await in_stream.__anext__()
@@ -45,7 +42,7 @@ class Map(Generic[InType, OutType]):
             except Exception as e:
                 await self.on_exception(self.func, args, e)
 
-    async def _as_awaited_tuple(self, in_val) -> Tuple:
+    async def _as_awaited_tuple(self, in_val: Union[InType, Awaitable[InType], Tuple]) -> Tuple:
         #   Q: Why this?
         #   A: Because this way it's possible to wait chains of awaitables without
         #      dealing with awaitables at all. E.g. We have Map(X -> Y) followed by Map(Y -> Z)

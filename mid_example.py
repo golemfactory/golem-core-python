@@ -1,6 +1,7 @@
 import asyncio
 from datetime import timedelta
 from random import random
+from typing import AsyncIterator, Callable, Tuple
 
 from yapapi.payload import vm
 
@@ -54,7 +55,7 @@ task_cnt = 20
 task_data = list(range(task_cnt))
 
 
-async def on_exception(func, args, e):
+async def on_exception(func: Callable, args: Tuple, e: Exception) -> None:
     activity, in_data = args
     task_data.append(in_data)
     print(f"Repeating task {in_data} because of {e}")
@@ -74,7 +75,7 @@ async def main() -> None:
         payload = await vm.repo(image_hash=IMAGE_HASH)
         demand = await golem.create_demand(payload, allocations=[allocation])
 
-        async def task_stream():
+        async def task_stream() -> AsyncIterator[int]:
             while True:
                 if task_data:
                     yield task_data.pop(0)
@@ -90,7 +91,7 @@ async def main() -> None:
             Map(prepare_activity),
             ActivityPool(max_size=4),
             Zip(task_stream()),
-            Map(execute_task, on_exception=on_exception),
+            Map(execute_task, on_exception=on_exception),  # type: ignore  # unfixable (?)
             Buffer(size=10),
         )
 

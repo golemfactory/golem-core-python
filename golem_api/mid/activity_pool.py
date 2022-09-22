@@ -20,17 +20,10 @@ class ActivityPool:
 
     async def __call__(
         self, activity_stream: AsyncIterator[Union[Activity, Awaitable[Activity]]]
-    ) -> AsyncIterator[Awaitable[Activity]]:
+    ) -> AsyncIterator[Union[Activity, Awaitable[Activity]]]:
         while True:
             if not self._idle_activities and not self.full():
-                future_activity = await activity_stream.__anext__()
-
-                #   TODO: this is a "compatibility" mode for both Activity and Awaitable[Activity] streams
-                if not inspect.isawaitable(future_activity):
-                    fut = asyncio.Future()
-                    fut.set_result(future_activity)
-                    future_activity = fut
-
+                future_activity = self._as_awaitable(await activity_stream.__anext__())
                 self._create_manager_task(future_activity)
             yield self._get_next_idle_activity()
 
@@ -66,3 +59,12 @@ class ActivityPool:
             if activity in self._idle_activities:
                 self._idle_activities.remove(activity)
             await activity.wait_idle()
+
+    def _as_awaitable(self, in_: Union[Activity, Awaitable[Activity]]) -> Awaitable[Activity]:
+        if inspect.isawaitable(in_):
+            return in_
+        else:
+            fut: asyncio.Future[Activity] = asyncio.Future()
+            assert isinstance(in_, Activity)  # mypy
+            fut.set_result(in_)
+            return fut
