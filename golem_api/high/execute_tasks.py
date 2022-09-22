@@ -1,4 +1,5 @@
-from typing import Awaitable, AsyncIterator, Callable, Iterable, TypeVar
+import asyncio
+from typing import Awaitable, AsyncIterator, Callable, Iterable, Tuple, TypeVar
 from random import random
 from datetime import timedelta
 
@@ -6,7 +7,8 @@ from golem_api import commands, GolemNode, Payload
 from golem_api.low import Activity, Proposal
 
 from golem_api.mid import (
-    Chain, SimpleScorer, Map, ExecuteTasks, ActivityPool,
+    Buffer, Chain, Map, Zip,
+    ActivityPool, SimpleScorer,
     default_negotiate, default_create_agreement, default_create_activity,
 )
 from golem_api.default_logger import DefaultLogger
@@ -14,6 +16,33 @@ from golem_api.default_payment_manager import DefaultPaymentManager
 
 TaskData = TypeVar("TaskData")
 TaskResult = TypeVar("TaskResult")
+
+
+class TaskStream:
+    def __init__(self, in_stream: Iterable):
+        self.in_stream = iter(in_stream)
+        self.task_cnt = 0
+        self.in_stream_empty = False
+        self.repeated = []
+
+    def put(self, value):
+        self.repeated.append(value)
+
+    def __aiter__(self) -> "TaskStream":
+        return self
+
+    async def __anext__(self):
+        while True:
+            if self.repeated:
+                return self.repeated.pop(0)
+            elif not self.in_stream_empty:
+                try:
+                    val = next(self.in_stream)
+                    self.task_cnt += 1
+                    return val
+                except StopIteration:
+                    self.in_stream_empty = True
+            await asyncio.sleep(0.1)
 
 
 async def default_prepare_activity(activity: Activity) -> Activity:
@@ -27,6 +56,16 @@ async def default_score_proposal(proposal: Proposal) -> float:
     return random()
 
 
+def close_agreement_repeat_task(task_stream: TaskStream) -> Callable[[Callable, Tuple, Exception], Awaitable[None]]:
+    async def on_exception(func, args, e):
+        activity, in_data = args
+        task_stream.put(in_data)
+        print(f"Repeating task {in_data} because of {e}")
+        await activity.destroy()
+        await activity.parent.terminate()
+    return on_exception
+
+
 async def execute_tasks(
     *,
     budget: float,
@@ -38,6 +77,8 @@ async def execute_tasks(
     prepare_activity: Callable[[Activity], Awaitable[Activity]] = default_prepare_activity,
     score_proposal: Callable[[Proposal], Awaitable[float]] = default_score_proposal,
 ) -> AsyncIterator[TaskResult]:
+
+    task_stream = TaskStream(task_data)
 
     golem = GolemNode()
     golem.event_bus.listen(DefaultLogger().on_event)
@@ -56,11 +97,17 @@ async def execute_tasks(
             Map(default_create_activity),
             Map(prepare_activity),
             ActivityPool(max_size=max_workers),
-            ExecuteTasks(execute_task, task_data, max_concurrent=max_workers * 2),
+            Zip(task_stream),
+            Map(execute_task, on_exception=close_agreement_repeat_task(task_stream)),
+            Buffer(size=max_workers * 2),
         )
 
+        returned = 0
         async for result in chain:
             yield result
+            returned += 1
+            if task_stream.in_stream_empty and returned == task_stream.task_cnt:
+                break
 
         await payment_manager.terminate_agreements()
         await payment_manager.wait_for_invoices()

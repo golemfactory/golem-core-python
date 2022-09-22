@@ -51,8 +51,8 @@ async def main() -> None:
     ):
         out_files.append(out_fname)
         print(f"Frame {len(out_files)}/{len(FRAMES)} {out_fname}")
-    print("DONE")
 
+    print("DONE")
     assert len(out_files) == len(FRAMES)
 
 if __name__ == '__main__':

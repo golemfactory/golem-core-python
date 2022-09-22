@@ -41,4 +41,7 @@ class Buffer:
     async def _process_single_value(self, in_val) -> None:
         #   TODO: not awaitable? print something like "useless buffer" and put
         #   result in queue without awaiting
-        self._result_queue.put_nowait(await in_val)
+        try:
+            self._result_queue.put_nowait(await in_val)
+        except Exception:
+            self._semaphore.release()
