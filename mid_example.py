@@ -8,7 +8,7 @@ from golem_api import GolemNode, commands
 from golem_api.low import Activity, Proposal
 
 from golem_api.mid import (
-    Buffer, Chain, Map, MapException, Zip,
+    Buffer, Chain, Map, Zip,
     ActivityPool, SimpleScorer,
     default_negotiate, default_create_agreement, default_create_activity,
 )
@@ -50,19 +50,16 @@ async def execute_task(activity: Activity, task_data: int) -> str:
     return result
 
 
-task_cnt = 100
+task_cnt = 20
 task_data = list(range(task_cnt))
 
 
-async def process_result(task_result):
-    if isinstance(task_result, MapException):
-        activity, in_data = task_result.func_args
-        task_data.append(in_data)
-        await activity.destroy()
-        await activity.parent.terminate()
-        assert False, f"Task {in_data} repeated"
-    else:
-        return task_result
+async def on_exception(func, args, e):
+    activity, in_data = args
+    task_data.append(in_data)
+    print(f"Repeating task {in_data} because of {e}")
+    await activity.destroy()
+    await activity.parent.terminate()
 
 
 async def main() -> None:
@@ -93,8 +90,7 @@ async def main() -> None:
             Map(prepare_activity),
             ActivityPool(max_size=4),
             Zip(task_stream()),
-            Map(execute_task, return_exceptions=True),
-            Map(process_result),
+            Map(execute_task, on_exception=on_exception),
             Buffer(size=10),
         )
 
