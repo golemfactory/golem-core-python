@@ -2,18 +2,14 @@ import asyncio
 from contextlib import asynccontextmanager
 from tempfile import TemporaryDirectory
 from os import path
-
 from typing import AsyncGenerator
 
-
-from yapapi.payload import vm
-
-from golem_api import GolemNode, commands, Script
+from golem_api import GolemNode, commands, Script, Payload
 from golem_api.events import ResourceEvent
 from golem_api.low import Activity
 from golem_api.low.exceptions import BatchFailed
 
-IMAGE_HASH = "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
+PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 
 async def example_1(allocation_id: str, demand_id: str, proposal_id: str) -> None:
@@ -61,8 +57,7 @@ async def example_3() -> None:
         allocation = await golem.create_allocation(1)
         print(allocation)
 
-        payload = await vm.repo(image_hash=IMAGE_HASH)
-        demand = await golem.create_demand(payload, allocations=[allocation])
+        demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
         print(demand)
 
         async for proposal in demand.initial_proposals():
@@ -80,8 +75,7 @@ async def example_4() -> None:
     golem = GolemNode()
     async with golem:
         allocation = await golem.create_allocation(1)
-        payload = await vm.repo(image_hash=IMAGE_HASH)
-        demand = await golem.create_demand(payload, allocations=[allocation])
+        demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
         #   Respond to proposals until we get a counterproposal
         async for proposal in demand.initial_proposals():
@@ -148,8 +142,7 @@ async def get_activity() -> AsyncGenerator[Activity, None]:
     golem = GolemNode()
     async with golem:
         allocation = await golem.create_allocation(1)
-        payload = await vm.repo(image_hash=IMAGE_HASH)
-        demand = await golem.create_demand(payload, allocations=[allocation])
+        demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
         async for proposal in demand.initial_proposals():
             try:

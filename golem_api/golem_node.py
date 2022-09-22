@@ -6,11 +6,11 @@ from decimal import Decimal
 
 from yapapi import rest
 from yapapi.engine import DEFAULT_DRIVER, DEFAULT_NETWORK, DEFAULT_SUBNET
-from yapapi.payload import Payload
 from yapapi.props.builder import DemandBuilder
 from yapapi import props
 
 from .event_bus import EventBus
+from .payload import Payload
 from .low.activity import Activity, PoolingBatch
 from .low.market import Demand, Proposal, Agreement
 from .low.payment import Allocation, DebitNote, Invoice

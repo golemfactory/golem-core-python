@@ -8,11 +8,10 @@ import re
 
 from prettytable import PrettyTable
 
-from yapapi.payload import Payload
 from yapapi.props.base import constraint
 from yapapi.props import inf
 
-from golem_api import GolemNode
+from golem_api import GolemNode, Payload
 from golem_api.low import Allocation, Demand, Proposal
 
 
