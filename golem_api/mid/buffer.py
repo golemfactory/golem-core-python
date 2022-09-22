@@ -6,10 +6,11 @@ X = TypeVar("X")
 
 class Buffer:
     def __init__(self, size=1):
+        self.size = size
+
         self._semaphore = asyncio.BoundedSemaphore(size)
         self._result_queue: asyncio.Queue[X] = asyncio.Queue()
         self._tasks: List[asyncio.Task] = []
-
         self._main_task: Optional[asyncio.Task] = None
         self._in_stream: Optional[AsyncIterator[Awaitable[X]]] = None
         self._in_stream_exhausted = False
@@ -24,6 +25,7 @@ class Buffer:
             and all(task.done() for task in self._tasks)
         ):
             yield await self._result_queue.get()
+            self._semaphore.release()
 
     async def _process_in_stream(self) -> None:
         while True:
@@ -37,5 +39,6 @@ class Buffer:
             self._tasks.append(task)
 
     async def _process_single_value(self, in_val) -> None:
+        #   TODO: not awaitable? print something like "useless buffer" and put
+        #   result in queue without awaiting
         self._result_queue.put_nowait(await in_val)
-        self._semaphore.release()

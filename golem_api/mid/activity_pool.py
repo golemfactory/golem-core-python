@@ -1,5 +1,6 @@
 import asyncio
-from typing import AsyncIterator, Awaitable, List
+import inspect
+from typing import AsyncIterator, Awaitable, List, Union
 
 from golem_api.low.activity import Activity
 
@@ -17,10 +18,19 @@ class ActivityPool:
         running_managers = [task for task in self._activity_manager_tasks if not task.done()]
         return len(running_managers) >= self.max_size
 
-    async def __call__(self, activity_stream: AsyncIterator[Awaitable[Activity]]) -> AsyncIterator[Awaitable[Activity]]:
+    async def __call__(
+        self, activity_stream: AsyncIterator[Union[Activity, Awaitable[Activity]]]
+    ) -> AsyncIterator[Awaitable[Activity]]:
         while True:
             if not self._idle_activities and not self.full():
                 future_activity = await activity_stream.__anext__()
+
+                #   TODO: this is a "compatibility" mode for both Activity and Awaitable[Activity] streams
+                if not inspect.isawaitable(future_activity):
+                    fut = asyncio.Future()
+                    fut.set_result(future_activity)
+                    future_activity = fut
+
                 self._create_manager_task(future_activity)
             yield self._get_next_idle_activity()
 

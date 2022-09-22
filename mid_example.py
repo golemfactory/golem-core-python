@@ -44,8 +44,8 @@ async def execute_task(activity: Activity, task_data: int) -> str:
     result = batch.events[-1].stdout
     assert result is not None and "Executed task" in result, f"Got an incorrect result for {task_data}: {result}"
 
-    # if random() > 0.98:
-    #     1 / 0
+    if random() > 0.7:
+        1 / 0
 
     return result
 
@@ -81,7 +81,7 @@ async def main() -> None:
             Map(prepare_activity),
             ActivityPool(max_size=4),
             Zip(task_stream()),
-            Map(execute_task),
+            Map(execute_task, return_exceptions=True),
             Buffer(size=10),
         )
 

@@ -1,15 +1,33 @@
 import asyncio
 import inspect
-from typing import AsyncIterator, Awaitable, Generic, TypeVar, Callable, Tuple, Union
+from typing import Any, AsyncIterator, Awaitable, Generic, TypeVar, Callable, Tuple, Union
 
 InType = TypeVar("InType")
 OutType = TypeVar("OutType")
 
 
+class MapException(Exception):
+    def __init__(self, func: Callable, args: Tuple[Any], orig_exc: Exception):
+        self.func = func
+        self.args = args
+        self.orig_exc = orig_exc
+
+        args_str = ", ".join([str(arg) for arg in args])
+        msg = f"{type(self).__name__} in {func.__name__}({args_str}): {orig_exc}"
+        super().__init__(msg)
+
+
 class Map(Generic[InType, OutType]):
-    def __init__(self, func: Callable[[InType], Awaitable[OutType]], *, return_awaitable: bool = True):
+    def __init__(
+        self,
+        func: Callable[[InType], Awaitable[OutType]],
+        *,
+        return_awaitable: bool = True,
+        return_exceptions: bool = False,
+    ):
         self.func = func
         self.return_awaitable = return_awaitable
+        self.return_exceptions = return_exceptions
 
         self._in_stream_lock = asyncio.Lock()
 
@@ -37,8 +55,11 @@ class Map(Generic[InType, OutType]):
             try:
                 return await self.func(*args)
             except Exception as e:
-                #   TODO: emit MapFailed event (? - where is the event emitter?)
-                print("Map exception", type(e).__name__, str(e))
+                new_exc = MapException(self.func, args, e)
+                if self.return_exceptions:
+                    return new_exc
+                else:
+                    print(new_exc)
 
     async def _as_awaited_tuple(self, in_val) -> Tuple:
         #   Q: Why this?
