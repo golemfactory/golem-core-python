@@ -8,7 +8,7 @@ from golem_api import GolemNode, commands
 from golem_api.low import Activity, Proposal
 
 from golem_api.mid import (
-    Buffer, Chain, Map, Zip,
+    Buffer, Chain, Map, MapException, Zip,
     ActivityPool, SimpleScorer,
     default_negotiate, default_create_agreement, default_create_activity,
 )
@@ -44,10 +44,25 @@ async def execute_task(activity: Activity, task_data: int) -> str:
     result = batch.events[-1].stdout
     assert result is not None and "Executed task" in result, f"Got an incorrect result for {task_data}: {result}"
 
-    if random() > 0.7:
+    if random() > 0.9:
         1 / 0
 
     return result
+
+
+task_cnt = 100
+task_data = list(range(task_cnt))
+
+
+async def process_result(task_result):
+    if isinstance(task_result, MapException):
+        activity, in_data = task_result.func_args
+        task_data.append(in_data)
+        await activity.destroy()
+        await activity.parent.terminate()
+        assert False, f"Task {in_data} repeated"
+    else:
+        return task_result
 
 
 async def main() -> None:
@@ -61,9 +76,6 @@ async def main() -> None:
 
         payload = await vm.repo(image_hash=IMAGE_HASH)
         demand = await golem.create_demand(payload, allocations=[allocation])
-
-        task_cnt = 10
-        task_data = list(range(task_cnt))
 
         async def task_stream():
             while True:
@@ -82,6 +94,7 @@ async def main() -> None:
             ActivityPool(max_size=4),
             Zip(task_stream()),
             Map(execute_task, return_exceptions=True),
+            Map(process_result),
             Buffer(size=10),
         )
 

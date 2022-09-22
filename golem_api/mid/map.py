@@ -7,13 +7,13 @@ OutType = TypeVar("OutType")
 
 
 class MapException(Exception):
-    def __init__(self, func: Callable, args: Tuple[Any], orig_exc: Exception):
+    def __init__(self, func: Callable, func_args: Tuple[Any], orig_exc: Exception):
         self.func = func
-        self.args = args
+        self.func_args = func_args
         self.orig_exc = orig_exc
 
-        args_str = ", ".join([str(arg) for arg in args])
-        msg = f"{type(self).__name__} in {func.__name__}({args_str}): {orig_exc}"
+        func_args_str = ", ".join([str(arg) for arg in func_args])
+        msg = f"{type(self).__name__} in {func.__name__}({func_args_str}): {orig_exc}"
         super().__init__(msg)
 
 
