@@ -16,11 +16,9 @@ class Map(Generic[InType, OutType]):
         self,
         func: Callable[[InType], Awaitable[OutType]],
         *,
-        return_awaitable: bool = True,
         on_exception: Callable[[Callable, Tuple, Exception], Awaitable[None]] = default_on_exception,
     ):
         self.func = func
-        self.return_awaitable = return_awaitable
         self.on_exception = on_exception
 
         self._in_stream_lock = asyncio.Lock()
@@ -30,11 +28,7 @@ class Map(Generic[InType, OutType]):
         in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]],
     ) -> Union[AsyncIterator[OutType], AsyncIterator[Awaitable[OutType]]]:
         while True:
-            result_coroutine: Awaitable[OutType] = self._next_value(in_stream)
-            if self.return_awaitable:
-                yield asyncio.create_task(result_coroutine)  # type: ignore  # mypy, why?
-            else:
-                yield await result_coroutine
+            yield asyncio.create_task(self._next_value(in_stream))  # type: ignore  # mypy, why?
 
     async def _next_value(
         self,
