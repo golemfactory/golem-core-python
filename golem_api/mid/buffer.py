@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 from typing import AsyncIterator, Awaitable, List, Optional, TypeVar
 
 X = TypeVar("X")
@@ -39,9 +40,14 @@ class Buffer:
             self._tasks.append(task)
 
     async def _process_single_value(self, in_val) -> None:
-        #   TODO: not awaitable? print something like "useless buffer" and put
-        #   result in queue without awaiting
-        try:
-            self._result_queue.put_nowait(await in_val)
-        except Exception:
-            self._semaphore.release()
+        if inspect.isawaitable(in_val):
+            try:
+                awaited = await in_val
+            except Exception as e:
+                print(e)
+                self._semaphore.release()
+        else:
+            #   NOTE: Buffer is useful only with awaitables, so this scenario doesn't make much sense.
+            #         But maybe stream sometimes returns awaitables and sometimes already awaited values?
+            awaited = in_val
+        self._result_queue.put_nowait(awaited)
