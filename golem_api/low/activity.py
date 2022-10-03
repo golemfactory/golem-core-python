@@ -148,7 +148,7 @@ class PoolingBatch(
         return self.events[-1].result == "Ok"
 
     async def wait(
-        self, timeout: Optional[Union[timedelta, float]] = None, ignore_errors=False,
+        self, timeout: Optional[Union[timedelta, float]] = None, ignore_errors: bool = False,
     ) -> List[models.ExeScriptCommandResult]:
         #   NOTE: timeout doesn't stop the batch, just raises an exception
         timeout_seconds: Optional[float]

@@ -1,4 +1,5 @@
 import pytest
+from typing import List, Union
 
 from golem_api.commands import Run
 
@@ -22,7 +23,7 @@ no_shell = ("echo", "foo")
 
     ("/bin/sh -c 'echo foo'", {}, ["/bin/sh", "-c", "/bin/sh -c 'echo foo'"]),
 ))
-def test_correct(command, kwargs, full_command):
+def test_correct(command: Union[str, List[str]], kwargs: dict, full_command: List[str]) -> None:
     entry_point, *args = full_command
     run = Run(command, **kwargs)
     assert run.entry_point == entry_point
@@ -33,6 +34,6 @@ def test_correct(command, kwargs, full_command):
     (["echo foo", "bar"], {}),
     ('"echo foo" bar', {"shell": False}),
 ))
-def test_invalid(command, kwargs):
+def test_invalid(command: Union[str, List[str]], kwargs: dict) -> None:
     with pytest.raises(ValueError):
         Run(command, **kwargs)

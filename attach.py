@@ -5,7 +5,7 @@ from golem_api.low import DebitNote
 from golem_api import GolemNode, commands
 
 
-async def attach(debit_note_event: NewResource):
+async def attach(debit_note_event: NewResource) -> None:
     debit_note = debit_note_event.resource
     activity_id = (await debit_note.get_data()).activity_id
     activity = debit_note.node.activity(activity_id)
@@ -16,7 +16,7 @@ async def attach(debit_note_event: NewResource):
     print(batch.events[0].stdout)
 
 
-async def main():
+async def main() -> None:
     golem = GolemNode()
     golem.event_bus.resource_listen(attach, [NewResource], [DebitNote])
 
