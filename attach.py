@@ -1,27 +1,37 @@
 import asyncio
+import sys
 
 from golem_api.events import NewResource
 from golem_api.low import DebitNote
 from golem_api import GolemNode, commands
 
+ACTIVITY_ID = sys.argv[1].strip()
 
-async def attach(debit_note_event: NewResource) -> None:
-    debit_note = debit_note_event.resource
-    activity_id = (await debit_note.get_data()).activity_id
-    activity = debit_note.node.activity(activity_id)
-    batch = await activity.execute_commands(
-        commands.Run(["/bin/echo", "-n", f"ATTACHED TO ACTIVITY {activity}"]),
-    )
-    await batch.wait()
-    print(batch.events[0].stdout)
+
+async def accept_debit_note(payment_event: NewResource) -> None:
+    debit_note = payment_event.resource
+    this_activity_id = (await debit_note.get_data()).activity_id
+    if this_activity_id == ACTIVITY_ID:
+        allocation = await debit_note.node.create_allocation(1)
+        await debit_note.accept_full(allocation)
+        print(f"Accepted debit note {debit_note} using single-use {allocation}")
+        await allocation.release()
 
 
 async def main() -> None:
     golem = GolemNode()
-    golem.event_bus.resource_listen(attach, [NewResource], [DebitNote])
+    golem.event_bus.resource_listen(accept_debit_note, [NewResource], [DebitNote])
 
     async with golem:
-        await asyncio.sleep(1000)
+        activity = golem.activity(ACTIVITY_ID)
+        while True:
+            batch = await activity.execute_commands(
+                commands.Run("date")
+            )
+            await batch.wait(5)
+            print(f"Current date on {activity} is {batch.events[-1].stdout.strip()}")
+            await asyncio.sleep(3)
 
 
-asyncio.run(main())
+if __name__ == '__main__':
+    asyncio.run(main())
