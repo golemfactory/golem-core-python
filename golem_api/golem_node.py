@@ -37,14 +37,19 @@ class GolemNode:
 
     """
 
-    def __init__(self, app_key: Optional[str] = None, base_url: Optional[str] = None) -> None:
+    def __init__(
+        self, app_key: Optional[str] = None, *, base_url: Optional[str] = None, collect_payment_events: bool = True
+    ):
         """
         :param app_key: App key used as an authentication token for all `yagna` calls.
                         Defaults to the `YAGNA_APPKEY` env variable.
         :param base_url: Base url for all `yagna` APIs. Defaults to `YAGNA_API_URL` env
                          variable or http://127.0.0.1:7465.
+        :param collect_payment_events: If True, GolemNode will watch for incoming debit notes/invoices
+                                       and create corresponding objects (--> NewResource events will be emitted).
         """
         self._api_config = rest.Configuration(app_key, url=base_url)
+        self._collect_payment_events = collect_payment_events
 
         #   All created Resources will be stored here
         #   (This is done internally by the metaclass of the Resource)
@@ -74,8 +79,9 @@ class GolemNode:
         self._ya_payment_api = self._api_config.payment()
         self._ya_net_api = self._api_config.net()
 
-        self._invoice_event_collector.start_collecting_events()
-        self._debit_note_event_collector.start_collecting_events()
+        if self._collect_payment_events:
+            self._invoice_event_collector.start_collecting_events()
+            self._debit_note_event_collector.start_collecting_events()
 
     async def aclose(self) -> None:
         self._set_no_more_children()

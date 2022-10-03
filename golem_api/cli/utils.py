@@ -113,7 +113,7 @@ def async_golem_wrapper(f: Callable[Concatenate[GolemNode, P], Awaitable[R]]) ->
     @wraps(f)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
         async def with_golem_node() -> R:
-            async with GolemNode() as golem:
+            async with GolemNode(collect_payment_events=False) as golem:
                 return await f(golem, *args, **kwargs)
 
         loop = asyncio.get_event_loop()
