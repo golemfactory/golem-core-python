@@ -90,7 +90,7 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
         batch = await self.execute(models.ExeScriptRequest(text=commands_str))
 
         async def execute_after() -> None:
-            await batch.wait()
+            await batch.wait(ignore_errors=True)
             await asyncio.gather(*[c.after() for c in commands])
 
         asyncio.create_task(execute_after())
@@ -141,7 +141,15 @@ class PoolingBatch(
     def done(self) -> bool:
         return self.finished_event.is_set()
 
-    async def wait(self, timeout: Optional[Union[timedelta, float]] = None) -> List[models.ExeScriptCommandResult]:
+    @property
+    def success(self) -> bool:
+        if not self.done:
+            raise AttributeError("Success can be determined only for finished batches")
+        return self.events[-1].result == "Ok"
+
+    async def wait(
+        self, timeout: Optional[Union[timedelta, float]] = None, ignore_errors=False,
+    ) -> List[models.ExeScriptCommandResult]:
         #   NOTE: timeout doesn't stop the batch, just raises an exception
         timeout_seconds: Optional[float]
         if timeout is None:
@@ -153,7 +161,8 @@ class PoolingBatch(
 
         try:
             await asyncio.wait_for(self.finished_event.wait(), timeout_seconds)
-            #   TODO: maybe we should raise BatchFailed here if we failed?
+            if not ignore_errors and not self.success:
+                raise BatchFailed(self)
             return self.events
         except asyncio.TimeoutError:
             assert timeout_seconds is not None  # mypy

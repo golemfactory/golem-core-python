@@ -279,6 +279,26 @@ async def example_11() -> None:
                 assert f.read() == out_file_text
 
 
+async def example_12() -> None:
+    """Batch.wait() with/without ignore_errors"""
+    async with get_activity() as activity:
+        batch = await activity.execute_commands(
+            commands.Deploy(),
+            commands.Start(),
+            commands.Run("/invalid/command")
+        )
+
+        #   Wait, raise errors
+        try:
+            await batch.wait(5)
+            assert False, "Batch didn't fail"
+        except BatchFailed as e:
+            print(f"Got expected exception: {e}")
+
+        #   Wait, ignore errors (it doesn't matter if the batch already finished)
+        await batch.wait(ignore_errors=True)
+
+
 async def main() -> None:
     # NOTE: this example assumes correct allocation/demand/proposal IDs
     # print("\n---------- EXAMPLE 1 -------------\n")
@@ -311,11 +331,14 @@ async def main() -> None:
     # print("\n---------- EXAMPLE 9 -------------\n")
     # await example_9()
 
-    print("\n---------- EXAMPLE 10 -------------\n")
-    await example_10()
+    # print("\n---------- EXAMPLE 10 -------------\n")
+    # await example_10()
 
-    print("\n---------- EXAMPLE 11 -------------\n")
-    await example_11()
+    # print("\n---------- EXAMPLE 11 -------------\n")
+    # await example_11()
+
+    print("\n---------- EXAMPLE 12 -------------\n")
+    await example_12()
 
 
 if __name__ == '__main__':
