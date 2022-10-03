@@ -214,5 +214,5 @@ class Resource(
         replaced = re.sub('([A-Z]+)', r'_\1', cls.__name__).lower()
         return replaced[1:]
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f'{type(self).__name__}({self._id})'

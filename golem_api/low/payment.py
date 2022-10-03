@@ -12,6 +12,8 @@ from .resource_internals import _NULL
 
 if TYPE_CHECKING:
     from golem_api.golem_node import GolemNode
+    from .activity import Activity
+    from .market import Agreement
 
 
 class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL]):
@@ -84,7 +86,7 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
         return data.properties, data.constraints
 
 
-class DebitNote(Resource[RequestorApi, models.DebitNote, _NULL, _NULL, _NULL]):
+class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NULL]):
     async def accept_full(self, allocation: Allocation) -> None:
         amount_str = (await self.get_data()).total_amount_due
         await self.accept(allocation, Decimal(amount_str))
@@ -95,7 +97,7 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, _NULL, _NULL, _NULL]):
         await self.api.accept_debit_note(self.id, acceptance)
 
 
-class Invoice(Resource[RequestorApi, models.Invoice, _NULL, _NULL, _NULL]):
+class Invoice(Resource[RequestorApi, models.Invoice, "Agreement", _NULL, _NULL]):
     async def accept_full(self, allocation: Allocation) -> None:
         amount_str = (await self.get_data()).amount
         await self.accept(allocation, Decimal(amount_str))

@@ -335,3 +335,8 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity",
             return [child for child in self.children if isinstance(child, Invoice)][0]
         except IndexError:
             return None
+
+    @property
+    def activities(self) -> List["Activity"]:
+        from .activity import Activity  # circular imports prevention
+        return [child for child in self.children if isinstance(child, Activity)]
