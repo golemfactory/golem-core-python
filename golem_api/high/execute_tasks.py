@@ -106,7 +106,7 @@ async def execute_tasks(
             ActivityPool(max_size=max_workers),
             Zip(task_stream),
             Map(execute_task, on_exception=close_agreement_repeat_task(task_stream)),  # type: ignore  # unfixable (?)
-            Buffer(size=max_workers),
+            Buffer(size=max_workers + 1),
         )
 
         returned = 0
