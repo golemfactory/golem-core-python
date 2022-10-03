@@ -7,7 +7,7 @@ from typing import AsyncGenerator
 from golem_api import GolemNode, commands, Script, Payload
 from golem_api.events import ResourceEvent
 from golem_api.low import Activity
-from golem_api.low.exceptions import BatchFailed
+from golem_api.low.exceptions import BatchError, CommandFailed, CommandCancelled
 
 PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
@@ -228,12 +228,12 @@ async def example_9() -> None:
 
         try:
             await failed_result
-        except BatchFailed as e:
+        except CommandFailed as e:
             print(f"Command failed: {e}")
 
         try:
             await never_result
-        except BatchFailed as e:
+        except CommandCancelled as e:
             print(f"Previous command failed: {e}")
 
         last_event = batch.events[-1]
@@ -292,7 +292,7 @@ async def example_12() -> None:
         try:
             await batch.wait(5)
             assert False, "Batch didn't fail"
-        except BatchFailed as e:
+        except BatchError as e:
             print(f"Got expected exception: {e}")
 
         #   Wait, ignore errors (it doesn't matter if the batch already finished)
@@ -328,8 +328,8 @@ async def main() -> None:
     # print("\n---------- EXAMPLE 8 -------------\n")
     # await example_8()
 
-    # print("\n---------- EXAMPLE 9 -------------\n")
-    # await example_9()
+    print("\n---------- EXAMPLE 9 -------------\n")
+    await example_9()
 
     # print("\n---------- EXAMPLE 10 -------------\n")
     # await example_10()

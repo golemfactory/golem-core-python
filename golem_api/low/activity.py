@@ -13,7 +13,7 @@ from .resource import Resource
 from .resource_internals import ActivityApi, _NULL
 from .yagna_event_collector import YagnaEventCollector
 from .api_call_wrapper import api_call_wrapper
-from .exceptions import BatchFailed, BatchTimeoutError
+from .exceptions import BatchError, BatchTimeoutError, CommandFailed, CommandCancelled
 
 if TYPE_CHECKING:
     from golem_api import GolemNode
@@ -162,7 +162,7 @@ class PoolingBatch(
         try:
             await asyncio.wait_for(self.finished_event.wait(), timeout_seconds)
             if not ignore_errors and not self.success:
-                raise BatchFailed(self)
+                raise BatchError(self)
             return self.events
         except asyncio.TimeoutError:
             assert timeout_seconds is not None  # mypy
@@ -189,8 +189,9 @@ class PoolingBatch(
 
         if self._futures is not None:
             if event.result == 'Error':
-                for fut in self._futures[event.index:]:
-                    fut.set_exception(BatchFailed(self))
+                self._futures[event.index].set_exception(CommandFailed(self))
+                for fut in self._futures[event.index + 1:]:
+                    fut.set_exception(CommandCancelled(self))
             else:
                 self._futures[event.index].set_result(event)
 
