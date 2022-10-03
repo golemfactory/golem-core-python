@@ -9,7 +9,7 @@ from typing import Set
 
 
 class DefaultPaymentManager:
-    """Accepts all new (i.e. having a RECEIVED status) invoices and debit notes.
+    """Accepts all new (i.e. having a RECEIVED status) invoices and debit notes for known agreements.
 
     Calls `get_data(force=True)` on invoices/debit notes after their status changes,
     so appropriate ResourceDataChanged event is emitted.
@@ -34,15 +34,27 @@ class DefaultPaymentManager:
         invoice = event.resource
         assert isinstance(invoice, Invoice)
         if (await invoice.get_data(force=True)).status == 'RECEIVED':  # type: ignore
-            await invoice.accept_full(self.allocation)
-            await invoice.get_data(force=True)
+            agreement_id = invoice.data.agreement_id
+            if any(agreement.id == agreement_id for agreement in self._agreements):
+                await invoice.accept_full(self.allocation)
+                await invoice.get_data(force=True)
+            else:
+                #   Corresponding agreement was created in some previous run, we don't accept
+                #   this invoice - we should probably reject it, but it's not yet implemented in yagna
+                pass
 
     async def on_debit_note(self, event: NewResource) -> None:
         debit_note = event.resource
         assert isinstance(debit_note, DebitNote)
         if (await debit_note.get_data(force=True)).status == 'RECEIVED':  # type: ignore
-            await debit_note.accept_full(self.allocation)
-            await debit_note.get_data(force=True)
+            agreement_id = debit_note.data.agreement_id
+            if any(agreement.id == agreement_id for agreement in self._agreements):
+                await debit_note.accept_full(self.allocation)
+                await debit_note.get_data(force=True)
+            else:
+                #   Corresponding agreement was created in some previous run, we don't accept
+                #   this debit note - we should probably reject it, but it's not yet implemented in yagna
+                pass
 
     async def terminate_agreements(self) -> None:
         await asyncio.gather(*[agreement.terminate() for agreement in self._agreements])

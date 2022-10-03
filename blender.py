@@ -11,7 +11,7 @@ PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f
 
 
 async def prepare_activity(activity: Activity) -> Activity:
-    print(f"Prepare activity {activity}")
+    print(f"Prepare {activity}")
     batch = await activity.execute_commands(
         commands.Deploy(),
         commands.Start(),
@@ -23,7 +23,7 @@ async def prepare_activity(activity: Activity) -> Activity:
 
 
 async def execute_task(activity: Activity, frame_ix: int) -> str:
-    print(f"Rendering frame {frame_ix} on activity {activity}")
+    print(f"Rendering frame {frame_ix} on {activity}")
     frame_config = FRAME_CONFIG_TEMPLATE.copy()
     frame_config["frames"] = [frame_ix]
     fname = f"out{frame_ix:04d}.png"
