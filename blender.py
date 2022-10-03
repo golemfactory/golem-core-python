@@ -18,7 +18,7 @@ async def prepare_activity(activity: Activity) -> Activity:
         commands.SendFile("cubes.blend", "/golem/resource/scene.blend")
     )
     await batch.wait(timeout=10)
-    assert batch.events[-1].result == 'Ok'
+    assert batch.success, batch.events[-1].message
     return activity
 
 
@@ -27,15 +27,14 @@ async def execute_task(activity: Activity, frame_ix: int) -> str:
     frame_config = FRAME_CONFIG_TEMPLATE.copy()
     frame_config["frames"] = [frame_ix]
     fname = f"out{frame_ix:04d}.png"
+
     batch = await activity.execute_commands(
         commands.Run(f"echo '{json.dumps(frame_config)}' > /golem/work/params.json"),
         commands.Run(["/golem/entrypoints/run-blender.sh"]),
         commands.DownloadFile(f"/golem/output/{fname}", fname)
     )
-
     await batch.wait(timeout=20)
-    assert batch.events[-1].result == 'Ok'
-
+    assert batch.success, batch.events[-1].message
     return fname
 
 

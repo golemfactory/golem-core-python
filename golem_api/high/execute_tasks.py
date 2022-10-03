@@ -49,7 +49,7 @@ class TaskStream(Generic[TaskData]):
 async def default_prepare_activity(activity: Activity) -> Activity:
     batch = await activity.execute_commands(commands.Deploy(), commands.Start())
     await batch.wait(timeout=10)
-    assert batch.events[-1].result == 'Ok'
+    assert batch.success, batch.events[-1].message
     return activity
 
 
