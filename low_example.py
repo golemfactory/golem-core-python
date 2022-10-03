@@ -178,8 +178,8 @@ async def example_7() -> None:
         batch = await activity.execute_commands(
             commands.Deploy(),
             commands.Start(),
-            commands.Run("/bin/echo", ["-n", "hello", "world"]),
-            commands.Run("/bin/sleep", ["2"]),
+            commands.Run(["/bin/echo", "-n", "hello", "world"]),
+            commands.Run(["/bin/sleep", "2"]),
         )
         assert not activity.idle
         await batch.wait(timeout=10)
@@ -197,10 +197,10 @@ async def example_8() -> None:
         script = Script()
         script.add_command(commands.Deploy())
         script.add_command(commands.Start())
-        x = script.add_command(commands.Run("/bin/echo", ["-n", "hello world from script"]))
-        script.add_command(commands.Run("/bin/sleep", ["5"]))
-        y = script.add_command(commands.Run("/bin/echo", ["-n", "another result"]))
-        script.add_command(commands.Run("/bin/sleep", ["5"]))
+        x = script.add_command(commands.Run(["/bin/echo", "-n", "hello world from script"]))
+        script.add_command(commands.Run(["/bin/sleep", "5"]))
+        y = script.add_command(commands.Run(["/bin/echo", "-n", "another result"]))
+        script.add_command(commands.Run(["/bin/sleep", "5"]))
 
         batch = await activity.execute_script(script)
 
@@ -217,9 +217,9 @@ async def example_9() -> None:
         script.add_command(commands.Deploy())
         script.add_command(commands.Start())
 
-        success_result = script.add_command(commands.Run("/bin/echo", ["-n", "This works"]))
-        failed_result = script.add_command(commands.Run("/bin/ooops/this_looks_broken", []))
-        never_result = script.add_command(commands.Run("/bin/echo", ["We won't get here"]))
+        success_result = script.add_command(commands.Run(["/bin/echo", "-n", "This works"]))
+        failed_result = script.add_command(commands.Run(["/bin/ooops/this_looks_broken"]))
+        never_result = script.add_command(commands.Run(["/bin/echo", "We won't get here"]))
 
         batch = await activity.execute_script(script)
 
@@ -255,7 +255,7 @@ async def example_10() -> None:
                 commands.Deploy(),
                 commands.Start(),
                 commands.SendFile(local_fname, remote_fname),
-                commands.Run("/bin/cat", [remote_fname]),
+                commands.Run(f"cat {remote_fname}"),
             )
             await batch.wait(5)
             assert batch.events[-1].stdout == in_file_text
@@ -271,7 +271,7 @@ async def example_11() -> None:
             batch = await activity.execute_commands(
                 commands.Deploy(),
                 commands.Start(),
-                commands.Run("/bin/sh", ["-c", f"echo -n '{out_file_text}' > {remote_fname}"]),
+                commands.Run(f"echo -n '{out_file_text}' > {remote_fname}"),
                 commands.DownloadFile(remote_fname, local_fname),
             )
             await batch.wait(5)

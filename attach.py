@@ -10,7 +10,7 @@ async def attach(debit_note_event: NewResource):
     activity_id = (await debit_note.get_data()).activity_id
     activity = debit_note.node.activity(activity_id)
     batch = await activity.execute_commands(
-        commands.Run("/bin/echo", ["-n", f"ATTACHED TO ACTIVITY {activity}"]),
+        commands.Run(["/bin/echo", "-n", f"ATTACHED TO ACTIVITY {activity}"]),
     )
     await batch.wait()
     print(batch.events[0].stdout)

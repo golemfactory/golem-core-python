@@ -9,7 +9,7 @@ PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f
 
 async def execute_task(activity: Activity, in_data: int) -> str:
     batch = await activity.execute_commands(
-        commands.Run("/bin/echo", ["-n", f"Executing task {in_data}"]),
+        commands.Run(f"echo -n 'Executing task {in_data}'"),
     )
     await batch.wait(5)
     result = batch.events[0].stdout

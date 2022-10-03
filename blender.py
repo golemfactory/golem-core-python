@@ -28,8 +28,8 @@ async def execute_task(activity: Activity, frame_ix: int) -> str:
     frame_config["frames"] = [frame_ix]
     fname = f"out{frame_ix:04d}.png"
     batch = await activity.execute_commands(
-        commands.Run("/bin/sh", ["-c", f"echo '{json.dumps(frame_config)}' > /golem/work/params.json"]),
-        commands.Run("/golem/entrypoints/run-blender.sh", []),
+        commands.Run(f"echo '{json.dumps(frame_config)}' > /golem/work/params.json"),
+        commands.Run(["/golem/entrypoints/run-blender.sh"]),
         commands.DownloadFile(f"/golem/output/{fname}", fname)
     )
 

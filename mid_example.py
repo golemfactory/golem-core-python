@@ -25,7 +25,7 @@ async def prepare_activity(activity: Activity) -> Activity:
     batch = await activity.execute_commands(
         commands.Deploy(),
         commands.Start(),
-        commands.Run("/bin/echo", ["-n", f"ACTIVITY {activity.id} IS READY"]),
+        commands.Run(["/bin/echo", "-n", f"ACTIVITY {activity.id} IS READY"]),
     )
     await batch.wait(timeout=10)
     assert batch.events[-1].stdout is not None and "IS READY" in batch.events[-1].stdout, "Prepare activity failed"
@@ -35,7 +35,7 @@ async def prepare_activity(activity: Activity) -> Activity:
 
 async def execute_task(activity: Activity, task_data: int) -> str:
     assert activity.idle, f"Got a non-idle activity {activity}"
-    command = commands.Run("/bin/echo", ["-n", f"Executed task {task_data} on {activity}"])
+    command = commands.Run(["/bin/echo", "-n", f"Executed task {task_data} on {activity}"])
     batch = await activity.execute_commands(command)
     await batch.wait(timeout=3)
 

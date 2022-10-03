@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from tempfile import TemporaryDirectory
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 from pathlib import Path
+import shlex
 
 from yapapi.storage import Destination, Source
 from yapapi.storage.gftp import GftpProvider
@@ -39,9 +40,8 @@ class Start(Command):
 
 
 class Run(Command):
-    def __init__(self, entry_point: str, args: List[str]):
-        self.entry_point = entry_point
-        self.args = args
+    def __init__(self, command: Union[str, List[str]], *, shell: Optional[bool] = None, shell_cmd: str = "/bin/sh"):
+        self.entry_point, self.args = self._resolve_init_args(command, shell, shell_cmd)
 
     def args_dict(self) -> ArgsDict:
         return {
@@ -56,6 +56,26 @@ class Run(Command):
                 },
             }
         }
+
+    @staticmethod
+    def _resolve_init_args(
+        command: Union[str, List[str]], shell: Optional[bool], shell_cmd: str
+    ) -> Tuple[str, List[str]]:
+        if shell is None:
+            shell = isinstance(command, str)
+
+        if shell:
+            command_str = command if isinstance(command, str) else shlex.join(command)
+            entry_point = shell_cmd
+            args = ["-c", command_str]
+        else:
+            command_list = command if isinstance(command, list) else shlex.split(command)
+            entry_point, *args = command_list
+
+        if len(entry_point.split()) > 1:
+            raise ValueError(f"Whitespaces in entry point '{entry_point}' are forbidden")
+
+        return entry_point, args
 
 
 class SendFile(Command):
