@@ -14,11 +14,13 @@ no_shell = ("echo", "foo")
 @pytest.mark.parametrize("command, kwargs, full_command", (
     (list_c, {}, no_shell),
     (list_c, {"shell": True}, sh),
-    (list_c, {"shell": "True", "shell_cmd": "/bin/bash"}, bash),
+    (list_c, {"shell": False}, no_shell),
+    (list_c, {"shell": True, "shell_cmd": "/bin/bash"}, bash),
     (list_c, {"shell_cmd": "/bin/bash"}, no_shell),
     (str_c, {}, sh),
     (str_c, {"shell": True}, sh),
-    (str_c, {"shell": "True", "shell_cmd": "/bin/bash"}, bash),
+    (str_c, {"shell": False}, no_shell),
+    (str_c, {"shell": True, "shell_cmd": "/bin/bash"}, bash),
     (str_c, {"shell_cmd": "/bin/bash"}, bash),
 
     ("/bin/sh -c 'echo foo'", {}, ["/bin/sh", "-c", "/bin/sh -c 'echo foo'"]),
