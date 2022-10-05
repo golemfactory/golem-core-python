@@ -17,6 +17,12 @@ async def create_activity(agreement: Agreement) -> Activity:
     return await agreement.create_activity(autoclose=False)
 
 
+async def prepare_activity(activity: Activity) -> Activity:
+    batch = await activity.execute_commands(commands.Deploy(), commands.Start())
+    await batch.wait(10)
+    return activity
+
+
 async def main():
     golem = GolemNode(collect_payment_events=False)
 
@@ -29,11 +35,10 @@ async def main():
             Map(default_negotiate),
             Map(create_agreement),
             Map(create_activity),
+            Map(prepare_activity),
         )
         activity_awaitable = await chain.__anext__()
         activity = await activity_awaitable
-        batch = await activity.execute_commands(commands.Deploy(), commands.Start())
-        await batch.wait(10)
         print(activity.id)
 
 

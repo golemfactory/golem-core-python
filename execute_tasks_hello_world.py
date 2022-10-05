@@ -12,9 +12,7 @@ async def execute_task(activity: Activity, in_data: int) -> str:
         commands.Run(f"echo -n 'Executing task {in_data}'"),
     )
     await batch.wait(5)
-    result = batch.events[0].stdout
-    assert result is not None and "Executing task" in result
-    return result
+    return batch.events[0].stdout
 
 
 async def main() -> None:

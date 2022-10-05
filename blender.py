@@ -18,7 +18,6 @@ async def prepare_activity(activity: Activity) -> Activity:
         commands.SendFile("cubes.blend", "/golem/resource/scene.blend")
     )
     await batch.wait(timeout=10)
-    assert batch.success, batch.events[-1].message
     return activity
 
 
@@ -34,7 +33,6 @@ async def execute_task(activity: Activity, frame_ix: int) -> str:
         commands.DownloadFile(f"/golem/output/{fname}", fname)
     )
     await batch.wait(timeout=20)
-    assert batch.success, batch.events[-1].message
     return fname
 
 
