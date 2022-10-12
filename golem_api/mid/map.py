@@ -50,11 +50,18 @@ class Map(Generic[InType, OutType]):
         #      and second map unpacks this Awaitable here.
         #   (This probably has some downsides, but should be worth it)
         if not isinstance(in_val, tuple):
-            in_val = (in_val,)
-
-        new_vals = []
-        for single_val in in_val:
-            if inspect.isawaitable(single_val):
-                single_val = await single_val
-            new_vals.append(single_val)
-        return tuple(new_vals)
+            if inspect.isawaitable(in_val):
+                awaited_val = await in_val
+                if isinstance(awaited_val, tuple):
+                    return awaited_val
+                else:
+                    return (awaited_val,)
+            else:
+                return (in_val,)
+        else:
+            new_vals = []
+            for single_val in in_val:
+                if inspect.isawaitable(single_val):
+                    single_val = await single_val
+                new_vals.append(single_val)
+            return tuple(new_vals)
