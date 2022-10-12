@@ -11,17 +11,22 @@ async def execute_task(activity: Activity, task_data: int) -> str:
         commands.Run(f"echo -n 'DATA {task_data}'"),
     )
     await batch.wait(timeout=5)
-    return batch.events[-1].stdout
+    result = batch.events[-1].stdout
+
+    from random import random
+    if random() > 0.85:
+        result += '_NOPE'
+    return result
 
 
 async def main() -> None:
     async for result in execute_tasks(
         budget=1,
         execute_task=execute_task,
-        task_data=list(range(10)),
+        task_data=list(range(4)),
         payload=PAYLOAD,
-        max_workers=5,
-        redundance=0.6,
+        max_workers=2,
+        redundance=(3, 0.7),
     ):
         print(f"GOT RESULT {result}")
 

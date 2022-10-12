@@ -1,5 +1,6 @@
 import asyncio
-from typing import Awaitable, AsyncIterator, Callable, Generic, Iterable, List, Optional, Tuple, TypeVar
+from collections import Counter, defaultdict
+from typing import Awaitable, AsyncIterator, Callable, Dict, Generic, Iterable, List, Optional, Tuple, TypeVar
 from random import random
 from datetime import timedelta
 
@@ -16,6 +17,7 @@ from golem_api.default_payment_manager import DefaultPaymentManager
 
 TaskData = TypeVar("TaskData")
 TaskResult = TypeVar("TaskResult")
+ProviderId = str
 
 
 class TaskStream(Generic[TaskData]):
@@ -73,6 +75,62 @@ def close_agreement_repeat_task(
     return on_exception
 
 
+class RepeatRequired(Exception):
+    pass
+
+
+class RedundanceManager:
+    def __init__(
+        self,
+        execute_task: Callable[[Activity, TaskData], Awaitable[TaskResult]],
+        repeat_task: Callable[[TaskData], None],
+        min_repeat: int,
+        min_success: float,
+    ):
+        self.task_callable = execute_task
+        self.repeat_task_callable = repeat_task
+        self.min_repeat = min_repeat
+        self.min_success = min_success
+
+        self._results: Dict[ProviderId, List[Tuple(TaskData, TaskResult)]] = defaultdict(list)
+
+    async def execute_task(self, activity: Activity, task_data: TaskData):
+        task_result = await self.task_callable(activity, task_data)
+        provider_id = (await activity.parent.parent.get_data()).issuer_id
+        self._results[provider_id].append((task_data, task_result))
+
+        final_result = self._get_final_result(task_data)
+        if final_result is None:
+            raise RepeatRequired
+
+        return final_result
+
+    async def on_exception(self, func, args, exc):
+        activity, task_data = args
+        self.repeat_task_callable(task_data)
+        if not isinstance(exc, RepeatRequired):
+            await activity.destroy()
+            await activity.parent.terminate()
+
+    def _get_final_result(self, this_task_data: TaskData):
+        task_results = []
+        for provider_results in self._results.values():
+            task_results += [task_result for task_data, task_result in provider_results if task_data == this_task_data]
+
+        print("TASK RESULTS", task_results)
+
+        cnt = len(task_results)
+        if cnt < self.min_repeat:
+            return None
+
+        #   TODO: this assumes TaskResult is hashable
+        most_common = Counter(task_results).most_common()[0][0]
+        if (task_results.count(most_common) / cnt) < self.min_success:
+            return None
+
+        return most_common
+
+
 def get_chain(
     *,
     task_stream,
@@ -97,7 +155,21 @@ def get_chain(
             Buffer(size=max_workers + 1),
         )
     else:
-        raise NotImplementedError
+        min_repeat, min_success = redundance
+        redundance_manager = RedundanceManager(execute_task, task_stream.put, min_repeat, min_success)
+
+        chain = Chain(
+            demand.initial_proposals(),
+            SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=0.1)),
+            Map(default_negotiate),
+            Map(default_create_agreement),
+            Map(default_create_activity),
+            Map(prepare_activity),
+            ActivityPool(max_size=max_workers),
+            Zip(task_stream),
+            Map(redundance_manager.execute_task, on_exception=redundance_manager.on_exception),
+            Buffer(size=max_workers + 1),
+        )
     return chain
 
 
