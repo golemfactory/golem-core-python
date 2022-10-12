@@ -45,6 +45,7 @@ class Buffer(Generic[DataType]):
             except Exception as e:
                 print(e)
                 self._semaphore.release()
+                return
         else:
             #   NOTE: Buffer is useful only with awaitables, so this scenario doesn't make much sense.
             #         But maybe stream sometimes returns awaitables and sometimes already awaited values?
