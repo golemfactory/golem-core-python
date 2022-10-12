@@ -98,10 +98,30 @@ class RedundanceManager:
 
         self._partial_results: List[Tuple[TaskData, TaskResult]] = []
         self._provider_tasks: Dict[ProviderId, Set[TaskData]] = defaultdict(list)
+        self._useless_providers: Set[ProviderId] = set()
 
         self._activity_stream_lock = asyncio.Lock()
         self._workers: List[asyncio.Task] = []
         self._results_queue: asyncio.Queue[TaskResult] = asyncio.Queue()
+
+    async def filter_providers(self, proposal_stream: AsyncIterator[Proposal]) -> AsyncIterator[Proposal]:
+        #   TODO: we'd rather have here "while self.remaining_tasks", but currently Map doesn't work with
+        #         finite streams - this is a planned for the future
+        while True:
+            proposal = await proposal_stream.__anext__()
+            provider_id = (await proposal.get_data()).issuer_id
+            if provider_id in self._useless_providers:
+                print(f"Skipping {proposal} because its from a provider {provider_id} who already processed all tasks")
+            elif self._provider_has_activity(proposal.node, provider_id):
+                print(f"Skipping {proposal} because its from a provider {provider_id} who already has an activity")
+            else:
+                yield proposal
+
+    def _provider_has_activity(self, node: GolemNode, provider_id: str) -> bool:
+        activities = node.all_resources(Activity)
+        running_activities = [activity for activity in activities if not activity.destroyed]
+        activity_proposals = [activity.parent.parent for activity in running_activities]
+        return provider_id in [proposal.data.issuer_id for proposal in activity_proposals]
 
     async def execute_tasks(
         self, activity_stream: AsyncIterator[Awaitable[Activity]]
@@ -120,6 +140,7 @@ class RedundanceManager:
             task_data = self._task_for_provider(provider_id)
             if task_data is None:
                 self._close_useless_activity(activity)
+                self._useless_providers.add(provider_id)
                 continue
 
             try:
@@ -201,6 +222,7 @@ def get_chain(
         chain = Chain(
             demand.initial_proposals(),
             SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=0.1)),
+            redundance_manager.filter_providers,
             Map(default_negotiate),
             Map(default_create_agreement),
             Map(default_create_activity),

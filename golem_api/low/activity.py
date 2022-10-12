@@ -60,6 +60,10 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
     async def wait_destroyed(self) -> None:
         await self._destroyed_event.wait()
 
+    @property
+    def destroyed(self) -> bool:
+        return self._destroyed_event.is_set()
+
     ####################
     #   API
     @classmethod

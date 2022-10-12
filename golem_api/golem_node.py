@@ -91,8 +91,8 @@ class GolemNode:
         await self._event_bus.stop()
 
     def _stop_event_collectors(self) -> None:
-        demands = self._all_resources(Demand)
-        batches = self._all_resources(PoolingBatch)
+        demands = self.all_resources(Demand)
+        batches = self.all_resources(PoolingBatch)
         payment_event_collectors = [self._invoice_event_collector, self._debit_note_event_collector]
 
         for event_collector in demands + batches + payment_event_collectors:  # type: ignore
@@ -283,7 +283,8 @@ class GolemNode:
     def add_autoclose_resource(self, resource: Union["Allocation", "Demand", "Agreement", "Activity"]) -> None:
         self._autoclose_resources.add(resource)
 
-    def _all_resources(self, cls: Type[ResourceType]) -> List[ResourceType]:
+    def all_resources(self, cls: Type[ResourceType]) -> List[ResourceType]:
+        """Returns all known resources of a given type"""
         return list(self._resources[cls].values())  # type: ignore
 
     def __str__(self) -> str:
