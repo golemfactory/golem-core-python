@@ -83,16 +83,17 @@ class RedundanceManager:
     def __init__(
         self,
         execute_task: Callable[[Activity, TaskData], Awaitable[TaskResult]],
-        repeat_task: Callable[[TaskData], None],
+        task_stream: TaskStream,
         min_repeat: int,
         min_success: float,
     ):
         self.task_callable = execute_task
-        self.repeat_task_callable = repeat_task
+        self.task_stream = task_stream
         self.min_repeat = min_repeat
         self.min_success = min_success
 
         self._results: Dict[ProviderId, List[Tuple(TaskData, TaskResult)]] = defaultdict(list)
+        self._provider_tasks: Dict[ProviderId, List[TaskData]] = defaultdict(list)
 
     async def execute_task(self, activity: Activity, task_data: TaskData):
         task_result = await self.task_callable(activity, task_data)
@@ -105,9 +106,37 @@ class RedundanceManager:
 
         return final_result
 
+    async def activity_task_pairs(self, activity: Activity):
+        provider_id = (await activity.parent.parent.get_data()).issuer_id
+        task_data = await self._task_for_provider(provider_id)
+        if task_data is None:
+            await activity.destroy()
+            await activity.parent.terminate()
+        return activity, task_data
+
+    async def _task_for_provider(self, provider_id: str) -> Optional[TaskData]:
+        if not self.task_stream.in_stream_empty:
+            while True:
+                task_data = await self.task_stream.__anext__()
+                if task_data in self._provider_tasks[provider_id]:
+                    async def repeat():
+                        await asyncio.sleep(0.1)
+                        self.task_stream.put(task_data)
+                else:
+                    self._provider_tasks[provider_id].append(task_data)
+                    return task_data
+        else:
+            this_provider_tasks = self._provider_tasks[provider_id]
+            for other_provider_tasks in self._provider_tasks.values():
+                for task_data in other_provider_tasks:
+                    if task_data not in this_provider_tasks:
+                        self._provider_tasks[provider_id].append(task_data)
+                        return task_data
+        return None
+
     async def on_exception(self, func, args, exc):
         activity, task_data = args
-        self.repeat_task_callable(task_data)
+        self.task_stream.put(task_data)
         if not isinstance(exc, RepeatRequired):
             await activity.destroy()
             await activity.parent.terminate()
@@ -156,7 +185,7 @@ def get_chain(
         )
     else:
         min_repeat, min_success = redundance
-        redundance_manager = RedundanceManager(execute_task, task_stream.put, min_repeat, min_success)
+        redundance_manager = RedundanceManager(execute_task, task_stream, min_repeat, min_success)
 
         chain = Chain(
             demand.initial_proposals(),
@@ -166,7 +195,7 @@ def get_chain(
             Map(default_create_activity),
             Map(prepare_activity),
             ActivityPool(max_size=max_workers),
-            Zip(task_stream),
+            Map(redundance_manager.activity_task_pairs),
             Map(redundance_manager.execute_task, on_exception=redundance_manager.on_exception),
             Buffer(size=max_workers + 1),
         )
