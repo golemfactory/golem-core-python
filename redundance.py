@@ -14,8 +14,8 @@ async def execute_task(activity: Activity, task_data: int) -> str:
     result = batch.events[-1].stdout
 
     from random import random
-    if random() > 0.85:
-        result += '_NOPE'
+    if random() > 0.9:
+        result += '_BAD'
     return result
 
 
@@ -23,10 +23,10 @@ async def main() -> None:
     async for result in execute_tasks(
         budget=1,
         execute_task=execute_task,
-        task_data=list(range(4)),
+        task_data=list(range(10)),
         payload=PAYLOAD,
         max_workers=5,
-        redundance=(3, 0.8),
+        redundance=(3, 0.7),
     ):
         print(f"GOT RESULT {result}")
 

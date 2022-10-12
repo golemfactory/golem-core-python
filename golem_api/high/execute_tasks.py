@@ -48,10 +48,10 @@ class TaskStream(Generic[TaskData]):
             await asyncio.sleep(0.1)
 
     def remaining_tasks(self) -> List[TaskData]:
-        tasks = list(self.in_stream) + self.repeated
+        new_tasks = list(self.in_stream)
+        self.task_cnt += len(new_tasks)
         self.in_stream_empty = True
-        self.task_cnt = len(tasks)
-        return tasks
+        return new_tasks + self.repeated
 
 
 async def default_prepare_activity(activity: Activity) -> Activity:
@@ -105,23 +105,20 @@ class RedundanceManager:
         self._results_queue: asyncio.Queue[TaskResult] = asyncio.Queue()
 
     async def filter_providers(self, proposal_stream: AsyncIterator[Proposal]) -> AsyncIterator[Proposal]:
-        #   TODO: we'd rather have here "while self.remaining_tasks", but currently Map doesn't work with
-        #         finite streams - this is a planned for the future
-        while True:
+        """Filter out proposals from providers who already processed all remaining tasks."""
+        while self.remaining_tasks:
             proposal = await proposal_stream.__anext__()
             provider_id = (await proposal.get_data()).issuer_id
             if provider_id in self._useless_providers:
-                print(f"Skipping {proposal} because its from a provider {provider_id} who already processed all tasks")
-            elif self._provider_has_activity(proposal.node, provider_id):
-                print(f"Skipping {proposal} because its from a provider {provider_id} who already has an activity")
+                #   Skipping proposal from {provider_id} because they have already processed all the tasks
+                pass
             else:
                 yield proposal
 
-    def _provider_has_activity(self, node: GolemNode, provider_id: str) -> bool:
-        activities = node.all_resources(Activity)
-        running_activities = [activity for activity in activities if not activity.destroyed]
-        activity_proposals = [activity.parent.parent for activity in running_activities]
-        return provider_id in [proposal.data.issuer_id for proposal in activity_proposals]
+        #   TODO: We wait here forever because Map, Zip etc) don't work with finite streams.
+        #         This will be improved in the future.
+        print("All tasks done - no more proposals will be processed")
+        await asyncio.Future()
 
     async def execute_tasks(
         self, activity_stream: AsyncIterator[Awaitable[Activity]]
@@ -160,11 +157,18 @@ class RedundanceManager:
         return None
 
     def _close_useless_activity(self, activity: Activity) -> None:
-        print(f"{activity} is useless")
+        # print(f"{activity} is useless")
 
         async def close():
-            await activity.destroy()
-            await activity.parent.terminate()
+            try:
+                await activity.destroy()
+            except Exception:
+                pass
+            try:
+                await activity.parent.terminate()
+            except Exception:
+                pass
+
         asyncio.create_task(close())
 
     def _process_task_result(self, this_task_data: TaskData, this_task_result: TaskResult) -> None:
@@ -177,7 +181,8 @@ class RedundanceManager:
 
         self._partial_results.append((this_task_data, this_task_result))
         task_results = [task_result for task_data, task_result in self._partial_results if task_data == this_task_data]
-        print("TASK RESULTS", task_results)
+
+        print(f"Current task {this_task_data} results: {Counter(task_results).most_common()}")
 
         cnt = len(task_results)
         if cnt < self.min_repeat:
@@ -229,7 +234,6 @@ def get_chain(
             Map(prepare_activity),
             ActivityPool(max_size=max_workers),
             redundance_manager.execute_tasks,
-            Buffer(size=max_workers + 1),
         )
     return chain
 
