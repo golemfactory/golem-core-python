@@ -1,5 +1,5 @@
 import asyncio
-from typing import Awaitable, AsyncIterator, Callable, Generic, Iterable, List, Tuple, TypeVar
+from typing import Awaitable, AsyncIterator, Callable, Generic, Iterable, List, Optional, Tuple, TypeVar
 from random import random
 from datetime import timedelta
 
@@ -73,6 +73,34 @@ def close_agreement_repeat_task(
     return on_exception
 
 
+def get_chain(
+    *,
+    task_stream,
+    execute_task,
+    max_workers,
+    prepare_activity,
+    score_proposal,
+    demand,
+    redundance
+):
+    if redundance is None:
+        chain = Chain(
+            demand.initial_proposals(),
+            SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=0.1)),
+            Map(default_negotiate),
+            Map(default_create_agreement),
+            Map(default_create_activity),
+            Map(prepare_activity),
+            ActivityPool(max_size=max_workers),
+            Zip(task_stream),
+            Map(execute_task, on_exception=close_agreement_repeat_task(task_stream)),  # type: ignore  # unfixable (?)
+            Buffer(size=max_workers + 1),
+        )
+    else:
+        raise NotImplementedError
+    return chain
+
+
 async def execute_tasks(
     *,
     budget: float,
@@ -83,6 +111,8 @@ async def execute_tasks(
     max_workers: int = 1,
     prepare_activity: Callable[[Activity], Awaitable[Activity]] = default_prepare_activity,
     score_proposal: Callable[[Proposal], Awaitable[float]] = default_score_proposal,
+
+    redundance: Optional[float] = None,
 ) -> AsyncIterator[TaskResult]:
 
     task_stream = TaskStream(task_data)
@@ -96,17 +126,14 @@ async def execute_tasks(
         payment_manager = DefaultPaymentManager(golem, allocation)
         demand = await golem.create_demand(payload, allocations=[allocation])
 
-        chain = Chain(
-            demand.initial_proposals(),
-            SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=0.1)),
-            Map(default_negotiate),
-            Map(default_create_agreement),
-            Map(default_create_activity),
-            Map(prepare_activity),
-            ActivityPool(max_size=max_workers),
-            Zip(task_stream),
-            Map(execute_task, on_exception=close_agreement_repeat_task(task_stream)),  # type: ignore  # unfixable (?)
-            Buffer(size=max_workers + 1),
+        chain = get_chain(
+            task_stream=task_stream,
+            execute_task=execute_task,
+            max_workers=max_workers,
+            prepare_activity=prepare_activity,
+            score_proposal=score_proposal,
+            demand=demand,
+            redundance=redundance,
         )
 
         returned = 0
