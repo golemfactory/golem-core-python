@@ -1,6 +1,6 @@
 import asyncio
 from collections import Counter, defaultdict
-from typing import Awaitable, AsyncIterator, Callable, Dict, Generic, Iterable, List, Optional, Tuple, TypeVar
+from typing import Awaitable, AsyncIterator, Callable, Dict, Generic, Iterable, List, Optional, Set, Tuple, TypeVar
 from random import random
 from datetime import timedelta
 
@@ -47,6 +47,12 @@ class TaskStream(Generic[TaskData]):
                     self.in_stream_empty = True
             await asyncio.sleep(0.1)
 
+    def remaining_tasks(self) -> List[TaskData]:
+        tasks = list(self.in_stream) + self.repeated
+        self.in_stream_empty = True
+        self.task_cnt = len(tasks)
+        return tasks
+
 
 async def default_prepare_activity(activity: Activity) -> Activity:
     batch = await activity.execute_commands(commands.Deploy(), commands.Start())
@@ -75,8 +81,16 @@ def close_agreement_repeat_task(
     return on_exception
 
 
-class RepeatRequired(Exception):
-    pass
+class UselessProvider(Exception):
+    def __init__(self, provider_id):
+        self.provider_id = provider_id
+        super().__init__(f"Provider {provider_id} already processed all remaining tasks")
+
+
+class NotReadyYet(Exception):
+    def __init__(self, task_data):
+        self.task_data = task_data
+        super().__init__(f"Task {task_data} is not ready yet")
 
 
 class RedundanceManager:
@@ -88,58 +102,52 @@ class RedundanceManager:
         min_success: float,
     ):
         self.task_callable = execute_task
-        self.task_stream = task_stream
+        self.remaining_tasks = task_stream.remaining_tasks()
         self.min_repeat = min_repeat
         self.min_success = min_success
 
         self._results: Dict[ProviderId, List[Tuple(TaskData, TaskResult)]] = defaultdict(list)
-        self._provider_tasks: Dict[ProviderId, List[TaskData]] = defaultdict(list)
+        self._provider_tasks: Dict[ProviderId, Set[TaskData]] = defaultdict(list)
 
     async def execute_task(self, activity: Activity, task_data: TaskData):
         task_result = await self.task_callable(activity, task_data)
         provider_id = (await activity.parent.parent.get_data()).issuer_id
+
+        if task_data not in self.remaining_tasks:
+            raise NotReadyYet(task_data)
+
         self._results[provider_id].append((task_data, task_result))
 
         final_result = self._get_final_result(task_data)
         if final_result is None:
-            raise RepeatRequired
+            raise NotReadyYet(task_data)
+        
+        self.remaining_tasks.remove(task_data)
 
         return final_result
 
-    async def activity_task_pairs(self, activity: Activity):
+    async def zip_task_data(self, activity: Activity):
         provider_id = (await activity.parent.parent.get_data()).issuer_id
-        task_data = await self._task_for_provider(provider_id)
-        if task_data is None:
-            await activity.destroy()
-            await activity.parent.terminate()
+        provider_tasks = self._provider_tasks[provider_id]
+        try:
+            task_data = next(task_data for task_data in self.remaining_tasks if task_data not in provider_tasks)
+        except StopIteration:
+            raise UselessProvider(provider_id)
+
+        provider_tasks.append(task_data)
         return activity, task_data
 
-    async def _task_for_provider(self, provider_id: str) -> Optional[TaskData]:
-        if not self.task_stream.in_stream_empty:
-            while True:
-                task_data = await self.task_stream.__anext__()
-                if task_data in self._provider_tasks[provider_id]:
-                    async def repeat():
-                        await asyncio.sleep(0.1)
-                        self.task_stream.put(task_data)
-                else:
-                    self._provider_tasks[provider_id].append(task_data)
-                    return task_data
-        else:
-            this_provider_tasks = self._provider_tasks[provider_id]
-            for other_provider_tasks in self._provider_tasks.values():
-                for task_data in other_provider_tasks:
-                    if task_data not in this_provider_tasks:
-                        self._provider_tasks[provider_id].append(task_data)
-                        return task_data
-        return None
-
     async def on_exception(self, func, args, exc):
-        activity, task_data = args
-        self.task_stream.put(task_data)
-        if not isinstance(exc, RepeatRequired):
+        activity = args[0]
+        if isinstance(exc, NotReadyYet):
+            pass
+        elif isinstance(exc, UselessProvider):
+            print(exc)
+            print(self._results[exc.provider_id])
             await activity.destroy()
             await activity.parent.terminate()
+        else:
+            print("Unexpected exception", exc)
 
     def _get_final_result(self, this_task_data: TaskData):
         task_results = []
@@ -195,7 +203,7 @@ def get_chain(
             Map(default_create_activity),
             Map(prepare_activity),
             ActivityPool(max_size=max_workers),
-            Map(redundance_manager.activity_task_pairs),
+            Map(redundance_manager.zip_task_data, on_exception=redundance_manager.on_exception),
             Map(redundance_manager.execute_task, on_exception=redundance_manager.on_exception),
             Buffer(size=max_workers + 1),
         )
