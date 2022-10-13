@@ -1,14 +1,18 @@
 import asyncio
 from dataclasses import dataclass
+import hashlib
 import queue
 from typing import List, Union
+import random
+import string
 
 from golem_api import execute_tasks, Payload
 from golem_api.commands import Run
 from golem_api.low import Activity
 
 PAYLOAD = Payload.from_image_hash("055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db")
-CHUNK_SIZE = 4096
+CHUNK_SIZE = 2 ** 18
+MAX_WORKERS = 10
 
 tasks_queue = queue.LifoQueue()
 
@@ -69,18 +73,19 @@ class AttackPartTask:
 
     def process_result(self, result: str):
         if result is not None:
-            print("RESULT", self, result.strip())
-        else:
-            print("NOPE  ", self)
+            print(f"FOUND {result.strip()} between {self.skip} and {self.limit}")
 
 
-async def insert_main_tasks():
-    mask = '?a?a?a'
-    hash_ = '$P$5ZDzPE45CLLhEx/72qt3NehVzwN2Ry/'
+async def main_task_source():
+    mask = "?a?a?a?a"
+    chars = string.ascii_letters + string.digits + string.punctuation
 
     while True:
-        if tasks_queue.qsize() < 5:
-            tasks_queue.put(MainTask(mask=mask, hash_=hash_, hash_type=400, attack_mode=3))
+        if tasks_queue.qsize() < MAX_WORKERS * 2:
+            password = "".join([random.choice(chars) for i in range(len(mask) // 2)])
+            hash_ = hashlib.sha256(password.encode()).hexdigest()
+            task = MainTask(mask=mask, hash_=hash_, hash_type=1400, attack_mode=3)
+            tasks_queue.put(task)
         else:
             await asyncio.sleep(0.1)
 
@@ -95,24 +100,19 @@ def get_tasks():
 
 async def execute_task(activity: Activity, task: Union[MainTask, AttackPartTask]):
     batch = await activity.execute_commands(*task.commands)
-    try:
-        await batch.wait(timeout=task.timeout)
-    except Exception as e:
-        print("EXCEPTION", e)
-        # print(batch.events)
-        raise
+    await batch.wait(timeout=task.timeout)
     result = batch.events[-1].stdout
     task.process_result(result)
 
 
 async def main() -> None:
-    asyncio.create_task(insert_main_tasks())
+    asyncio.create_task(main_task_source())
     async for result in execute_tasks(
         budget=1,
         execute_task=execute_task,
         task_data=get_tasks(),
         payload=PAYLOAD,
-        max_workers=3,
+        max_workers=MAX_WORKERS,
     ):
         pass
 
