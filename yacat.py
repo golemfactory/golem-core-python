@@ -1,4 +1,8 @@
 import asyncio
+from collections import defaultdict
+from datetime import datetime, timedelta
+
+from prettytable import PrettyTable
 
 from golem_api import GolemNode
 from golem_api.default_logger import DefaultLogger
@@ -8,6 +12,8 @@ from golem_api.mid import (
     Buffer, Chain, Map, Zip,
     default_negotiate, default_create_agreement, default_create_activity,
 )
+from golem_api.low import PoolingBatch
+from golem_api.events import NewResource
 
 from yacat_no_business_logic import PAYLOAD, main_task_source, tasks_queue
 
@@ -15,6 +21,7 @@ MAX_CONCURRENT_NEGOTIATIONS = 10
 MAX_CONCURRENT_TASKS = 1000
 
 activity_queue = asyncio.Queue()
+execution_time_log = defaultdict(list)
 
 
 async def async_queue_aiter(src_queue: asyncio.Queue):
@@ -72,11 +79,38 @@ async def execute_tasks():
         pass
 
 
+async def gather_batch_log(event: NewResource):
+    batch = event.resource
+    start = datetime.now()
+    provider_id = (await batch.parent.parent.parent.get_data()).issuer_id
+
+    async def print_time():
+        await batch.wait(ignore_errors=True)
+        execution_time_log[provider_id].append(datetime.now() - start)
+
+    asyncio.create_task(print_time())
+
+
+async def print_current_data():
+    while True:
+        await asyncio.sleep(10)
+        out = PrettyTable()
+        out.field_names = ["provider_id", "batches", "total_time"]
+        for provider_id, batches in execution_time_log.items():
+            batch_cnt = len(batches)
+            total_time = sum(batches, timedelta())
+            out.add_row([provider_id, batch_cnt, total_time])
+
+        print(out.get_string())
+
+
 async def main() -> None:
     asyncio.create_task(main_task_source())
+    asyncio.create_task(print_current_data())
 
     golem = GolemNode()
     golem.event_bus.listen(DefaultLogger().on_event)
+    golem.event_bus.resource_listen(gather_batch_log, [NewResource], [PoolingBatch])
 
     async with golem:
         allocation = await golem.create_allocation(amount=1)
