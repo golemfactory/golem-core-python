@@ -1,8 +1,7 @@
 import asyncio
-from dataclasses import dataclass
 import hashlib
 import queue
-from typing import List, Union
+from typing import List
 import random
 import string
 
@@ -11,27 +10,28 @@ from golem_api.commands import Run
 from golem_api.low import Activity
 
 PAYLOAD = Payload.from_image_hash("055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db")
-CHUNK_SIZE = 2 ** 18
+PASSWORD_LENGTH = 4
+CHUNK_SIZE = 2 ** 16
 MAX_WORKERS = 10
 
 tasks_queue = queue.LifoQueue()
+results = set()
 
 
-@dataclass
 class MainTask:
-    mask: str
-    hash_: str
-    hash_type: int
-    attack_mode: int
-    timeout: int = 30
+    def __init__(self, mask: str, hash_: str, hash_type: int, attack_mode: int):
+        self.mask = mask
+        self.hash_ = hash_
+        self.hash_type = hash_type
+        self.attack_mode = attack_mode
 
-    @property
-    def commands(self) -> List[Run]:
+    async def execute(self, activity: Activity):
         cmd = f"hashcat --keyspace -a {self.attack_mode} -m {self.hash_type} {self.mask}"
-        return [Run(cmd)]
-
-    def process_result(self, result: str):
+        batch = await activity.execute_commands(Run(cmd))
+        await batch.wait(timeout=30)
+        result = batch.events[-1].stdout
         keyspace = int(result.strip())
+
         for skip in range(0, keyspace, CHUNK_SIZE):
             task = AttackPartTask(
                 mask=self.mask,
@@ -44,18 +44,24 @@ class MainTask:
             tasks_queue.put_nowait(task)
 
 
-@dataclass
 class AttackPartTask:
-    mask: str
-    hash_: str
-    hash_type: int
-    attack_mode: int
-    skip: int
-    limit: int
-    timeout: int = 120
+    def __init__(self, mask: str, hash_: str, hash_type: int, attack_mode: int, skip: int, limit: int):
+        self.mask = mask
+        self.hash_ = hash_
+        self.hash_type = hash_type
+        self.attack_mode = attack_mode
+        self.skip = skip
+        self.limit = limit
 
-    @property
-    def commands(self) -> List[Run]:
+    async def execute(self, activity: Activity):
+        batch = await activity.execute_commands(*self._commands())
+        await batch.wait(timeout=120)
+        result = batch.events[-1].stdout
+        if result is not None:
+            print(f"FOUND {result.strip()} between {self.skip} and {self.limit}")
+            results.add(result)
+
+    def _commands(self) -> List[Run]:
         out_fname = "/golem/output/out.potfile"
         str_cmds = [
             f"rm -f {out_fname}",
@@ -71,13 +77,9 @@ class AttackPartTask:
         ]
         return [Run(str_cmd) for str_cmd in str_cmds]
 
-    def process_result(self, result: str):
-        if result is not None:
-            print(f"FOUND {result.strip()} between {self.skip} and {self.limit}")
-
 
 async def main_task_source():
-    mask = "?a?a?a?a"
+    mask = "".join(["?a" for _ in range(PASSWORD_LENGTH)])
     chars = string.ascii_letters + string.digits + string.punctuation
 
     while True:
@@ -90,27 +92,12 @@ async def main_task_source():
             await asyncio.sleep(0.1)
 
 
-def get_tasks():
-    while True:
-        try:
-            yield tasks_queue.get_nowait()
-        except queue.Empty:
-            return
-
-
-async def execute_task(activity: Activity, task: Union[MainTask, AttackPartTask]):
-    batch = await activity.execute_commands(*task.commands)
-    await batch.wait(timeout=task.timeout)
-    result = batch.events[-1].stdout
-    task.process_result(result)
-
-
 async def main() -> None:
     asyncio.create_task(main_task_source())
     async for result in execute_tasks(
         budget=1,
-        execute_task=execute_task,
-        task_data=get_tasks(),
+        execute_task=lambda activity, task: task.execute(activity),
+        task_data=iter(tasks_queue.get, None),
         payload=PAYLOAD,
         max_workers=MAX_WORKERS,
     ):
