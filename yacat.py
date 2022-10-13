@@ -1,6 +1,6 @@
 import asyncio
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from prettytable import PrettyTable
 
@@ -12,16 +12,17 @@ from golem_api.mid import (
     Buffer, Chain, Map, Zip,
     default_negotiate, default_create_agreement, default_create_activity,
 )
-from golem_api.low import PoolingBatch
+from golem_api.low import DebitNote, PoolingBatch
 from golem_api.events import NewResource
 
-from yacat_no_business_logic import PAYLOAD, main_task_source, tasks_queue
+from yacat_no_business_logic import PAYLOAD, main_task_source, tasks_queue, results
 
 MAX_CONCURRENT_NEGOTIATIONS = 10
 MAX_CONCURRENT_TASKS = 1000
 
 activity_queue = asyncio.Queue()
 execution_time_log = defaultdict(list)
+debit_note_log = defaultdict(list)
 
 
 async def async_queue_aiter(src_queue: asyncio.Queue):
@@ -30,13 +31,7 @@ async def async_queue_aiter(src_queue: asyncio.Queue):
 
 
 async def filter_proposals(proposal_stream):
-    for i in range(4):
-        proposal = await proposal_stream.__anext__()
-        print(proposal)
-        yield proposal
-
-    await asyncio.sleep(60)
-    for i in range(4):
+    for i in range(5):
         proposal = await proposal_stream.__anext__()
         print(proposal)
         yield proposal
@@ -79,7 +74,7 @@ async def execute_tasks():
         pass
 
 
-async def gather_batch_log(event: NewResource):
+async def gather_execution_time_log(event: NewResource):
     batch = event.resource
     start = datetime.now()
     provider_id = (await batch.parent.parent.parent.get_data()).issuer_id
@@ -91,17 +86,22 @@ async def gather_batch_log(event: NewResource):
     asyncio.create_task(print_time())
 
 
+async def gather_debit_note_log(event: NewResource):
+    try:
+        debit_note = event.resource
+        provider_id = (await debit_note.get_data()).issuer_id
+        debit_note_log[provider_id].append(float(debit_note.data.total_amount_due))
+    except Exception as e:
+        print(e)
+
+
 async def print_current_data():
     while True:
-        await asyncio.sleep(10)
-        out = PrettyTable()
-        out.field_names = ["provider_id", "batches", "total_time"]
-        for provider_id, batches in execution_time_log.items():
-            batch_cnt = len(batches)
-            total_time = sum(batches, timedelta())
-            out.add_row([provider_id, batch_cnt, total_time])
-
-        print(out.get_string())
+        await asyncio.sleep(15)
+        try:
+            _print_summary_table()
+        except Exception as e:
+            print(e)
 
 
 async def main() -> None:
@@ -110,7 +110,8 @@ async def main() -> None:
 
     golem = GolemNode()
     golem.event_bus.listen(DefaultLogger().on_event)
-    golem.event_bus.resource_listen(gather_batch_log, [NewResource], [PoolingBatch])
+    golem.event_bus.resource_listen(gather_execution_time_log, [NewResource], [PoolingBatch])
+    golem.event_bus.resource_listen(gather_debit_note_log, [NewResource], [DebitNote])
 
     async with golem:
         allocation = await golem.create_allocation(amount=1)
@@ -130,6 +131,43 @@ async def main() -> None:
     #   TODO: This removes the "destroyed but pending" messages, probably there's
     #         some even prettier solution available?
     [task.cancel() for task in asyncio.all_tasks()]
+
+
+def _print_summary_table():
+    total_results = len(results)
+
+    provider_data = []
+    for provider_id, batches in execution_time_log.items():
+        provider_data.append([provider_id, len(batches), max(debit_note_log[provider_id], default=0)])
+
+    total_results = len(results)
+    total_batches = sum(row[1] for row in provider_data)
+    total_glm = sum(row[2] for row in provider_data)
+    batch_result_ratio = total_batches / total_results if total_results else 0
+    glm_result_ratio = total_glm / total_results if total_results else 0
+    glm_batch_ratio = total_glm / total_batches if total_batches else 0
+
+    table = PrettyTable()
+    table.field_names = ["provider_id", "results", "GLM", "GLM/result", "batches", "GLM/batch"]
+    for provider_id, provider_batches, provider_glm in provider_data:
+        provider_results = provider_batches / batch_result_ratio if batch_result_ratio else 0
+        table.add_row([
+            provider_id,
+            round(provider_results, 2),
+            round(provider_glm, 6),
+            round(provider_glm / provider_results, 6) if provider_results else 0,
+            provider_batches,
+            round(provider_glm / provider_batches, 6),
+        ])
+    table.add_row([
+        'TOTAL',
+        total_results,
+        round(total_glm, 6),
+        round(glm_result_ratio, 6),
+        total_batches,
+        round(glm_batch_ratio, 6),
+    ])
+    print(table.get_string())
 
 
 if __name__ == '__main__':
