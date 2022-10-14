@@ -18,11 +18,11 @@ from golem_api.events import NewResource, ResourceClosed
 from yacat_no_business_logic import PAYLOAD, main_task_source, tasks_queue, results
 
 MAX_CONCURRENT_TASKS = 1000
-MAX_GLM_PER_RESULT = 0.00089
+MAX_GLM_PER_RESULT = 0.00097
 NEW_PERIOD_SECONDS = 400
 MAX_WORKERS = 10
 
-activity_data = defaultdict(lambda: dict(batch_cnt=0, glm=0, status="new"))
+activity_data = defaultdict(lambda: dict(batch_cnt=0, last_dn_batch_cnt=0, glm=0, status="new"))
 
 
 async def async_queue_aiter(src_queue: asyncio.Queue):
@@ -37,7 +37,7 @@ async def close_agreement_repeat_task(func, args, e):
     await activity.parent.terminate()
 
 
-async def gather_execution_time_log(event: NewResource):
+async def count_batches(event: NewResource):
     activity = event.resource.parent
     activity_data[activity]['batch_cnt'] += 1
 
@@ -49,6 +49,7 @@ async def gather_debit_note_log(event: NewResource):
     current_glm = activity_data[activity]['glm']
     new_glm = max(current_glm, float(debit_note.data.total_amount_due))
     activity_data[activity]['glm'] = new_glm
+    activity_data[activity]['last_dn_batch_cnt'] = activity_data[activity]['batch_cnt']
 
 
 async def note_activity_destroyed(event: ResourceClosed):
@@ -109,7 +110,7 @@ async def main() -> None:
 
     golem = GolemNode()
     golem.event_bus.listen(DefaultLogger().on_event)
-    golem.event_bus.resource_listen(gather_execution_time_log, [NewResource], [PoolingBatch])
+    golem.event_bus.resource_listen(count_batches, [NewResource], [PoolingBatch])
     golem.event_bus.resource_listen(gather_debit_note_log, [NewResource], [DebitNote])
     golem.event_bus.resource_listen(update_new_activity_status, [NewResource], [Activity])
     golem.event_bus.resource_listen(note_activity_destroyed, [ResourceClosed], [Activity])
@@ -157,40 +158,52 @@ def _print_summary_table():
 
 
 def _get_summary_data(act_subset=None):
+    total_results = len(results)
+    total_batches = sum(data['batch_cnt'] for data in activity_data.values())
+    batch_result_ratio = total_batches / total_results if total_results else 0
+
     selected_activity_data = {
         activity: data for activity, data in activity_data.items() if act_subset is None or activity in act_subset
     }
 
-    total_results = len(results)
-    total_batches = sum(data['batch_cnt'] for data in selected_activity_data.values())
     total_glm = sum(data['glm'] for data in selected_activity_data.values())
 
-    batch_result_ratio = total_batches / total_results if total_results else 0
-    glm_result_ratio = total_glm / total_results if total_results else 0
-    glm_batch_ratio = total_glm / total_batches if total_batches else 0
+    total_last_dn_batches = sum(data['last_dn_batch_cnt'] for data in selected_activity_data.values())
+    total_last_dn_results = total_last_dn_batches / batch_result_ratio if batch_result_ratio else 0
+    glm_batch_ratio = total_glm / total_last_dn_batches if total_last_dn_batches else 0
+    glm_result_ratio = total_glm / total_last_dn_results if total_last_dn_results else 0
 
     agg_data = []
     for activity, data in selected_activity_data.items():
-        activity_batches, activity_glm, activity_status = data['batch_cnt'], data['glm'], data['status']
+        activity_batches = data['batch_cnt']
+        activity_last_dn_batches = data['last_dn_batch_cnt']
+        activity_glm = data['glm']
+        activity_status = data['status']
+
         activity_results = activity_batches / batch_result_ratio if batch_result_ratio else 0
-        activity_glm_result_ratio = round(activity_glm / activity_results, 6) if activity_results else 0
+        activity_last_dn_results = activity_last_dn_batches / batch_result_ratio if batch_result_ratio else 0
+
+        activity_glm_result_ratio = round(activity_glm / activity_last_dn_results, 6) if activity_last_dn_results else 0
+
         agg_data.append([
             activity.id,
             round(activity_results, 2),
             round(activity_glm, 6),
             activity_glm_result_ratio,
             activity_batches,
-            round(activity_glm / activity_batches, 6),
+            round(activity_glm / activity_last_dn_batches, 6) if activity_last_dn_batches else 0,
             "X" if activity_glm_result_ratio > MAX_GLM_PER_RESULT else "",
             activity_status,
         ])
 
+    print(act_subset is None, agg_data[0])
+
     agg_data.append([
         'TOTAL',
-        total_results,
+        round(sum(row[1] for row in agg_data)),
         round(total_glm, 6),
         round(glm_result_ratio, 6),
-        total_batches,
+        sum(row[4] for row in agg_data),
         round(glm_batch_ratio, 6),
         "X" if glm_result_ratio > MAX_GLM_PER_RESULT else "",
         "",
