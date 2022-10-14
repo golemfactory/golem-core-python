@@ -11,14 +11,15 @@ from golem_api.mid import (
     Buffer, Chain, Map, Zip,
     default_negotiate, default_create_agreement, default_create_activity,
 )
-from golem_api.low import DebitNote, PoolingBatch
-from golem_api.events import NewResource
+from golem_api.low import DebitNote, PoolingBatch, Activity
+from golem_api.events import NewResource, ResourceClosed
 
 from yacat_no_business_logic import PAYLOAD, main_task_source, tasks_queue, results
 
 MAX_CONCURRENT_NEGOTIATIONS = 10
 MAX_CONCURRENT_TASKS = 1000
-MAX_GLM_PER_RESULT = 0.00095
+MAX_GLM_PER_RESULT = 0.00092
+NEW_PERIOD_SECONDS = 600
 
 activity_queue = asyncio.Queue()
 activity_data = defaultdict(lambda: dict(batch_cnt=0, glm=0, status="new"))
@@ -30,7 +31,7 @@ async def async_queue_aiter(src_queue: asyncio.Queue):
 
 
 async def filter_proposals(proposal_stream):
-    for i in range(5):
+    for i in range(15):
         proposal = await proposal_stream.__anext__()
         print(proposal)
         yield proposal
@@ -87,6 +88,13 @@ async def gather_debit_note_log(event: NewResource):
     activity_data[activity]['glm'] = new_glm
 
 
+async def note_activity_destroyed(event: ResourceClosed):
+    activity = event.resource
+    current_status = activity_data[activity]['status']
+    if current_status in ('new', 'ok'):
+        activity_data[activity]['status'] = 'Dead [unknown reason]'
+
+
 async def print_current_data():
     while True:
         await asyncio.sleep(15)
@@ -96,14 +104,44 @@ async def print_current_data():
             print(e)
 
 
+async def update_new_activity_status(event: NewResource):
+    activity = event.resource
+
+    async def set_ok_status():
+        await asyncio.sleep(NEW_PERIOD_SECONDS)
+        if activity_data[activity]['status'] == 'new':
+            activity_data[activity]['status'] = 'ok'
+    asyncio.create_task(set_ok_status())
+
+
+async def manage_activities():
+    while True:
+        await asyncio.sleep(5)
+        summary_data = _get_summary_data()
+        too_expensive = summary_data[-1][3] > MAX_GLM_PER_RESULT
+        if too_expensive:
+            ok_activities = {activity: data for activity, data in activity_data.items() if data['status'] == 'ok'}
+            if ok_activities:
+                most_expensive = max(
+                    ok_activities,
+                    key=lambda activity: ok_activities[activity]['glm'] / ok_activities[activity]['batch_cnt']
+                )
+                await most_expensive.destroy()
+                activity_data[most_expensive]['status'] = 'Dead [too expensive]'
+                await most_expensive.parent.terminate()
+
+
 async def main() -> None:
     asyncio.create_task(main_task_source())
     asyncio.create_task(print_current_data())
+    asyncio.create_task(manage_activities())
 
     golem = GolemNode()
     golem.event_bus.listen(DefaultLogger().on_event)
     golem.event_bus.resource_listen(gather_execution_time_log, [NewResource], [PoolingBatch])
     golem.event_bus.resource_listen(gather_debit_note_log, [NewResource], [DebitNote])
+    golem.event_bus.resource_listen(update_new_activity_status, [NewResource], [Activity])
+    golem.event_bus.resource_listen(note_activity_destroyed, [ResourceClosed], [Activity])
 
     async with golem:
         allocation = await golem.create_allocation(amount=1)
@@ -126,6 +164,16 @@ async def main() -> None:
 
 
 def _print_summary_table():
+    agg_data = _get_summary_data()
+    table = PrettyTable()
+    table.field_names = [
+        "activity_id", "results", "GLM", "GLM/result", "batches", "GLM/batch", f"> {MAX_GLM_PER_RESULT}", "status"
+    ]
+    table.add_rows(agg_data)
+    print(table.get_string())
+
+
+def _get_summary_data():
     total_results = len(results)
     total_batches = sum(data['batch_cnt'] for data in activity_data.values())
     total_glm = sum(data['glm'] for data in activity_data.values())
@@ -160,13 +208,7 @@ def _print_summary_table():
         "X" if glm_result_ratio > MAX_GLM_PER_RESULT else "",
         "",
     ])
-
-    table = PrettyTable()
-    table.field_names = [
-        "activity_id", "results", "GLM", "GLM/result", "batches", "GLM/batch", f"> {MAX_GLM_PER_RESULT}", "status"
-    ]
-    table.add_rows(agg_data)
-    print(table.get_string())
+    return agg_data
 
 
 if __name__ == '__main__':
