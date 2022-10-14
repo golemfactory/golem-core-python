@@ -6,9 +6,10 @@ from prettytable import PrettyTable
 from golem_api import GolemNode
 from golem_api.default_logger import DefaultLogger
 from golem_api.default_payment_manager import DefaultPaymentManager
-from golem_api.high.execute_tasks import default_prepare_activity
+from golem_api.high.execute_tasks import default_prepare_activity, default_score_proposal
 from golem_api.mid import (
     Buffer, Chain, Map, Zip,
+    ActivityPool, SimpleScorer,
     default_negotiate, default_create_agreement, default_create_activity,
 )
 from golem_api.low import DebitNote, PoolingBatch, Activity
@@ -16,12 +17,11 @@ from golem_api.events import NewResource, ResourceClosed
 
 from yacat_no_business_logic import PAYLOAD, main_task_source, tasks_queue, results
 
-MAX_CONCURRENT_NEGOTIATIONS = 10
 MAX_CONCURRENT_TASKS = 1000
-MAX_GLM_PER_RESULT = 0.00092
-NEW_PERIOD_SECONDS = 600
+MAX_GLM_PER_RESULT = 0.00089
+NEW_PERIOD_SECONDS = 400
+MAX_WORKERS = 10
 
-activity_queue = asyncio.Queue()
 activity_data = defaultdict(lambda: dict(batch_cnt=0, glm=0, status="new"))
 
 
@@ -30,48 +30,11 @@ async def async_queue_aiter(src_queue: asyncio.Queue):
         yield await src_queue.get()
 
 
-async def filter_proposals(proposal_stream):
-    for i in range(15):
-        proposal = await proposal_stream.__anext__()
-        print(proposal)
-        yield proposal
-
-    await asyncio.Future()
-
-
 async def close_agreement_repeat_task(func, args, e):
     activity, task = args
     tasks_queue.put_nowait(task)
     await activity.destroy()
     await activity.parent.terminate()
-
-
-async def execute_task_return_activity(activity, task):
-    await task.execute(activity)
-    activity_queue.put_nowait(activity)
-
-
-async def generate_activities(initial_proposal_generator):
-    async for activity in Chain(
-        initial_proposal_generator,
-        filter_proposals,
-        Map(default_negotiate),
-        Map(default_create_agreement),
-        Map(default_create_activity),
-        Map(default_prepare_activity),
-        Buffer(size=MAX_CONCURRENT_NEGOTIATIONS),
-    ):
-        activity_queue.put_nowait(activity)
-
-
-async def execute_tasks():
-    async for result in Chain(
-        async_queue_aiter(activity_queue),
-        Zip(async_queue_aiter(tasks_queue)),
-        Map(execute_task_return_activity, on_exception=close_agreement_repeat_task),
-        Buffer(size=MAX_CONCURRENT_TASKS),
-    ):
-        pass
 
 
 async def gather_execution_time_log(event: NewResource):
@@ -117,18 +80,26 @@ async def update_new_activity_status(event: NewResource):
 async def manage_activities():
     while True:
         await asyncio.sleep(5)
-        summary_data = _get_summary_data()
+        ok_activities = {activity: data for activity, data in activity_data.items() if data['status'] == 'ok'}
+        if not ok_activities:
+            continue
+
+        summary_data = _get_summary_data(list(ok_activities))
         too_expensive = summary_data[-1][3] > MAX_GLM_PER_RESULT
-        if too_expensive:
-            ok_activities = {activity: data for activity, data in activity_data.items() if data['status'] == 'ok'}
-            if ok_activities:
-                most_expensive = max(
-                    ok_activities,
-                    key=lambda activity: ok_activities[activity]['glm'] / ok_activities[activity]['batch_cnt']
-                )
-                await most_expensive.destroy()
-                activity_data[most_expensive]['status'] = 'Dead [too expensive]'
-                await most_expensive.parent.terminate()
+        if not too_expensive:
+            continue
+
+        print("SUMMARY DATA", summary_data)
+        print(f"TOO EXPENSIVE - target: {MAX_GLM_PER_RESULT}, current 'ok' activities: {summary_data[-1][3]}")
+
+        most_expensive = max(
+            ok_activities,
+            key=lambda activity: ok_activities[activity]['glm'] / ok_activities[activity]['batch_cnt']
+        )
+        print(f"Stopping {most_expensive} because it's most expensive")
+        await most_expensive.destroy()
+        activity_data[most_expensive]['status'] = 'Dead [too expensive]'
+        await most_expensive.parent.terminate()
 
 
 async def main() -> None:
@@ -149,11 +120,23 @@ async def main() -> None:
 
         payment_manager = DefaultPaymentManager(golem, allocation)
 
-        asyncio.create_task(generate_activities(demand.initial_proposals()))
-        asyncio.create_task(execute_tasks())
-
         try:
-            await asyncio.Future()
+            async for activity in Chain(
+                demand.initial_proposals(),
+                SimpleScorer(default_score_proposal, min_proposals=10),
+                Map(default_negotiate),
+                Map(default_create_agreement),
+                Map(default_create_activity),
+                Map(default_prepare_activity),
+                ActivityPool(max_size=MAX_WORKERS),
+                Zip(async_queue_aiter(tasks_queue)),
+                Map(
+                    lambda activity, task: task.execute(activity),
+                    on_exception=close_agreement_repeat_task,
+                ),
+                Buffer(size=max(MAX_WORKERS, 2)),
+            ):
+                pass
         except asyncio.CancelledError:
             await payment_manager.terminate_agreements()
             await payment_manager.wait_for_invoices()
@@ -173,17 +156,21 @@ def _print_summary_table():
     print(table.get_string())
 
 
-def _get_summary_data():
+def _get_summary_data(act_subset=None):
+    selected_activity_data = {
+        activity: data for activity, data in activity_data.items() if act_subset is None or activity in act_subset
+    }
+
     total_results = len(results)
-    total_batches = sum(data['batch_cnt'] for data in activity_data.values())
-    total_glm = sum(data['glm'] for data in activity_data.values())
+    total_batches = sum(data['batch_cnt'] for data in selected_activity_data.values())
+    total_glm = sum(data['glm'] for data in selected_activity_data.values())
 
     batch_result_ratio = total_batches / total_results if total_results else 0
     glm_result_ratio = total_glm / total_results if total_results else 0
     glm_batch_ratio = total_glm / total_batches if total_batches else 0
 
     agg_data = []
-    for activity, data in activity_data.items():
+    for activity, data in selected_activity_data.items():
         activity_batches, activity_glm, activity_status = data['batch_cnt'], data['glm'], data['status']
         activity_results = activity_batches / batch_result_ratio if batch_result_ratio else 0
         activity_glm_result_ratio = round(activity_glm / activity_results, 6) if activity_results else 0
