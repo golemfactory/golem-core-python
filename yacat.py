@@ -1,6 +1,5 @@
 import asyncio
 from collections import defaultdict
-from datetime import datetime
 
 from prettytable import PrettyTable
 
@@ -19,10 +18,10 @@ from yacat_no_business_logic import PAYLOAD, main_task_source, tasks_queue, resu
 
 MAX_CONCURRENT_NEGOTIATIONS = 10
 MAX_CONCURRENT_TASKS = 1000
+MAX_GLM_PER_RESULT = 0.00095
 
 activity_queue = asyncio.Queue()
-execution_time_log = defaultdict(list)
-debit_note_log = defaultdict(list)
+activity_data = defaultdict(lambda: dict(batch_cnt=0, glm=0, status="new"))
 
 
 async def async_queue_aiter(src_queue: asyncio.Queue):
@@ -75,24 +74,17 @@ async def execute_tasks():
 
 
 async def gather_execution_time_log(event: NewResource):
-    batch = event.resource
-    start = datetime.now()
-    provider_id = (await batch.parent.parent.parent.get_data()).issuer_id
-
-    async def print_time():
-        await batch.wait(ignore_errors=True)
-        execution_time_log[provider_id].append(datetime.now() - start)
-
-    asyncio.create_task(print_time())
+    activity = event.resource.parent
+    activity_data[activity]['batch_cnt'] += 1
 
 
 async def gather_debit_note_log(event: NewResource):
-    try:
-        debit_note = event.resource
-        provider_id = (await debit_note.get_data()).issuer_id
-        debit_note_log[provider_id].append(float(debit_note.data.total_amount_due))
-    except Exception as e:
-        print(e)
+    debit_note = event.resource
+    activity_id = (await debit_note.get_data()).activity_id
+    activity = debit_note.node.activity(activity_id)
+    current_glm = activity_data[activity]['glm']
+    new_glm = max(current_glm, float(debit_note.data.total_amount_due))
+    activity_data[activity]['glm'] = new_glm
 
 
 async def print_current_data():
@@ -135,38 +127,45 @@ async def main() -> None:
 
 def _print_summary_table():
     total_results = len(results)
+    total_batches = sum(data['batch_cnt'] for data in activity_data.values())
+    total_glm = sum(data['glm'] for data in activity_data.values())
 
-    provider_data = []
-    for provider_id, batches in execution_time_log.items():
-        provider_data.append([provider_id, len(batches), max(debit_note_log[provider_id], default=0)])
-
-    total_results = len(results)
-    total_batches = sum(row[1] for row in provider_data)
-    total_glm = sum(row[2] for row in provider_data)
     batch_result_ratio = total_batches / total_results if total_results else 0
     glm_result_ratio = total_glm / total_results if total_results else 0
     glm_batch_ratio = total_glm / total_batches if total_batches else 0
 
-    table = PrettyTable()
-    table.field_names = ["provider_id", "results", "GLM", "GLM/result", "batches", "GLM/batch"]
-    for provider_id, provider_batches, provider_glm in provider_data:
-        provider_results = provider_batches / batch_result_ratio if batch_result_ratio else 0
-        table.add_row([
-            provider_id,
-            round(provider_results, 2),
-            round(provider_glm, 6),
-            round(provider_glm / provider_results, 6) if provider_results else 0,
-            provider_batches,
-            round(provider_glm / provider_batches, 6),
+    agg_data = []
+    for activity, data in activity_data.items():
+        activity_batches, activity_glm, activity_status = data['batch_cnt'], data['glm'], data['status']
+        activity_results = activity_batches / batch_result_ratio if batch_result_ratio else 0
+        activity_glm_result_ratio = round(activity_glm / activity_results, 6) if activity_results else 0
+        agg_data.append([
+            activity.id,
+            round(activity_results, 2),
+            round(activity_glm, 6),
+            activity_glm_result_ratio,
+            activity_batches,
+            round(activity_glm / activity_batches, 6),
+            "X" if activity_glm_result_ratio > MAX_GLM_PER_RESULT else "",
+            activity_status,
         ])
-    table.add_row([
+
+    agg_data.append([
         'TOTAL',
         total_results,
         round(total_glm, 6),
         round(glm_result_ratio, 6),
         total_batches,
         round(glm_batch_ratio, 6),
+        "X" if glm_result_ratio > MAX_GLM_PER_RESULT else "",
+        "",
     ])
+
+    table = PrettyTable()
+    table.field_names = [
+        "activity_id", "results", "GLM", "GLM/result", "batches", "GLM/batch", f"> {MAX_GLM_PER_RESULT}", "status"
+    ]
+    table.add_rows(agg_data)
     print(table.get_string())
 
 
