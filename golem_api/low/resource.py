@@ -68,6 +68,10 @@ class Resource(
         assert self._parent is not None, f"Parent of {self} is not set"
         return self._parent
 
+    @property
+    def has_parent(self) -> bool:
+        return self._parent is not None
+
     def add_child(self, child: ChildType) -> None:
         assert child._parent is None  # type:ignore
         child._parent = self  # type: ignore

@@ -15,6 +15,7 @@ async def execute_task(activity: Activity, task_data: int) -> str:
 
     if random.random() < 0.9:
         result = batch.events[-1].stdout
+        assert result is not None  # mainnet providers sometimes return None
     else:
         result = 'BAD_RESULT'
 

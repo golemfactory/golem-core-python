@@ -6,23 +6,35 @@ from prettytable import PrettyTable
 from golem_api import GolemNode
 from golem_api.default_logger import DefaultLogger
 from golem_api.default_payment_manager import DefaultPaymentManager
-from golem_api.high.execute_tasks import default_prepare_activity, default_score_proposal
+from golem_api.high.execute_tasks import default_prepare_activity
 from golem_api.mid import (
     Buffer, Chain, Map, Zip,
     ActivityPool, SimpleScorer,
     default_negotiate, default_create_agreement, default_create_activity,
 )
-from golem_api.low import DebitNote, PoolingBatch, Activity
+from golem_api.low import DebitNote, PoolingBatch, Activity, Proposal
 from golem_api.events import NewResource, ResourceClosed
 
 from yacat_no_business_logic import PAYLOAD, main_task_source, tasks_queue, results
 
-MAX_CONCURRENT_TASKS = 1000
-MAX_GLM_PER_RESULT = 0.0002
+MAX_GLM_PER_RESULT = 0.00002
 NEW_PERIOD_SECONDS = 400
+MIN_NEW_BATCHES = 10
 MAX_WORKERS = 30
+MAX_LINEAR_COEFFS = [0.001, 0.001, 0]
 
 activity_data = defaultdict(lambda: dict(batch_cnt=0, last_dn_batch_cnt=0, glm=0, status="new"))
+
+
+async def score_proposal(proposal: Proposal) -> float:
+    properties = proposal.data.properties
+    if properties['golem.com.pricing.model'] == 'linear':
+        coeffs = properties['golem.com.pricing.model.linear.coeffs']
+        for val, max_val in zip(coeffs, MAX_LINEAR_COEFFS):
+            if val > max_val:
+                return -1
+        else:
+            return 1 - (coeffs[0] + coeffs[1])
 
 
 async def async_queue_aiter(src_queue: asyncio.Queue):
@@ -45,6 +57,10 @@ async def count_batches(event: NewResource):
 async def gather_debit_note_log(event: NewResource):
     debit_note = event.resource
     activity_id = (await debit_note.get_data()).activity_id
+    if not any(activity.id == activity_id for activity in activity_data):
+        #   This is a debit note for an unknown activity (e.g. from a previous run)
+        return
+
     activity = debit_note.node.activity(activity_id)
     current_glm = activity_data[activity]['glm']
     new_glm = max(current_glm, float(debit_note.data.total_amount_due))
@@ -54,6 +70,10 @@ async def gather_debit_note_log(event: NewResource):
 
 async def note_activity_destroyed(event: ResourceClosed):
     activity = event.resource
+    if activity not in activity_data:
+        #   Destoyed activity from a previous run
+        return
+
     current_status = activity_data[activity]['status']
     if current_status in ('new', 'ok'):
         activity_data[activity]['status'] = 'Dead [unknown reason]'
@@ -67,11 +87,26 @@ async def print_current_data():
 
 async def update_new_activity_status(event: NewResource):
     activity = event.resource
+    if not activity.has_parent:
+        #   This is an Activity from some other run
+        #   (this will not happen in the future, e.g. session ID will prevent this)
+        try:
+            await activity.destroy()
+        except Exception:
+            pass
+        return
 
     async def set_ok_status():
         await asyncio.sleep(NEW_PERIOD_SECONDS)
         if activity_data[activity]['status'] == 'new':
-            activity_data[activity]['status'] = 'ok'
+            if activity_data[activity]['batch_cnt'] >= MIN_NEW_BATCHES:
+                new_status = 'ok'
+            else:
+                new_status = 'Dead [weak worker]'
+                await activity.destroy()
+                await activity.parent.terminate()
+            activity_data[activity]['status'] = new_status
+
     asyncio.create_task(set_ok_status())
 
 
@@ -121,7 +156,7 @@ async def main() -> None:
         try:
             async for activity in Chain(
                 demand.initial_proposals(),
-                SimpleScorer(default_score_proposal, min_proposals=10),
+                SimpleScorer(score_proposal, min_proposals=10),
                 Map(default_negotiate),
                 Map(default_create_agreement),
                 Map(default_create_activity),
@@ -144,13 +179,35 @@ async def main() -> None:
     [task.cancel() for task in asyncio.all_tasks()]
 
 
+def round_float_str(x):
+    if x == 0:
+        return "0"
+    if x < 0.000001:
+        return "< 0.000001"
+    else:
+        return f"{round(x, 6):.6f}"
+
+
 def _print_summary_table():
     agg_data = _get_summary_data()
     table = PrettyTable()
     table.field_names = [
-        "activity_id", "results", "GLM", "GLM/result", "batches", "GLM/batch", f"> {MAX_GLM_PER_RESULT}", "status"
+        "ix", "activity_id", "results", "GLM", "GLM/result", "batches", "GLM/batch",
+        "> " + round_float_str(MAX_GLM_PER_RESULT), "status"
     ]
-    table.add_rows(agg_data)
+
+    for row_ix, row in enumerate(agg_data):
+        str_row = []
+        if row_ix < len(agg_data) - 1:
+            str_row.append(str(row_ix + 1))
+        else:
+            str_row.append("")
+        for el_ix, el in enumerate(row):
+            if el_ix in (2, 3, 5):
+                str_row.append(round_float_str(el))
+            else:
+                str_row.append(el)
+        table.add_row(str_row)
     print(table.get_string())
 
 

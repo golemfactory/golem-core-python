@@ -21,6 +21,7 @@ class SimpleScorer:
         score_proposal: Callable[[Proposal], Awaitable[float]],
         min_proposals: Optional[int] = None,
         max_wait: Optional[timedelta] = None,
+        min_score: float = 0,
     ):
         """
         :param score_proposal: Proposal-scoring function. Higher score -> better :any:`Proposal`.
@@ -31,6 +32,7 @@ class SimpleScorer:
         self._score_proposal = score_proposal
         self._min_proposals = min_proposals
         self._max_wait = max_wait
+        self._min_score = min_score
 
         self._scored_proposals: List[ScoredProposal] = []
 
@@ -68,6 +70,9 @@ class SimpleScorer:
         async for proposal in proposal_stream:
             #   TODO: maybe we should score all proposals at the same time? Or maybe not all, but with a limit?
             score = await self.score_proposal(proposal)
+            if self._min_score is not None and score < self._min_score:
+                continue
+
             score = score * -1  # heap -> smallest values first -> reverse
             heapq.heappush(self._scored_proposals, ScoredProposal(score, proposal))
         self._no_more_proposals = True
