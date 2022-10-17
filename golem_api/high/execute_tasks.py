@@ -55,9 +55,14 @@ class TaskStream(Generic[TaskData]):
 
 
 async def default_prepare_activity(activity: Activity) -> Activity:
-    batch = await activity.execute_commands(commands.Deploy(), commands.Start())
-    await batch.wait(timeout=10)
-    assert batch.success, batch.events[-1].message
+    try:
+        batch = await activity.execute_commands(commands.Deploy(), commands.Start())
+        await batch.wait(timeout=300)
+        assert batch.success, batch.events[-1].message
+    except Exception:
+        await activity.destroy()
+        await activity.parent.terminate()
+        raise
     return activity
 
 

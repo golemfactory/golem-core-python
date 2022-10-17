@@ -18,9 +18,9 @@ from golem_api.events import NewResource, ResourceClosed
 from yacat_no_business_logic import PAYLOAD, main_task_source, tasks_queue, results
 
 MAX_CONCURRENT_TASKS = 1000
-MAX_GLM_PER_RESULT = 0.00097
+MAX_GLM_PER_RESULT = 0.0002
 NEW_PERIOD_SECONDS = 400
-MAX_WORKERS = 10
+MAX_WORKERS = 30
 
 activity_data = defaultdict(lambda: dict(batch_cnt=0, last_dn_batch_cnt=0, glm=0, status="new"))
 
@@ -62,10 +62,7 @@ async def note_activity_destroyed(event: ResourceClosed):
 async def print_current_data():
     while True:
         await asyncio.sleep(15)
-        try:
-            _print_summary_table()
-        except Exception as e:
-            print(e)
+        _print_summary_table()
 
 
 async def update_new_activity_status(event: NewResource):
@@ -81,6 +78,7 @@ async def update_new_activity_status(event: NewResource):
 async def manage_activities():
     while True:
         await asyncio.sleep(5)
+
         ok_activities = {activity: data for activity, data in activity_data.items() if data['status'] == 'ok'}
         if not ok_activities:
             continue
@@ -90,7 +88,6 @@ async def manage_activities():
         if not too_expensive:
             continue
 
-        print("SUMMARY DATA", summary_data)
         print(f"TOO EXPENSIVE - target: {MAX_GLM_PER_RESULT}, current 'ok' activities: {summary_data[-1][3]}")
 
         most_expensive = max(
@@ -195,8 +192,6 @@ def _get_summary_data(act_subset=None):
             "X" if activity_glm_result_ratio > MAX_GLM_PER_RESULT else "",
             activity_status,
         ])
-
-    print(act_subset is None, agg_data[0])
 
     agg_data.append([
         'TOTAL',

@@ -15,7 +15,7 @@ async def default_create_agreement(proposal: Proposal) -> Agreement:
     approved = await agreement.wait_for_approval()
     if approved:
         return agreement
-    raise Exception("Agreement {agreement} created from {proposal} was not approved")
+    raise Exception(f"Agreement {agreement} created from {proposal} was not approved")
 
 
 async def default_create_activity(agreement: Agreement) -> Activity:
