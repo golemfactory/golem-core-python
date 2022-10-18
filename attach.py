@@ -9,7 +9,8 @@ ACTIVITY_ID = sys.argv[1].strip()
 
 
 async def accept_debit_note(payment_event: NewResource) -> None:
-    debit_note = payment_event.resource
+    debit_note: DebitNote = payment_event.resource  # type: ignore
+
     this_activity_id = (await debit_note.get_data()).activity_id
     if this_activity_id == ACTIVITY_ID:
         allocation = await debit_note.node.create_allocation(1)
@@ -29,6 +30,7 @@ async def main() -> None:
                 commands.Run("date")
             )
             await batch.wait(5)
+            assert batch.events[-1].stdout is not None
             print(f"Current date on {activity} is {batch.events[-1].stdout.strip()}")
             await asyncio.sleep(3)
 

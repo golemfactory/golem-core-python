@@ -1,5 +1,6 @@
 import asyncio
 from collections import defaultdict
+from typing import Any, AsyncIterator, Callable, DefaultDict, Iterable, List, Optional, Tuple, TypeVar, TypedDict, Union
 
 from prettytable import PrettyTable
 
@@ -17,13 +18,23 @@ from golem_api.events import NewResource, ResourceClosed
 
 from yacat_no_business_logic import PAYLOAD, main_task_source, tasks_queue, results
 
-MAX_GLM_PER_RESULT = 0.00002
+MAX_GLM_PER_RESULT = 0.001
 NEW_PERIOD_SECONDS = 400
 MIN_NEW_BATCHES = 10
-MAX_WORKERS = 30
+MAX_WORKERS = 10
 MAX_LINEAR_COEFFS = [0.001, 0.001, 0]
 
-activity_data = defaultdict(lambda: dict(batch_cnt=0, last_dn_batch_cnt=0, glm=0, status="new"))
+
+class ActivityDataType(TypedDict):
+    batch_cnt: int
+    last_dn_batch_cnt: int
+    glm: float
+    status: str
+
+
+activity_data: DefaultDict[Activity, ActivityDataType] = defaultdict(
+    lambda: dict(batch_cnt=0, last_dn_batch_cnt=0, glm=0, status="new")
+)
 
 
 async def score_proposal(proposal: Proposal) -> float:
@@ -34,28 +45,32 @@ async def score_proposal(proposal: Proposal) -> float:
             if val > max_val:
                 return -1
         else:
-            return 1 - (coeffs[0] + coeffs[1])
+            return 1 - (coeffs[0] + coeffs[1])  # type: ignore
+    return -1
 
 
-async def async_queue_aiter(src_queue: asyncio.Queue):
+AnyType = TypeVar("AnyType")
+
+
+async def async_queue_aiter(src_queue: "asyncio.Queue[AnyType]") -> AsyncIterator[AnyType]:
     while True:
         yield await src_queue.get()
 
 
-async def close_agreement_repeat_task(func, args, e):
+async def close_agreement_repeat_task(func: Callable, args: Tuple[Activity, Any], e: Exception) -> None:
     activity, task = args
     tasks_queue.put_nowait(task)
     await activity.destroy()
     await activity.parent.terminate()
 
 
-async def count_batches(event: NewResource):
+async def count_batches(event: NewResource) -> None:
     activity = event.resource.parent
     activity_data[activity]['batch_cnt'] += 1
 
 
-async def gather_debit_note_log(event: NewResource):
-    debit_note = event.resource
+async def gather_debit_note_log(event: NewResource) -> None:
+    debit_note: DebitNote = event.resource  # type: ignore
     activity_id = (await debit_note.get_data()).activity_id
     if not any(activity.id == activity_id for activity in activity_data):
         #   This is a debit note for an unknown activity (e.g. from a previous run)
@@ -68,8 +83,8 @@ async def gather_debit_note_log(event: NewResource):
     activity_data[activity]['last_dn_batch_cnt'] = activity_data[activity]['batch_cnt']
 
 
-async def note_activity_destroyed(event: ResourceClosed):
-    activity = event.resource
+async def note_activity_destroyed(event: ResourceClosed) -> None:
+    activity: Activity = event.resource  # type: ignore
     if activity not in activity_data:
         #   Destoyed activity from a previous run
         return
@@ -79,14 +94,14 @@ async def note_activity_destroyed(event: ResourceClosed):
         activity_data[activity]['status'] = 'Dead [unknown reason]'
 
 
-async def print_current_data():
+async def print_current_data() -> None:
     while True:
         await asyncio.sleep(15)
         _print_summary_table()
 
 
-async def update_new_activity_status(event: NewResource):
-    activity = event.resource
+async def update_new_activity_status(event: NewResource) -> None:
+    activity: Activity = event.resource  # type: ignore
     if not activity.has_parent:
         #   This is an Activity from some other run
         #   (this will not happen in the future, e.g. session ID will prevent this)
@@ -96,7 +111,7 @@ async def update_new_activity_status(event: NewResource):
             pass
         return
 
-    async def set_ok_status():
+    async def set_ok_status() -> None:
         await asyncio.sleep(NEW_PERIOD_SECONDS)
         if activity_data[activity]['status'] == 'new':
             if activity_data[activity]['batch_cnt'] >= MIN_NEW_BATCHES:
@@ -110,7 +125,7 @@ async def update_new_activity_status(event: NewResource):
     asyncio.create_task(set_ok_status())
 
 
-async def manage_activities():
+async def manage_activities() -> None:
     while True:
         await asyncio.sleep(5)
 
@@ -119,7 +134,7 @@ async def manage_activities():
             continue
 
         summary_data = _get_summary_data(list(ok_activities))
-        too_expensive = summary_data[-1][3] > MAX_GLM_PER_RESULT
+        too_expensive = summary_data[-1][3] > MAX_GLM_PER_RESULT  # type: ignore
         if not too_expensive:
             continue
 
@@ -164,8 +179,8 @@ async def main() -> None:
                 ActivityPool(max_size=MAX_WORKERS),
                 Zip(async_queue_aiter(tasks_queue)),
                 Map(
-                    lambda activity, task: task.execute(activity),
-                    on_exception=close_agreement_repeat_task,
+                    lambda activity, task: task.execute(activity),  # type: ignore
+                    on_exception=close_agreement_repeat_task,  # type: ignore
                 ),
                 Buffer(size=max(MAX_WORKERS, 2)),
             ):
@@ -179,7 +194,7 @@ async def main() -> None:
     [task.cancel() for task in asyncio.all_tasks()]
 
 
-def round_float_str(x):
+def round_float_str(x: float) -> str:
     if x == 0:
         return "0"
     if x < 0.000001:
@@ -188,7 +203,7 @@ def round_float_str(x):
         return f"{round(x, 6):.6f}"
 
 
-def _print_summary_table():
+def _print_summary_table() -> None:
     agg_data = _get_summary_data()
     table = PrettyTable()
     table.field_names = [
@@ -204,14 +219,14 @@ def _print_summary_table():
             str_row.append("")
         for el_ix, el in enumerate(row):
             if el_ix in (2, 3, 5):
-                str_row.append(round_float_str(el))
+                str_row.append(round_float_str(el))  # type: ignore
             else:
-                str_row.append(el)
+                str_row.append(el)  # type: ignore
         table.add_row(str_row)
     print(table.get_string())
 
 
-def _get_summary_data(act_subset=None):
+def _get_summary_data(act_subset: Optional[Iterable[Activity]] = None) -> List[List[Union[str, float]]]:
     total_results = len(results)
     total_batches = sum(data['batch_cnt'] for data in activity_data.values())
     batch_result_ratio = total_batches / total_results if total_results else 0
@@ -227,7 +242,7 @@ def _get_summary_data(act_subset=None):
     glm_batch_ratio = total_glm / total_last_dn_batches if total_last_dn_batches else 0
     glm_result_ratio = total_glm / total_last_dn_results if total_last_dn_results else 0
 
-    agg_data = []
+    agg_data: List[List[Union[str, float]]] = []
     for activity, data in selected_activity_data.items():
         activity_batches = data['batch_cnt']
         activity_last_dn_batches = data['last_dn_batch_cnt']
@@ -252,10 +267,10 @@ def _get_summary_data(act_subset=None):
 
     agg_data.append([
         'TOTAL',
-        round(sum(row[1] for row in agg_data)),
+        round(sum(row[1] for row in agg_data)),  # type: ignore
         round(total_glm, 6),
         round(glm_result_ratio, 6),
-        sum(row[4] for row in agg_data),
+        sum(row[4] for row in agg_data),  # type: ignore
         round(glm_batch_ratio, 6),
         "X" if glm_result_ratio > MAX_GLM_PER_RESULT else "",
         "",

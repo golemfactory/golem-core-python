@@ -23,7 +23,7 @@ async def prepare_activity(activity: Activity) -> Activity:
     return activity
 
 
-async def main():
+async def main() -> None:
     golem = GolemNode(collect_payment_events=False)
 
     async with golem:

@@ -1,6 +1,6 @@
 import asyncio
 import hashlib
-from typing import List
+from typing import List, Union
 import random
 import string
 
@@ -13,7 +13,7 @@ PASSWORD_LENGTH = 3
 CHUNK_SIZE = 2 ** 12
 MAX_WORKERS = 3
 
-tasks_queue = asyncio.LifoQueue()
+tasks_queue: "asyncio.Queue[Union[MainTask, AttackPartTask]]" = asyncio.LifoQueue()
 results = set()
 
 
@@ -24,11 +24,12 @@ class MainTask:
         self.hash_type = hash_type
         self.attack_mode = attack_mode
 
-    async def execute(self, activity: Activity):
+    async def execute(self, activity: Activity) -> None:
         cmd = f"hashcat --keyspace -a {self.attack_mode} -m {self.hash_type} {self.mask}"
         batch = await activity.execute_commands(Run(cmd))
         await batch.wait(timeout=30)
         result = batch.events[-1].stdout
+        assert result is not None
         keyspace = int(result.strip())
 
         for skip in range(0, keyspace, CHUNK_SIZE):
@@ -52,7 +53,7 @@ class AttackPartTask:
         self.skip = skip
         self.limit = limit
 
-    async def execute(self, activity: Activity):
+    async def execute(self, activity: Activity) -> None:
         batch = await activity.execute_commands(*self._commands())
         await batch.wait(timeout=120)
         result = batch.events[-1].stdout
@@ -77,7 +78,7 @@ class AttackPartTask:
         return [Run(str_cmd) for str_cmd in str_cmds]
 
 
-async def main_task_source():
+async def main_task_source() -> None:
     mask = "".join(["?a" for _ in range(PASSWORD_LENGTH)])
     chars = string.ascii_letters + string.digits + string.punctuation
 
@@ -95,7 +96,7 @@ async def main() -> None:
     asyncio.create_task(main_task_source())
     async for result in execute_tasks(
         budget=1,
-        execute_task=lambda activity, task: task.execute(activity),
+        execute_task=lambda activity, task: task.execute(activity),  # type: ignore
         task_data=iter(tasks_queue.get_nowait, None),
         payload=PAYLOAD,
         max_workers=MAX_WORKERS,
