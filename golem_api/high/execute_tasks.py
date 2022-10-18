@@ -1,11 +1,11 @@
 import asyncio
 from collections import Counter, defaultdict
-from typing import Awaitable, AsyncIterator, Callable, Dict, Generic, Iterable, List, Optional, Set, Tuple, TypeVar
+from typing import Awaitable, AsyncIterator, Callable, DefaultDict, Generic, Iterable, List, Optional, Set, Tuple, TypeVar
 from random import random
 from datetime import timedelta
 
 from golem_api import commands, GolemNode, Payload
-from golem_api.low import Activity, Proposal
+from golem_api.low import Activity, Demand, Proposal
 
 from golem_api.mid import (
     Buffer, Chain, Map, Zip,
@@ -90,7 +90,7 @@ class RedundanceManager:
     def __init__(
         self,
         execute_task: Callable[[Activity, TaskData], Awaitable[TaskResult]],
-        task_stream: TaskStream,
+        task_stream: TaskStream[TaskData],
         min_repeat: int,
         min_success: float,
         worker_cnt: int,
@@ -102,7 +102,7 @@ class RedundanceManager:
         self.worker_cnt = worker_cnt
 
         self._partial_results: List[Tuple[TaskData, TaskResult]] = []
-        self._provider_tasks: Dict[ProviderId, Set[TaskData]] = defaultdict(list)
+        self._provider_tasks: DefaultDict[ProviderId, List[TaskData]] = defaultdict(list)
         self._useless_providers: Set[ProviderId] = set()
 
         self._activity_stream_lock = asyncio.Lock()
@@ -127,10 +127,10 @@ class RedundanceManager:
 
     async def execute_tasks(
         self, activity_stream: AsyncIterator[Awaitable[Activity]]
-    ) -> AsyncIterator[Awaitable[TaskResult]]:
+    ) -> AsyncIterator[TaskResult]:
         self._workers = [asyncio.create_task(self._execute_tasks(activity_stream)) for _ in range(self.worker_cnt)]
         for task_data in self.remaining_tasks.copy():
-            yield await self._results_queue.get()
+            yield await self._results_queue.get()  # type: ignore  # mypy, why?
 
     async def _execute_tasks(self, activity_stream: AsyncIterator[Awaitable[Activity]]) -> None:
         while self.remaining_tasks:
@@ -139,6 +139,7 @@ class RedundanceManager:
             activity = await activity_awaitable
 
             provider_id = (await activity.parent.parent.get_data()).issuer_id
+            assert provider_id is not None  # mypy
             task_data = self._task_for_provider(provider_id)
             if task_data is None:
                 self._close_useless_activity(activity)
@@ -164,7 +165,8 @@ class RedundanceManager:
     def _close_useless_activity(self, activity: Activity) -> None:
         # print(f"{activity} is useless")
 
-        async def close():
+        async def close() -> None:
+            #   TODO: this will be probably moved to `Agreement.clear` or something like this
             try:
                 await activity.destroy()
             except Exception:
@@ -204,14 +206,14 @@ class RedundanceManager:
 
 def get_chain(
     *,
-    task_stream,
-    execute_task,
-    max_workers,
-    prepare_activity,
-    score_proposal,
-    demand,
-    redundance
-):
+    task_stream: TaskStream[TaskData],
+    execute_task: Callable[[Activity, TaskData], Awaitable[TaskResult]],
+    max_workers: int,
+    prepare_activity: Callable[[Activity], Awaitable[Activity]],
+    score_proposal: Callable[[Proposal], Awaitable[float]],
+    demand: Demand,
+    redundance: Optional[Tuple[int, float]],
+) -> Chain:
     if redundance is None:
         chain = Chain(
             demand.initial_proposals(),
@@ -254,7 +256,7 @@ async def execute_tasks(
     prepare_activity: Callable[[Activity], Awaitable[Activity]] = default_prepare_activity,
     score_proposal: Callable[[Proposal], Awaitable[float]] = default_score_proposal,
 
-    redundance: Optional[float] = None,
+    redundance: Optional[Tuple[int, float]] = None,
 ) -> AsyncIterator[TaskResult]:
 
     task_stream = TaskStream(task_data)
