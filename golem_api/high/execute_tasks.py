@@ -72,8 +72,7 @@ async def default_prepare_activity(activity: Activity) -> Activity:
         await batch.wait(timeout=300)
         assert batch.success, batch.events[-1].message
     except Exception:
-        await activity.destroy()
-        await activity.parent.terminate()
+        await activity.parent.close_all()
         raise
     return activity
 
@@ -93,8 +92,7 @@ def close_agreement_repeat_task(
         activity, in_data = args
         task_stream.put(in_data)
         print(f"Repeating task {in_data} because of {e}")
-        await activity.destroy()
-        await activity.parent.terminate()
+        await activity.parent.close_all()
     return on_exception
 
 
@@ -154,8 +152,8 @@ class RedundanceManager:
             assert provider_id is not None  # mypy
             task_data = self._task_for_provider(provider_id)
             if task_data is None:
-                self._close_useless_activity(activity)
                 self._useless_providers.add(provider_id)
+                await activity.parent.close_all()
                 continue
 
             try:
@@ -174,27 +172,11 @@ class RedundanceManager:
                 return task_data
         return None
 
-    def _close_useless_activity(self, activity: Activity) -> None:
-        # print(f"{activity} is useless")
-
-        async def close() -> None:
-            #   TODO: this will be probably moved to `Agreement.clear` or something like this
-            try:
-                await activity.destroy()
-            except Exception:
-                pass
-            try:
-                await activity.parent.terminate()
-            except Exception:
-                pass
-
-        asyncio.create_task(close())
-
     def _process_task_result(self, this_task_data: TaskData, this_task_result: TaskResult) -> None:
         if this_task_data not in self.remaining_tasks:
             #   We processed this task more times than necessary.
             #   This is possible because now in _task_for_provider we don't care if given task is already being
-            #   processed in some other task or not. Also: this might help speed things up, so is not really
+            #   processed in some other worker or not. Also: this might help speed things up, so is not really
             #   a bug/problem, but rather a decision.
             return
 

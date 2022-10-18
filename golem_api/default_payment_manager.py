@@ -57,7 +57,7 @@ class DefaultPaymentManager:
                 pass
 
     async def terminate_agreements(self) -> None:
-        await asyncio.gather(*[agreement.terminate() for agreement in self._agreements])
+        await asyncio.gather(*[agreement.close_all() for agreement in self._agreements])
 
     async def wait_for_invoices(self, timeout: float = 5) -> None:
         """Wait until we receive and accept/reject all invoices"""

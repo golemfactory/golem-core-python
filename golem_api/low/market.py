@@ -1,7 +1,8 @@
 from typing import AsyncIterator, Callable, Dict, List, Optional, TYPE_CHECKING, Union
 from datetime import datetime, timedelta, timezone
 
-from ya_market import RequestorApi, models as models, exceptions
+from ya_market import RequestorApi, models as models
+from ya_market.exceptions import ApiException
 
 from golem_api.events import ResourceClosed
 from .api_call_wrapper import api_call_wrapper
@@ -303,7 +304,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity",
         try:
             await self.api.wait_for_approval(self.id, timeout=15, _request_timeout=16)
             return True
-        except exceptions.ApiException as e:
+        except ApiException as e:
             if e.status == 410:
                 return False
             elif e.status == 408:
@@ -322,11 +323,17 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity",
         self.add_child(activity)
         return activity
 
-    @api_call_wrapper(ignore=[410])  # 410 is "you can't terminate this and this is permanent"
+    @api_call_wrapper()
     async def terminate(self, reason: str = '') -> None:
         """Terminate the agreement."""
-        #   FIXME: check our state first
-        await self.api.terminate_agreement(self.id, request_body={"message": reason})
+        try:
+            await self.api.terminate_agreement(self.id, request_body={"message": reason})
+        except ApiException as e:
+            if self._is_permanent_410(e):
+                pass
+            else:
+                raise
+
         self.node.event_bus.emit(ResourceClosed(self))
 
     @property
@@ -340,3 +347,38 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity",
     def activities(self) -> List["Activity"]:
         from .activity import Activity  # circular imports prevention
         return [child for child in self.children if isinstance(child, Activity)]
+
+    async def close_all(self) -> None:
+        """Starts a background task that will terminate the agreement and destroy all child activities.
+
+        This is indended to be used in scenarios when we just want to end
+        this agreement and we want to make sure it is really terminated (even if e.g. in some other
+        separate task we're waiting for the provider to approve it).
+        """
+        #   TODO: This method is not pretty, also similar method could be useful for acivity only.
+        #   BUT this probably should be a yagna-side change. Agreement.terminate() should
+        #   just always succeed, as well as Activity.destroy() - yagna should repeat if necessary etc.
+        #   We should only repeat in rare cases when we can't connect to our local `yagna`.
+        while True:
+            try:
+                await self.terminate()
+                break
+            except ApiException as e:
+                if self._is_permanent_410(e):
+                    break
+
+        for activity in self.activities:
+            while True:
+                try:
+                    await activity.destroy()
+                    break
+                except Exception:
+                    pass
+
+    @staticmethod
+    def _is_permanent_410(e: ApiException) -> bool:
+        #   TODO: Remove this check once https://github.com/golemfactory/yagna/issues/2264 is done
+        #         and every 410 is permanent.
+        if e.status != 410:
+            return False
+        return "from Approving" not in str(e) and "from Pending" not in str(e)

@@ -60,8 +60,7 @@ async def async_queue_aiter(src_queue: "asyncio.Queue[AnyType]") -> AsyncIterato
 async def close_agreement_repeat_task(func: Callable, args: Tuple[Activity, Any], e: Exception) -> None:
     activity, task = args
     tasks_queue.put_nowait(task)
-    await activity.destroy()
-    await activity.parent.terminate()
+    await activity.parent.close_all()
 
 
 async def count_batches(event: NewResource) -> None:
@@ -118,8 +117,7 @@ async def update_new_activity_status(event: NewResource) -> None:
                 new_status = 'ok'
             else:
                 new_status = 'Dead [weak worker]'
-                await activity.destroy()
-                await activity.parent.terminate()
+                await activity.parent.close_all()
             activity_data[activity]['status'] = new_status
 
     asyncio.create_task(set_ok_status())
@@ -145,9 +143,8 @@ async def manage_activities() -> None:
             key=lambda activity: ok_activities[activity]['glm'] / ok_activities[activity]['batch_cnt']
         )
         print(f"Stopping {most_expensive} because it's most expensive")
-        await most_expensive.destroy()
         activity_data[most_expensive]['status'] = 'Dead [too expensive]'
-        await most_expensive.parent.terminate()
+        await most_expensive.parent.close_all()
 
 
 async def main() -> None:

@@ -56,8 +56,7 @@ async def on_exception(func: Callable, args: Tuple, e: Exception) -> None:
     activity, in_data = args
     task_data.append(in_data)
     print(f"Repeating task {in_data} because of {e}")
-    await activity.destroy()
-    await activity.parent.terminate()
+    await activity.parent.close_all()
 
 
 async def main() -> None:
