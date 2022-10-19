@@ -12,12 +12,46 @@ async def default_on_exception(func: Callable, args: Tuple, orig_exc: Exception)
 
 
 class Map(Generic[InType, OutType]):
+    """
+    Turns one async iterator into another async iterator using a provided mapping function.
+
+    Sample usage::
+
+        async def src_func():
+            yield 1
+            yield 2
+
+        async def map_func(x):
+            return x * 2
+
+        async for awaitable_val in Map(map_func)(src_func()):
+            print(await awaitable_val)
+            #   2
+            #   4
+
+    Caveats:
+
+    *   Assumes input stream never ends (this is a TODO)
+    *   Always yields awaitables
+    *   It doesn't matter if source iterator yields `X` or `Awaitable[X]`, which has two consequences:
+
+        *   (good) Maps can be stacked one after another in a :any:`Chain`
+        *   (bad) Mapping functions that accept an awaitable as an agrument should be avoided.
+    *   If input stream yields tuples, they will be passed to mapping function unpacked
+
+    """
+
     def __init__(
         self,
         func: Callable[[InType], Awaitable[OutType]],
         *,
         on_exception: Callable[[Callable, Tuple, Exception], Awaitable[None]] = default_on_exception,
     ):
+        """
+        :param func: An async function that will be executed on every element of the stream passed to :any:`__call__`.
+        :param on_exception: An async function that will be executed whenever main function raises an exception.
+            Defaults to a function that prints the exception.
+        """
         self.func = func
         self.on_exception = on_exception
 
@@ -27,6 +61,9 @@ class Map(Generic[InType, OutType]):
         self,
         in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]],
     ) -> AsyncIterator[Awaitable[OutType]]:
+        """
+        :param in_stream: An async stream of either func args or args-returning awaitables.
+        """
         while True:
             yield asyncio.create_task(self._next_value(in_stream))
 

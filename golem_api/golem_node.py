@@ -169,7 +169,7 @@ class GolemNode:
         :param autoclose: Unsubscribe demand on :func:`__aexit__`
         :param autostart: Immediately start collecting yagna events for this :any:`Demand`.
                           Without autostart events for this demand will start being collected after a call to
-                          :any:`Demand.start_collecting_events`.
+                          :func:`Demand.start_collecting_events`.
         """
         if expiration is None:
             expiration = datetime.now(timezone.utc) + DEFAULT_EXPIRATION_TIMEOUT

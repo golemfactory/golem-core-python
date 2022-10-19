@@ -104,6 +104,7 @@ async def execute_tasks(
 
     redundance: Optional[Tuple[int, float]] = None,
 ) -> AsyncIterator[TaskResult]:
+    """High-level entrypoint POC. Interface is expected to change in the near future."""
 
     task_stream = TaskDataStream(task_data)
 

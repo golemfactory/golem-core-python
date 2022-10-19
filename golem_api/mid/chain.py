@@ -2,7 +2,7 @@ from typing import Any, AsyncIterator, Callable
 
 
 class Chain():
-    """Special class for mid-level components that utilize the pipes and filters pattern.
+    """Wrapper class for mid-level components that utilize the pipes and filters pattern.
 
     Sample usage::
 
@@ -18,7 +18,32 @@ class Chain():
             # x == "1"
             # x == "2"
 
-    More complex usages --> [TODO - examples, run.py].
+    A more Golem-specific usage::
+
+        from golem_api import Payload, GolemNode
+        from golem_api.mid import (
+            Buffer, Chain, Map,
+            default_negotiate, default_create_agreement, default_create_activity
+        )
+
+        BUDGET = 1
+        PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
+
+
+        async def main():
+            async with GolemNode() as golem:
+                allocation = await golem.create_allocation(BUDGET)
+                demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
+
+                async for activity in Chain(
+                    demand.initial_proposals(),
+                    Map(default_negotiate),
+                    Map(default_create_agreement),
+                    Map(default_create_activity),
+                    Buffer(),
+                ):
+                    print(activity)
+
     """
 
     def __init__(self, chain_start: AsyncIterator[Any], *pipes: Callable[[AsyncIterator[Any]], AsyncIterator[Any]]):

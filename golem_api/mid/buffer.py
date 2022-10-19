@@ -6,7 +6,49 @@ DataType = TypeVar("DataType")
 
 
 class Buffer(Generic[DataType]):
+    """
+    Process concurrently multiple elements from an async stream of awaitables.
+
+    Sample usage::
+
+        async def awaitable_foo():
+            await asyncio.sleep(1)
+            return "foo"
+
+        async def awaitable_bar():
+            await asyncio.sleep(1)
+            return "bar"
+
+        async def stream():
+            yield awaitable_foo()
+            yield awaitable_bar()
+
+        #   Prints "foo" after a second and "bar" after another second
+        async for x in Buffer()(stream()):
+            print(x)
+
+        #   Prints "foo" and "bar" after a single second
+        async for x in Buffer(size=2)(stream()):
+            print(x)
+
+    Caveats:
+
+    *   Assumes input stream never ends (this is a TODO)
+
+    """
+
     def __init__(self, size: int = 1):
+        """
+        :param size: How many elements of the input stream will be concurrently awaited.
+            Default size=1 is identical to a single `await` statement.
+            In most Golem-specific scenarios buffer size will correspond to things like
+            "how many agreements are negotiated at the same time", so usually the higher the size:
+
+            * The faster we'll be able to utilize resources
+            * The higher chance for "useless" resources (e.g. we might be creating multiple agreements
+              even when there is only a single task left)
+            * The higher workload for the local machine (more asyncio tasks) and yagna (more requests)
+        """
         self.size = size
 
         self._semaphore = asyncio.BoundedSemaphore(size)

@@ -18,33 +18,42 @@ High-Level API
 ==============
 
 [Nothing here yet. Task API, Service API etc.]
-
+ 
 Mid-level API
 =============
 
 Mid-level API consists of reusable components that can serve as a building blocks for various
 different applications.
+ 
+General Chain components
+------------------------
 
-Important temporary note: this will be easier to understand after reading the `run.py` example.
-
-Chain
------
+Classes in this section know nothing about any Golem-specific logic. They should one day be extracted to a sparate library.
 
 .. autoclass:: golem_api.mid.Chain
+.. autoclass:: golem_api.mid.Map
+    :members: __init__, __call__
+.. autoclass:: golem_api.mid.Zip
+.. autoclass:: golem_api.mid.Buffer
+    :members: __init__
 
-Chain components
-----------------
 
+Golem-specific Chain utilities
+------------------------------
 Components in this section can be used as parts of the Chain (but don't have to).
 
 .. autoclass:: golem_api.mid.SimpleScorer
     :members: __init__, __call__
 
-.. autoclass:: golem_api.mid.DefaultNegotiator
+.. autoclass:: golem_api.mid.ActivityPool
     :members: __init__, __call__
 
-.. autoclass:: golem_api.mid.AgreementCreator
-    :members: __call__
+.. autofunction:: golem_api.mid.default_negotiate
+
+.. autofunction:: golem_api.mid.default_create_agreement
+
+.. autofunction:: golem_api.mid.default_create_activity
+
 
 
 Low-level API
@@ -83,6 +92,17 @@ Payment API
 
 .. autoclass:: golem_api.low.payment.Allocation
     :members: release
+
+.. autoclass:: golem_api.low.payment.DebitNote
+
+.. autoclass:: golem_api.low.payment.Invoice
+
+Activity API
+------------
+
+.. autoclass:: golem_api.low.activity.Activity
+
+.. autoclass:: golem_api.low.activity.PoolingBatch
 
 Events
 ======
