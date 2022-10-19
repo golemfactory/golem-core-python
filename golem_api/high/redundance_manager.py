@@ -53,11 +53,11 @@ class RedundanceManager:
     async def execute_tasks(
         self, activity_stream: AsyncIterator[Awaitable[Activity]]
     ) -> AsyncIterator[TaskResult]:
-        self._workers = [asyncio.create_task(self._execute_tasks(activity_stream)) for _ in range(self.worker_cnt)]
+        self._workers = [asyncio.create_task(self._worker_task(activity_stream)) for _ in range(self.worker_cnt)]
         for task_data in self.remaining_tasks.copy():
             yield await self._results_queue.get()  # type: ignore  # mypy, why?
 
-    async def _execute_tasks(self, activity_stream: AsyncIterator[Awaitable[Activity]]) -> None:
+    async def _worker_task(self, activity_stream: AsyncIterator[Awaitable[Activity]]) -> None:
         while self.remaining_tasks:
             async with self._activity_stream_lock:
                 activity_awaitable = await activity_stream.__anext__()

@@ -21,7 +21,7 @@ TaskData = TypeVar("TaskData")
 TaskResult = TypeVar("TaskResult")
 
 
-async def default_score_proposal(proposal: Proposal) -> float:
+async def random_score(proposal: Proposal) -> float:
     return random()
 
 
@@ -90,11 +90,45 @@ async def execute_tasks(
 
     max_workers: int = 1,
     prepare_activity: Callable[[Activity], Awaitable[Activity]] = default_prepare_activity,
-    score_proposal: Callable[[Proposal], Awaitable[float]] = default_score_proposal,
+    score_proposal: Callable[[Proposal], Awaitable[float]] = random_score,
 
     redundance: Optional[Tuple[int, float]] = None,
 ) -> AsyncIterator[TaskResult]:
-    """High-level entrypoint POC. Interface is expected to change in the near future."""
+    """High-level entrypoint POC. Interface is expected to change in the near future.
+
+    Yields results of `execute_task` function executed on all elements of `task_data`.
+
+    :param budget: Amount that will be reserved in an :any:`Allocation`.
+    :param payload: Specification of the :any:`Demand`.
+    :param task_data: Iterable with task input data. In the future, async iterable will also be accepted.
+        If `redundance` is not None there are two restrictions (both are TODO):
+
+            *   Task data must be hashable
+            *   Iterator will be exhausted immediately, so no fancy variable-size iterators
+                will work.
+    :param execute_task: Async function that will be executed with an :any:`Activity` (based on a given `payload`)
+        and a single item from the `task_data` as arguments. Result will be returned.
+    :param max_workers: How many tasks should be processed at the same time.
+    :param prepare_activity: Async function that will be executed once on every :any:`Activity` before it will be used
+        for processing `task_data`. Defaults to :any:`default_prepare_activity`.
+    :param score_proposal: Scoring function that will be passed to :any:`SimpleScorer`. Defaults to random.
+    :param redundance: Optional tuple (min_provider_cnt, ratio). If passed:
+
+        *   Each task will be repeated on at least `min_provider_cnt` different providers.
+        *   Result will be returned when among all results returned by providers there is any
+            returned at least `provider_cnt * ratio` times.
+
+        E.g. for (3, 0.7) we might get a result of a task when:
+
+        *   A) 3 providers worked on a task and they all got the same result
+        *   B) 4 providers worked on a task and 3 got the same result (because 3/4 >= 0.7)
+        *   C) 7 providers worked on a task and 5 got the same result (because 5/7 >= 0.7)
+
+        If `task_data` contains repeating items, result for them will be calculated only once
+        (and returned multiple times).
+
+
+    """
 
     task_stream = TaskDataStream(task_data)
 

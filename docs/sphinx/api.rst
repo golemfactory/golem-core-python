@@ -17,8 +17,8 @@ GolemNode
 High-Level API
 ==============
 
-[Nothing here yet. Task API, Service API etc.]
- 
+.. autofunction:: golem_api.high.execute_tasks.execute_tasks
+
 Mid-level API
 =============
 
