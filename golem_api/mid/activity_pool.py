@@ -54,8 +54,9 @@ class ActivityPool:
         """
         self.max_size = max_size
 
-        self._idle_activities: List[Activity] = []
+        self._idle_activities: asyncio.Queue[Activity] = asyncio.Queue()
         self._activity_manager_tasks: List[asyncio.Task] = []
+        self._in_stream_lock = asyncio.Lock()
 
     def full(self) -> bool:
         running_managers = [task for task in self._activity_manager_tasks if not task.done()]
@@ -69,17 +70,14 @@ class ActivityPool:
             It is assumed all obtained activities start idle.
         """
         while True:
-            if not self._idle_activities and not self.full():
-                future_activity = self._as_awaitable(await activity_stream.__anext__())
-                self._create_manager_task(future_activity)
-            yield self._get_next_idle_activity()
+            yield self._get_next_idle_activity(activity_stream)
 
     def _create_manager_task(self, future_activity: Awaitable[Activity]) -> None:
         #   Create an activity manager task
         manager_task = asyncio.create_task(self._manage_activity(future_activity))
         self._activity_manager_tasks.append(manager_task)
 
-        #   Create a separate task that will stop the manager task
+        #   Create a separate task that will stop the manager task when activity is destroyed
         asyncio.create_task(self._activity_destroyed_cleanup(manager_task, future_activity))
 
     async def _activity_destroyed_cleanup(
@@ -88,23 +86,25 @@ class ActivityPool:
         activity = await future_activity
         await activity.wait_destroyed()
         manager_task.cancel()
-        if activity in self._idle_activities:
-            self._idle_activities.remove(activity)
 
-    async def _get_next_idle_activity(self) -> Activity:
+    async def _get_next_idle_activity(
+        self, activity_stream: AsyncIterator[Union[Activity, Awaitable[Activity]]]
+    ) -> Activity:
         while True:
-            if self._idle_activities:
-                return self._idle_activities.pop(0)
-            else:
-                await asyncio.sleep(0.1)
+            if self._idle_activities.empty() and not self.full():
+                async with self._in_stream_lock:
+                    future_activity = self._as_awaitable(await activity_stream.__anext__())
+                self._create_manager_task(future_activity)
+
+            activity = await self._idle_activities.get()
+            if not activity.destroyed:
+                return activity
 
     async def _manage_activity(self, future_activity: Awaitable[Activity]) -> None:
         activity = await future_activity
         while True:
-            self._idle_activities.append(activity)
+            self._idle_activities.put_nowait(activity)
             await activity.wait_busy()
-            if activity in self._idle_activities:
-                self._idle_activities.remove(activity)
             await activity.wait_idle()
 
     def _as_awaitable(self, in_: Union[Activity, Awaitable[Activity]]) -> Awaitable[Activity]:
