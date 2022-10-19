@@ -7,11 +7,10 @@ from prettytable import PrettyTable
 from golem_api import GolemNode
 from golem_api.default_logger import DefaultLogger
 from golem_api.default_payment_manager import DefaultPaymentManager
-from golem_api.high.execute_tasks import default_prepare_activity
 from golem_api.mid import (
     Buffer, Chain, Map, Zip,
     ActivityPool, SimpleScorer,
-    default_negotiate, default_create_agreement, default_create_activity,
+    default_negotiate, default_create_agreement, default_create_activity, default_prepare_activity
 )
 from golem_api.low import DebitNote, PoolingBatch, Activity, Proposal
 from golem_api.events import NewResource, ResourceClosed

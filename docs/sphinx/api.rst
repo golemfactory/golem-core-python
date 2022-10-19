@@ -25,7 +25,7 @@ Mid-level API
 Mid-level API consists of reusable components that can serve as a building blocks for various
 different applications.
  
-General Chain components
+General components
 ------------------------
 
 Classes in this section know nothing about any Golem-specific logic. They should one day be extracted to a sparate library.
@@ -38,22 +38,18 @@ Classes in this section know nothing about any Golem-specific logic. They should
     :members: __init__
 
 
-Golem-specific Chain utilities
+Golem-specific components
 ------------------------------
-Components in this section can be used as parts of the Chain (but don't have to).
+Components in this section contain the common logic that is shared by various Golem applications.
 
 .. autoclass:: golem_api.mid.SimpleScorer
     :members: __init__, __call__
-
 .. autoclass:: golem_api.mid.ActivityPool
     :members: __init__, __call__
-
 .. autofunction:: golem_api.mid.default_negotiate
-
 .. autofunction:: golem_api.mid.default_create_agreement
-
 .. autofunction:: golem_api.mid.default_create_activity
-
+.. autofunction:: golem_api.mid.default_prepare_activity
 
 
 Low-level API

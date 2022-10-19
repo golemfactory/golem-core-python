@@ -6,21 +6,68 @@ from golem_api.low.activity import Activity
 
 
 class ActivityPool:
-    def __init__(self, max_size: int = 0):
+    """Collects activities. Yields activities that are currently idle.
+
+    Sample usage::
+
+        from golem_api import GolemNode
+        from golem_api.mid import Chain, Buffer, Map, ActivityPool
+        from golem_api.commands import Run
+
+        async def say_hi(activity):
+            batch = await activity.execute_commands(Run(f"echo -n 'Hi, this is {activity}'"))
+            await batch.wait(10)
+            return batch.events[0].stdout
+
+        async with GolemNode() as golem:
+            async def activity_stream():
+                #   This assumes we have some ready activities with known ids
+                yield golem.activity(first_activity_id)
+                yield golem.activity(second_activity_id)
+
+            async for result in Chain(
+                activity_stream(),
+                ActivityPool(max_size=2),
+                Map(say_hi),
+                Buffer(size=2),
+            ):
+                print(result)
+                #   Forever prints greetings from activities
+
+    Caveats:
+        *   Assumes input stream never ends (this is a TODO)
+        *   :any:`Activity` is again considered idle (and thus eligible for yielding) after a single batch
+            was executed. This has two important consequences:
+
+            *   :any:`Activity` will not be yielded again if it was not used at all
+            *   Yielded :any:`Activity` should not be used for more than a single batch
+        *   Whenever an :any:`Activity` known to the ActivityPool is destroyed it will be replaced
+            with a new :any:`Activity` from the source stream
+
+    """
+
+    def __init__(self, max_size: int = 1):
+        """
+        :param max_size: Maximal size of the ActivityPool. Actual size can be lower - it grows only when
+            ActivityPool is asked for an activity and there is no idle activity that can be returned
+            immediately.
+        """
         self.max_size = max_size
 
         self._idle_activities: List[Activity] = []
         self._activity_manager_tasks: List[asyncio.Task] = []
 
     def full(self) -> bool:
-        if self.max_size == 0:
-            return False
         running_managers = [task for task in self._activity_manager_tasks if not task.done()]
         return len(running_managers) >= self.max_size
 
     async def __call__(
         self, activity_stream: AsyncIterator[Union[Activity, Awaitable[Activity]]]
     ) -> AsyncIterator[Union[Activity, Awaitable[Activity]]]:
+        """
+        :param activity_stream: Stream of either :any:`Activity` or Awaitable[Activity].
+            It is assumed all obtained activities start idle.
+        """
         while True:
             if not self._idle_activities and not self.full():
                 future_activity = self._as_awaitable(await activity_stream.__anext__())

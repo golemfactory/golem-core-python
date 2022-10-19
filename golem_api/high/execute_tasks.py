@@ -2,8 +2,9 @@ from typing import AsyncIterator, Awaitable, Callable, Iterable, Optional, Tuple
 from random import random
 from datetime import timedelta
 
-from golem_api import commands, GolemNode, Payload
+from golem_api import GolemNode, Payload
 from golem_api.low import Activity, Demand, Proposal
+from golem_api.mid import default_prepare_activity
 
 from golem_api.mid import (
     Buffer, Chain, Map, Zip,
@@ -18,17 +19,6 @@ from .redundance_manager import RedundanceManager
 
 TaskData = TypeVar("TaskData")
 TaskResult = TypeVar("TaskResult")
-
-
-async def default_prepare_activity(activity: Activity) -> Activity:
-    try:
-        batch = await activity.execute_commands(commands.Deploy(), commands.Start())
-        await batch.wait(timeout=300)
-        assert batch.success, batch.events[-1].message
-    except Exception:
-        await activity.parent.close_all()
-        raise
-    return activity
 
 
 async def default_score_proposal(proposal: Proposal) -> float:

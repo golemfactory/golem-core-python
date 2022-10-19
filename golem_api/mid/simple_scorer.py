@@ -28,6 +28,7 @@ class SimpleScorer:
         :param min_proposals: If not None, :func:`__call__` will not yield anything until
             at least that many proposals were scored (but `max_wait` overrides this)
         :param max_wait: If not None, we'll not wait for `min_proposals` longer than that.
+        :param min_score: Proposals with score below this value will not be yielded at all.
         """
         self._score_proposal = score_proposal
         self._min_proposals = min_proposals
