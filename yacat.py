@@ -36,16 +36,17 @@ activity_data: DefaultDict[Activity, ActivityDataType] = defaultdict(
 )
 
 
-async def score_proposal(proposal: Proposal) -> float:
+async def score_proposal(proposal: Proposal) -> Optional[float]:
     properties = proposal.data.properties
-    if properties['golem.com.pricing.model'] == 'linear':
-        coeffs = properties['golem.com.pricing.model.linear.coeffs']
-        for val, max_val in zip(coeffs, MAX_LINEAR_COEFFS):
-            if val > max_val:
-                return -1
-        else:
-            return 1 - (coeffs[0] + coeffs[1])  # type: ignore
-    return -1
+    if properties['golem.com.pricing.model'] != 'linear':
+        return None
+
+    coeffs = properties['golem.com.pricing.model.linear.coeffs']
+    for val, max_val in zip(coeffs, MAX_LINEAR_COEFFS):
+        if val > max_val:
+            return None
+    else:
+        return 1 - (coeffs[0] + coeffs[1])  # type: ignore
 
 
 AnyType = TypeVar("AnyType")

@@ -18,22 +18,21 @@ class SimpleScorer:
     """Re-orders proposals using a provided scoring function."""
     def __init__(
         self,
-        score_proposal: Callable[[Proposal], Awaitable[float]],
+        score_proposal: Callable[[Proposal], Awaitable[Optional[float]]],
         min_proposals: Optional[int] = None,
         max_wait: Optional[timedelta] = None,
-        min_score: float = 0,
     ):
         """
         :param score_proposal: Proposal-scoring function. Higher score -> better :any:`Proposal`.
+            Score `None` indicates an unacceptable :any:`Proposal` - it will be ignored by the SimpleScorer.
         :param min_proposals: If not None, :func:`__call__` will not yield anything until
-            at least that many proposals were scored (but `max_wait` overrides this)
+            at least that many proposals were scored (but `max_wait` overrides this). Proposals with score None
+            are not included in this limit.
         :param max_wait: If not None, we'll not wait for `min_proposals` longer than that.
-        :param min_score: Proposals with score below this value will not be yielded at all.
         """
         self._score_proposal = score_proposal
         self._min_proposals = min_proposals
         self._max_wait = max_wait
-        self._min_score = min_score
 
         self._scored_proposals: List[ScoredProposal] = []
 
@@ -64,14 +63,14 @@ class SimpleScorer:
             except IndexError:
                 await asyncio.sleep(0.1)
 
-    async def score_proposal(self, proposal: Proposal) -> float:
+    async def score_proposal(self, proposal: Proposal) -> Optional[float]:
         return await self._score_proposal(proposal)
 
     async def _process_stream(self, proposal_stream: AsyncIterator[Proposal]) -> None:
         async for proposal in proposal_stream:
             #   TODO: maybe we should score all proposals at the same time? Or maybe not all, but with a limit?
             score = await self.score_proposal(proposal)
-            if self._min_score is not None and score < self._min_score:
+            if score is None:
                 continue
 
             score = score * -1  # heap -> smallest values first -> reverse
