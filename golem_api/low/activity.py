@@ -269,6 +269,7 @@ class PoolingBatch(
 
 
 class Script:
+    """A helper class for executing multiple commands in a single batch. Details: :any:`execute_script`."""
     def __init__(self) -> None:
         self._commands: List[Command] = []
         self._futures: List[asyncio.Future[models.ExeScriptCommandResult]] = []
@@ -282,6 +283,15 @@ class Script:
         return self._futures.copy()
 
     def add_command(self, command: Command) -> "asyncio.Future[models.ExeScriptCommandResult]":
+        """Add a :any:`Command` to the script.
+
+        Returns an awaitable that will (after a call to :any:`execute_script`):
+
+        * Return the result of the command once it finished succesfully
+        * Raise :any:`CommandFailed` if the command failed
+        * Raise :any:`CommandCancelled` if any previous command in the same batch failed
+
+        """
         self._commands.append(command)
         fut: asyncio.Future[models.ExeScriptCommandResult] = asyncio.Future()
         self._futures.append(fut)

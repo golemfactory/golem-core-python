@@ -64,6 +64,7 @@ class ResourceDataChanged(ResourceEvent):
         return self._old_data
 
     def diff(self) -> Dict[str, Tuple[Any, Any]]:
+        """Returns a dictionary {property_name: (old_val, new_val)} with all values that changed."""
         old_dict = self.old_data.to_dict()
         new_dict = self.resource.data.to_dict()
         diff_dict = {}
@@ -118,4 +119,5 @@ class ResourceClosed(ResourceEvent):
     :any:`GolemNode.agreement`) does not trigger this event.
 
     This event should never be emitted more than once for a given :any:`Resource`.
+    Currently this is not true for :any:`Activity` - this is a known TODO.
     """

@@ -5,6 +5,20 @@ if TYPE_CHECKING:
 
 
 class ResourceNotFound(Exception):
+    """Emitted on an attempt to interact with a resource that doesn't exist.
+
+    Example::
+
+        async with GolemNode() as golem:
+            agreement_id = "".join(["a" for x in range(64)])
+            agreement = golem.agreement(agreement_id)
+            try:
+                await agreement.get_data()
+            except ResourceNotFound as e:
+                print(f"Agreement with id {e.resource.id} doesn't exist")
+
+
+        """
     def __init__(self, name: str, id_: str):
         self.name = name
         self.id = id_

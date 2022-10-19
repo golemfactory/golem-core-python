@@ -30,17 +30,36 @@ class Command(ABC):
 
 
 class Deploy(Command):
+    """Executes `deploy()` in the exeunit."""
     def args_dict(self) -> ArgsDict:
         return {}
 
 
 class Start(Command):
+    """Executes `start()` in the exeunit."""
     def args_dict(self) -> ArgsDict:
         return {}
 
 
 class Run(Command):
+    """Executes `run()` in the exeunit."""
     def __init__(self, command: Union[str, List[str]], *, shell: Optional[bool] = None, shell_cmd: str = "/bin/sh"):
+        """
+        :param command: Either a list `[entry_point, *args]` or a string.
+        :param shell: If True, command will be passed as a string to "/bin/sh -c".
+            Default value is True if `command` is a string and False if it is a list.
+        :param shell_cmd: Shell command, matters only in `shell` is True.
+
+        Examples::
+
+            Run(["/bin/echo", "foo"])                       # /bin/echo "foo"
+            Run("echo foo")                                 # /bin/sh -c "echo foo"
+            Run(["echo", "foo"], shell=True)                # /bin/sh -c "echo foo"
+            Run(["/bin/echo", "foo", ">", "/my_volume/x"])  # /bin/echo "foo" ">" "/my_volume/x"
+                                                            # (NOTE: this is usually **not** the intended effect)
+            Run("echo foo > /my_volume/x")                  # /bin/sh -c "echo foo > /my_volume/x"
+                                                            # (This is better)
+        """
         self.entry_point, self.args = self._resolve_init_args(command, shell, shell_cmd)
 
     def args_dict(self) -> ArgsDict:
@@ -79,9 +98,15 @@ class Run(Command):
 
 
 class SendFile(Command):
+    """Sends a local file to the exeunit."""
     command_name = 'transfer'
 
     def __init__(self, src_path: str, dst_path: str):
+        """
+        :param src_path: Name of the local file.
+        :param dst_path: Remote (provider-side) path where the file will be saved.
+            Usually this path should be under a directory specified as a VOLUME in the image.
+        """
         self.src_path = src_path
         self.dst_path = dst_path
 
@@ -105,9 +130,14 @@ class SendFile(Command):
 
 
 class DownloadFile(Command):
+    """Downloads a file from the exeunit."""
     command_name = 'transfer'
 
     def __init__(self, src_path: str, dst_path: str):
+        """
+        :param src_path: Remote (provider-side) name of the file.
+        :param dst_path: Path in the local filesystem where the file will be saved.
+        """
         self.src_path = src_path
         self.dst_path = dst_path
 

@@ -119,8 +119,11 @@ Commands
 .. autoclass:: golem_api.commands.Deploy
 .. autoclass:: golem_api.commands.Start
 .. autoclass:: golem_api.commands.Run
+    :members: __init__
 .. autoclass:: golem_api.commands.SendFile
+    :members: __init__
 .. autoclass:: golem_api.commands.DownloadFile
+    :members: __init__
 
 Exceptions
 ----------
