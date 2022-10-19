@@ -20,6 +20,11 @@ if TYPE_CHECKING:
 
 
 class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
+    """A single activity on the Golem Network.
+
+    Either created by :any:`Agreement.create_activity()` or via :any:`GolemNode.activity()`.
+    """
+
     def __init__(self, node: "GolemNode", id_: str):
         super().__init__(node, id_)
 

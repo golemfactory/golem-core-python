@@ -10,7 +10,9 @@ GolemNode
 .. autoclass:: golem_api.GolemNode
     :members: __init__, __aenter__, __aexit__, 
               create_allocation, create_demand, 
-              allocation, demand, proposal, agreement, 
+              allocation, debit_note, invoice, 
+              demand, proposal, agreement,
+              activity, batch,
               allocations, demands,
               event_bus
 
@@ -81,7 +83,8 @@ Market API
               respond, responses, reject, create_agreement
 
 .. autoclass:: golem_api.low.market.Agreement
-    :members: confirm, wait_for_approval, terminate
+    :members: confirm, wait_for_approval, terminate, create_activity,
+              invoice, activities, close_all
 
 Payment API
 -----------
@@ -90,15 +93,44 @@ Payment API
     :members: release
 
 .. autoclass:: golem_api.low.payment.DebitNote
+    :members: accept_full
 
 .. autoclass:: golem_api.low.payment.Invoice
+    :members: accept_full
 
 Activity API
 ------------
 
 .. autoclass:: golem_api.low.activity.Activity
+    :members: execute_commands, execute_script, destroy,
+              idle, destroyed, wait_busy, wait_idle, wait_destroyed,
+              debit_notes, batch
 
 .. autoclass:: golem_api.low.activity.PoolingBatch
+    :members: wait, activity, done, success
+
+.. autoclass:: golem_api.low.activity.Script
+    :members: add_command
+
+Commands
+--------
+
+.. autoclass:: golem_api.commands.Command
+.. autoclass:: golem_api.commands.Deploy
+.. autoclass:: golem_api.commands.Start
+.. autoclass:: golem_api.commands.Run
+.. autoclass:: golem_api.commands.SendFile
+.. autoclass:: golem_api.commands.DownloadFile
+
+Exceptions
+----------
+
+.. autoclass:: golem_api.low.exceptions.ResourceNotFound
+.. autoclass:: golem_api.low.exceptions.NoMatchingAccount
+.. autoclass:: golem_api.low.exceptions.BatchTimeoutError
+.. autoclass:: golem_api.low.exceptions.BatchError
+.. autoclass:: golem_api.low.exceptions.CommandFailed
+.. autoclass:: golem_api.low.exceptions.CommandCancelled
 
 Events
 ======

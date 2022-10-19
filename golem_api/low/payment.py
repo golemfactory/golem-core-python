@@ -87,7 +87,12 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
 
 
 class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NULL]):
+    """A single debit note on the Golem Network.
+
+    Ususally created by a :any:`GolemNode` initialized with `collect_payment_events = True`.
+    """
     async def accept_full(self, allocation: Allocation) -> None:
+        """Accept full debit note amount using a given :any:`Allocation`."""
         amount_str = (await self.get_data()).total_amount_due
         await self.accept(allocation, Decimal(amount_str))
 
@@ -98,7 +103,11 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
 
 
 class Invoice(Resource[RequestorApi, models.Invoice, "Agreement", _NULL, _NULL]):
+    """A single invoice on the Golem Network.
+
+    Ususally created by a :any:`GolemNode` initialized with `collect_payment_events = True`."""
     async def accept_full(self, allocation: Allocation) -> None:
+        """Accept full invoice amount using a given :any:`Allocation`."""
         amount_str = (await self.get_data()).amount
         await self.accept(allocation, Decimal(amount_str))
 

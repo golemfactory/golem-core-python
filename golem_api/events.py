@@ -32,7 +32,7 @@ class NewResource(ResourceEvent):
     * We create a new resource, e.g. with :any:`GolemNode.create_allocation()`
     * We start interacting with some resource that was created by us before,
       but not with this particular GolemNode instance, eg. :any:`GolemNode.allocation()`
-    * We find a resource created by someone else (e.g. a :any:`Proposal`)
+    * We find a resource created by someone else (e.g. a :any:`Proposal` or a :any:`DebitNote`)
 
     There's no difference between these scenarions from the POV of this event.
     """
@@ -62,7 +62,7 @@ class ResourceDataChanged(ResourceEvent):
     def old_data(self) -> Any:
         """Value of `self.resource.data` before the change."""
         return self._old_data
-    
+
     def diff(self) -> Dict[str, Tuple[Any, Any]]:
         old_dict = self.old_data.to_dict()
         new_dict = self.resource.data.to_dict()

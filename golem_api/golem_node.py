@@ -46,7 +46,7 @@ class GolemNode:
         :param base_url: Base url for all `yagna` APIs. Defaults to `YAGNA_API_URL` env
                          variable or http://127.0.0.1:7465.
         :param collect_payment_events: If True, GolemNode will watch for incoming debit notes/invoices
-                                       and create corresponding objects (--> NewResource events will be emitted).
+                                       and create corresponding objects (--> :any:`NewResource` events will be emitted).
         """
         self._api_config = rest.Configuration(app_key, url=base_url)
         self._collect_payment_events = collect_payment_events
@@ -234,7 +234,7 @@ class GolemNode:
         return Activity(self, activity_id)
 
     def batch(self, batch_id: str, activity_id: str) -> PoolingBatch:
-        """Returns a :any:`Batch` with given id (assumed to be correct, there is no validation).
+        """Returns a :any:`PoolingBatch` with given id (assumed to be correct, there is no validation).
 
         Id of a batch has a meaning only in the context of an activity,
         so activity_id is also necessary (and also not validated)."""

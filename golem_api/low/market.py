@@ -349,7 +349,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity",
         return [child for child in self.children if isinstance(child, Activity)]
 
     async def close_all(self) -> None:
-        """Starts a background task that will terminate the agreement and destroy all child activities.
+        """Terminate agreement, destroy all activities. Ensure success -> retry if there are any problems.
 
         This is indended to be used in scenarios when we just want to end
         this agreement and we want to make sure it is really terminated (even if e.g. in some other
