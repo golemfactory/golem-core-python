@@ -38,6 +38,7 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
     #   State management - idle / busy / destroyed
     @property
     def idle(self) -> bool:
+        """True if there are no batches being executed now on this :any:`Activity`."""
         return self._idle_event.is_set()
 
     @property
@@ -57,16 +58,20 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
             self._idle_event.clear()
 
     async def wait_busy(self) -> None:
+        """Wait until this :any:`Activity` is no longer :any:`idle`."""
         await self._busy_event.wait()
 
     async def wait_idle(self) -> None:
+        """Wait until this :any:`Activity` is :any:`idle`."""
         await self._idle_event.wait()
 
     async def wait_destroyed(self) -> None:
+        """Wait until this :any:`Activity` is :any:`destroyed`."""
         await self._destroyed_event.wait()
 
     @property
     def destroyed(self) -> bool:
+        """True after a succesful call to :func:`destroy`."""
         return self._destroyed_event.is_set()
 
     ####################
@@ -80,8 +85,9 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
 
     @api_call_wrapper()
     async def destroy(self) -> None:
-        self._destroyed_event.set()
+        """Destroy this :any:`Activity`. This is final, destroyed activities can no longer be used."""
         await self.api.destroy_activity(self.id)
+        self._destroyed_event.set()
         self.node.event_bus.emit(ResourceClosed(self))
 
     @api_call_wrapper()
@@ -94,6 +100,19 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
         return batch
 
     async def execute_commands(self, *commands: Command) -> "PoolingBatch":
+        """Create a new batch that executes given :any:`Command` s in the exe unit.
+
+        Sample usage::
+
+            batch = await activity.execute_commands(
+                Deploy(),
+                Start(),
+                Run("echo -n 'hello world'"),
+            )
+            await batch.wait()
+            print(batch.events[-1].stdout)  # "hello world"
+        """
+
         await asyncio.gather(*[c.before() for c in commands])
         commands_str = json.dumps([c.text() for c in commands])
         batch = await self.execute(models.ExeScriptRequest(text=commands_str))
@@ -106,11 +125,29 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
         return batch
 
     async def execute_script(self, script: "Script") -> "PoolingBatch":
+        """Create a new batch that executes commands from a given :any:`Script` in the exe unit.
+
+        This is an alternative to :func:`execute_commands` that provides a more granular access to the results.
+
+        Sample usage::
+
+            script = Script()
+            script.add_command(Deploy())
+            script.add_command(Start())
+            result = script.add_command(Run("echo -n 'hello world'"))
+            script.add_command(Run("sleep 1000"))
+
+            batch = await activity.execute_script(script)
+
+            #   This line doesn't wait for the whole batch to finish
+            print((await result).stdout)  # "hello world"
+        """
         batch = await self.execute_commands(*script.commands)
         batch._futures = script.futures
         return batch
 
     def batch(self, batch_id: str) -> "PoolingBatch":
+        """Returns a :any:`PoolingBatch` with a given id (assumed to be correct, there is no validation)."""
         batch = PoolingBatch(self.node, batch_id)
         if batch._parent is None:
             self.add_child(batch)
@@ -118,6 +155,7 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
 
     @property
     def debit_notes(self) -> List[DebitNote]:
+        """List of all debit notes for this :any:`Activity`."""
         return [child for child in self.children if isinstance(child, DebitNote)]
 
 
@@ -143,15 +181,13 @@ class PoolingBatch(
         self._futures: Optional[List[asyncio.Future[models.ExeScriptCommandResult]]] = None
 
     @property
-    def activity(self) -> "Activity":
-        return self.parent
-
-    @property
     def done(self) -> bool:
+        """True if this batch is already finished."""
         return self.finished_event.is_set()
 
     @property
     def success(self) -> bool:
+        """True if this batch finished without errors. Raises AttributeError if batch is not :any:`done`."""
         if not self.done:
             raise AttributeError("Success can be determined only for finished batches")
         return self.events[-1].result == "Ok"
@@ -159,7 +195,13 @@ class PoolingBatch(
     async def wait(
         self, timeout: Optional[Union[timedelta, float]] = None, ignore_errors: bool = False,
     ) -> List[models.ExeScriptCommandResult]:
-        #   NOTE: timeout doesn't stop the batch, just raises an exception
+        """Wait until the batch is :any:`done`.
+
+        :param timeout: If not None, :any:`BatchTimeoutError` will be raised if the batch runs longer.
+            This exception doesn't stop the execution of the batch.
+        :param ignore_errors: When True, :func:`wait` doesn't care if the end of the batch is a :any:`success` or not.
+            If False, :any:`BatchError` will be raised for failed batches.
+        """
         timeout_seconds: Optional[float]
         if timeout is None:
             timeout_seconds = None
@@ -177,13 +219,29 @@ class PoolingBatch(
             assert timeout_seconds is not None  # mypy
             raise BatchTimeoutError(self, timeout_seconds)
 
+    @property
+    def events(self) -> List[models.ExeScriptCommandResult]:
+        """Returns a list of results for this batch.
+
+        Nth element in the returned list corresponds to the nth command in a batch.
+
+        When the batch is :any:`done`:
+
+        * If the batch is a :any:`success`, there will be a single event for every command.
+        * If not, there will be a single event for every succesful command followed by
+          an event for the command that failed.
+
+        If the batch is not :any:`done`, events for already finished commands will be returned.
+        """
+        return super().events
+
     ###########################
     #   Event collector methods
     def _collect_events_kwargs(self) -> Dict:
         return {"timeout": 5, "_request_timeout": 5.5}
 
     def _collect_events_args(self) -> List:
-        return [self.activity.id, self.id]
+        return [self.parent.id, self.id]
 
     @property
     def _collect_events_func(self) -> Callable:

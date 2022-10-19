@@ -107,7 +107,7 @@ Activity API
               debit_notes, batch
 
 .. autoclass:: golem_api.low.activity.PoolingBatch
-    :members: wait, activity, done, success
+    :members: wait, events, done, success
 
 .. autoclass:: golem_api.low.activity.Script
     :members: add_command

@@ -315,7 +315,11 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity",
 
     @api_call_wrapper()
     async def create_activity(self, autoclose: bool = True, timeout: timedelta = timedelta(seconds=10)) -> "Activity":
-        """Create an activity for given `agreement_id`."""
+        """Create a new :any:`Activity` for this :any:`Agreement`.
+
+        :param autoclose: Destroy the activity when the :any:`GolemNode` closes.
+        :param timeout: Request timeout.
+        """
         from .activity import Activity
         activity = await Activity.create(self.node, self.id, timeout)
         if autoclose:
@@ -325,7 +329,10 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity",
 
     @api_call_wrapper()
     async def terminate(self, reason: str = '') -> None:
-        """Terminate the agreement."""
+        """Terminate the agreement.
+
+        :param reason: Optional information for the provider explaining why the agreement was terminated.
+        """
         try:
             await self.api.terminate_agreement(self.id, request_body={"message": reason})
         except ApiException as e:
@@ -338,6 +345,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity",
 
     @property
     def invoice(self) -> Optional[Invoice]:
+        """:any:`Invoice` for this :any:`Agreement`, or None if we didn't yet receive an invoice."""
         try:
             return [child for child in self.children if isinstance(child, Invoice)][0]
         except IndexError:
@@ -345,6 +353,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity",
 
     @property
     def activities(self) -> List["Activity"]:
+        """A list of :any:`Activity` created for this :any:`Agreement`."""
         from .activity import Activity  # circular imports prevention
         return [child for child in self.children if isinstance(child, Activity)]
 
