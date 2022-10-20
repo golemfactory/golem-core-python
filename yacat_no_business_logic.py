@@ -83,7 +83,7 @@ async def main_task_source() -> None:
     chars = string.ascii_letters + string.digits + string.punctuation
 
     while True:
-        if tasks_queue.qsize() < 100:
+        if tasks_queue.qsize() < 1000:
             password = "".join([random.choice(chars) for i in range(len(mask) // 2)])
             hash_ = hashlib.sha256(password.encode()).hexdigest()
             task = MainTask(mask=mask, hash_=hash_, hash_type=1400, attack_mode=3)

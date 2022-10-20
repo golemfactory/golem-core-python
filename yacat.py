@@ -17,13 +17,18 @@ from golem_api.events import NewResource, ResourceClosed
 
 from yacat_no_business_logic import PAYLOAD, main_task_source, tasks_queue, results
 
-MAX_GLM_PER_RESULT = 0.001
+
+###########################
+#   APP LOGIC CONFIG
+MAX_GLM_PER_RESULT = 0.00001
 NEW_PERIOD_SECONDS = 400
 MIN_NEW_BATCHES = 10
-MAX_WORKERS = 10
+MAX_WORKERS = 30
 MAX_LINEAR_COEFFS = [0.001, 0.001, 0]
 
 
+#################
+#   "DATABASE"
 class ActivityDataType(TypedDict):
     batch_cnt: int
     last_dn_batch_cnt: int
@@ -32,37 +37,12 @@ class ActivityDataType(TypedDict):
 
 
 activity_data: DefaultDict[Activity, ActivityDataType] = defaultdict(
-    lambda: dict(batch_cnt=0, last_dn_batch_cnt=0, glm=0, status="new")
+    lambda: dict(batch_cnt=0, last_dn_batch_cnt=0, glm=0, status="")
 )
 
 
-async def score_proposal(proposal: Proposal) -> Optional[float]:
-    properties = proposal.data.properties
-    if properties['golem.com.pricing.model'] != 'linear':
-        return None
-
-    coeffs = properties['golem.com.pricing.model.linear.coeffs']
-    for val, max_val in zip(coeffs, MAX_LINEAR_COEFFS):
-        if val > max_val:
-            return None
-    else:
-        return 1 - (coeffs[0] + coeffs[1])  # type: ignore
-
-
-AnyType = TypeVar("AnyType")
-
-
-async def async_queue_aiter(src_queue: "asyncio.Queue[AnyType]") -> AsyncIterator[AnyType]:
-    while True:
-        yield await src_queue.get()
-
-
-async def close_agreement_repeat_task(func: Callable, args: Tuple[Activity, Any], e: Exception) -> None:
-    activity, task = args
-    tasks_queue.put_nowait(task)
-    await activity.parent.close_all()
-
-
+#####################
+#   EVENT CALLBACKS
 async def count_batches(event: NewResource) -> None:
     activity = event.resource.parent
     activity_data[activity]['batch_cnt'] += 1
@@ -93,34 +73,42 @@ async def note_activity_destroyed(event: ResourceClosed) -> None:
         activity_data[activity]['status'] = 'Dead [unknown reason]'
 
 
-async def print_current_data() -> None:
-    while True:
-        await asyncio.sleep(15)
-        _print_summary_table()
-
-
 async def update_new_activity_status(event: NewResource) -> None:
     activity: Activity = event.resource  # type: ignore
+    activity_data[activity]['status'] = 'new'
+
     if not activity.has_parent:
+        activity_data[activity]['status'] = 'old run activity'
         #   This is an Activity from some other run
-        #   (this will not happen in the future, e.g. session ID will prevent this)
-        try:
-            await activity.destroy()
-        except Exception:
-            pass
-        return
+        #   (this will not happen in the future, session ID will prevent this)
+        asyncio.create_task(activity.destroy())
 
     async def set_ok_status() -> None:
         await asyncio.sleep(NEW_PERIOD_SECONDS)
         if activity_data[activity]['status'] == 'new':
             if activity_data[activity]['batch_cnt'] >= MIN_NEW_BATCHES:
-                new_status = 'ok'
+                activity_data[activity]['status'] = 'ok'
             else:
-                new_status = 'Dead [weak worker]'
+                activity_data[activity]['status'] = 'stopping'
                 await activity.parent.close_all()
-            activity_data[activity]['status'] = new_status
+                activity_data[activity]['status'] = 'Dead [weak worker]'
 
     asyncio.create_task(set_ok_status())
+
+
+##########################
+#   MAIN LOGIC
+async def score_proposal(proposal: Proposal) -> Optional[float]:
+    properties = proposal.data.properties
+    if properties['golem.com.pricing.model'] != 'linear':
+        return None
+
+    coeffs = properties['golem.com.pricing.model.linear.coeffs']
+    for val, max_val in zip(coeffs, MAX_LINEAR_COEFFS):
+        if val > max_val:
+            return None
+    else:
+        return 1 - (coeffs[0] + coeffs[1])  # type: ignore
 
 
 async def manage_activities() -> None:
@@ -161,9 +149,9 @@ async def main() -> None:
 
     async with golem:
         allocation = await golem.create_allocation(amount=1)
-        demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
-
         payment_manager = DefaultPaymentManager(golem, allocation)
+
+        demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
         try:
             async for activity in Chain(
@@ -179,7 +167,7 @@ async def main() -> None:
                     lambda activity, task: task.execute(activity),  # type: ignore
                     on_exception=close_agreement_repeat_task,  # type: ignore
                 ),
-                Buffer(size=max(MAX_WORKERS, 2)),
+                Buffer(size=MAX_WORKERS * 2),
             ):
                 pass
         except asyncio.CancelledError:
@@ -191,6 +179,24 @@ async def main() -> None:
     [task.cancel() for task in asyncio.all_tasks()]
 
 
+#############################################
+#   NOT REALLY INTERESTING PARTS OF THE LOGIC
+async def close_agreement_repeat_task(func: Callable, args: Tuple[Activity, Any], e: Exception) -> None:
+    activity, task = args
+    tasks_queue.put_nowait(task)
+    print("Task failed on", activity)
+    activity_data[activity]['status'] = 'Dead [task failed]'
+    await activity.parent.close_all()
+
+
+async def print_current_data() -> None:
+    while True:
+        await asyncio.sleep(15)
+        _print_summary_table()
+
+
+#############
+#   UTILITIES
 def round_float_str(x: float) -> str:
     if x == 0:
         return "0"
@@ -274,6 +280,13 @@ def _get_summary_data(act_subset: Optional[Iterable[Activity]] = None) -> List[L
     ])
     return agg_data
 
+
+AnyType = TypeVar("AnyType")
+
+
+async def async_queue_aiter(src_queue: "asyncio.Queue[AnyType]") -> AsyncIterator[AnyType]:
+    while True:
+        yield await src_queue.get()
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
