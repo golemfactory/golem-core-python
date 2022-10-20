@@ -79,9 +79,13 @@ async def update_new_activity_status(event: NewResource) -> None:
 
     if not activity.has_parent:
         activity_data[activity]['status'] = 'old run activity'
+
         #   This is an Activity from some other run
         #   (this will not happen in the future, session ID will prevent this)
-        asyncio.create_task(activity.destroy())
+
+        async def destroy() -> None:
+            await activity.destroy()
+        asyncio.create_task(destroy())
 
     async def set_ok_status() -> None:
         await asyncio.sleep(NEW_PERIOD_SECONDS)

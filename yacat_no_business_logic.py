@@ -94,6 +94,7 @@ async def main_task_source() -> None:
 
 async def main() -> None:
     asyncio.create_task(main_task_source())
+    await asyncio.sleep(0.1)
     async for result in execute_tasks(
         budget=1,
         execute_task=lambda activity, task: task.execute(activity),  # type: ignore

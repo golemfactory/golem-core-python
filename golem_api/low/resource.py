@@ -20,7 +20,7 @@ class ResourceMeta(ABCMeta):
         assert isinstance(cls, type(Resource))  # mypy
         if args:
             #   Sanity check: when data is passed, it must be a new resource
-            assert id_ not in node._resources[cls], f"Repeated id {id_} for class {cls.__name__}"  # type: ignore
+            assert id_ not in node._resources[cls], f"Repeated id {id_} for class {cls.__name__}"
 
         if id_ not in node._resources[cls]:
             obj = super(ResourceMeta, cls).__call__(node, id_, *args, **kwargs)  # type: ignore

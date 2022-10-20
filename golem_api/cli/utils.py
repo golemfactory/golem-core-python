@@ -32,7 +32,7 @@ def format_allocations(allocations: List[Allocation]) -> str:
             data.timeout.isoformat(" ", "seconds") if data.timeout is not None else '',
         ])
 
-    return x.get_string()  # type: ignore
+    return x.get_string()
 
 
 def format_demands(demands: List[Demand]) -> str:
@@ -52,7 +52,7 @@ def format_demands(demands: List[Demand]) -> str:
             subnet,
             created,
         ])
-    return x.get_string()  # type: ignore
+    return x.get_string()
 
 
 def format_proposals(proposals: List[Proposal], first: bool) -> str:
@@ -75,7 +75,7 @@ def format_proposals(proposals: List[Proposal], first: bool) -> str:
     if first:
         return "\n".join(lines[:-1])
     else:
-        return lines[3]  # type: ignore
+        return lines[3]
 
 
 @dataclass
