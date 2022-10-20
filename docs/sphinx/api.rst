@@ -129,11 +129,17 @@ Exceptions
 ----------
 
 .. autoclass:: golem_api.low.exceptions.ResourceNotFound
+    :members: resource
 .. autoclass:: golem_api.low.exceptions.NoMatchingAccount
+    :members: network, driver
 .. autoclass:: golem_api.low.exceptions.BatchTimeoutError
+    :members: batch, timeout
 .. autoclass:: golem_api.low.exceptions.BatchError
+    :members: batch
 .. autoclass:: golem_api.low.exceptions.CommandFailed
+    :members: batch
 .. autoclass:: golem_api.low.exceptions.CommandCancelled
+    :members: batch
 
 Events
 ======

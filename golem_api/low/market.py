@@ -83,7 +83,7 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], Ya
         try:
             return next(d for d in all_demands if d.demand_id == self.id)
         except StopIteration:
-            raise ResourceNotFound('Demand', self.id)
+            raise ResourceNotFound(self)
 
     @classmethod
     async def create_from_properties_constraints(

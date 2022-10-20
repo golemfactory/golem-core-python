@@ -1,11 +1,14 @@
 from typing import Optional, TYPE_CHECKING
 
+from yapapi.engine import NoPaymentAccountError
+
 if TYPE_CHECKING:
+    from golem_api.low.resource import Resource
     from golem_api.low.activity import PoolingBatch
 
 
 class ResourceNotFound(Exception):
-    """Emitted on an attempt to interact with a resource that doesn't exist.
+    """Raised on an attempt to interact with a resource that doesn't exist.
 
     Example::
 
@@ -19,36 +22,60 @@ class ResourceNotFound(Exception):
 
 
         """
-    def __init__(self, name: str, id_: str):
-        self.name = name
-        self.id = id_
+    def __init__(self, resource: "Resource"):
+        self._resource = resource
 
-        msg = f"{name}({id_}) doesn't exist"
+        msg = f"{resource} doesn't exist"
         super().__init__(msg)
+
+    @property
+    def resource(self) -> "Resource":
+        """Resource that caused the exception."""
+        return self._resource
 
 
 class NoMatchingAccount(Exception):
+    """Raised when a new :any:`Allocation` is created for a (network, driver) pair without matching `yagna` account."""
     def __init__(self, network: str, driver: str):
+        self._network = network
+        self._driver = driver
+
         #   NOTE: we don't really care about this sort of compatibility, but this is
         #         a message developers are used to so maybe it's worth reusing
-        from yapapi.engine import NoPaymentAccountError
         msg = str(NoPaymentAccountError(driver, network))
         super().__init__(msg)
 
+    @property
+    def network(self) -> str:
+        return self._network
+
+    @property
+    def driver(self) -> str:
+        return self._driver
+
 
 class BatchTimeoutError(Exception):
+    """Raised in :any:`PoolingBatch.wait()` when the batch execution timed out."""
     def __init__(self, batch: "PoolingBatch", timeout: float):
-        self.batch = batch
-        self.timeout = timeout
+        self._batch = batch
+        self._timeout = timeout
 
         msg = f"{batch} did not finish in {timeout} seconds"
         super().__init__(msg)
+
+    @property
+    def batch(self) -> "PoolingBatch":
+        return self._batch
+
+    @property
+    def timeout(self) -> float:
+        return self._timeout
 
 
 class BatchError(Exception):
     """Unspecified exception related to the execution of a batch."""
     def __init__(self, batch: "PoolingBatch", msg: Optional[str] = None):
-        self.batch = batch
+        self._batch = batch
 
         if msg is None:
             event = batch.events[-1]
@@ -56,9 +83,13 @@ class BatchError(Exception):
 
         super().__init__(msg)
 
+    @property
+    def batch(self) -> "PoolingBatch":
+        return self._batch
+
 
 class CommandFailed(BatchError):
-    """Exception raised when awaiting for a result of the command that failed."""
+    """Raised when awaiting for a result of a command that failed."""
     def __init__(self, batch: "PoolingBatch"):
         event = batch.events[-1]
         msg = f"Command {event.index} in batch {batch} failed: {event.message}"
@@ -66,7 +97,7 @@ class CommandFailed(BatchError):
 
 
 class CommandCancelled(BatchError):
-    """Exception raised when awaiting for a result of command that was not executed at all."""
+    """Raised when awaiting for a result of a command that was not executed at all because a previous command failed."""
     def __init__(self, batch: "PoolingBatch"):
         event = batch.events[-1]
         msg = (
