@@ -26,8 +26,7 @@ class SimpleScorer:
         :param score_proposal: Proposal-scoring function. Higher score -> better :any:`Proposal`.
             Score `None` indicates an unacceptable :any:`Proposal` - it will be ignored by the SimpleScorer.
         :param min_proposals: If not None, :func:`__call__` will not yield anything until
-            at least that many proposals were scored (but `max_wait` overrides this). Proposals with score None
-            are not included in this limit.
+            SimpleScorer gathers at least that many proposals with a non-None score (but `max_wait` overrides this).
         :param max_wait: If not None, we'll not wait for `min_proposals` longer than that.
         """
         self._score_proposal = score_proposal

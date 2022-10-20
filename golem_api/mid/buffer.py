@@ -44,7 +44,7 @@ class Buffer(Generic[DataType]):
             In most Golem-specific scenarios buffer size will correspond to things like
             "how many agreements are negotiated at the same time", so usually the higher the size:
 
-            * The faster we'll be able to utilize resources
+            * The faster we'll be able to create and utilize resources
             * The higher chance for "useless" resources (e.g. we might be creating multiple agreements
               even when there is only a single task left)
             * The higher workload for the local machine (more asyncio tasks) and yagna (more requests)
@@ -58,6 +58,9 @@ class Buffer(Generic[DataType]):
         self._in_stream_exhausted = False
 
     async def __call__(self, in_stream: AsyncIterator[Union[DataType, Awaitable[DataType]]]) -> AsyncIterator[DataType]:
+        """
+        :param in_stream: A stream of awaitables.
+        """
         self._main_task = asyncio.create_task(self._process_in_stream(in_stream))
 
         while not (

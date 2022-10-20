@@ -64,7 +64,7 @@ class ActivityPool:
 
     async def __call__(
         self, activity_stream: AsyncIterator[Union[Activity, Awaitable[Activity]]]
-    ) -> AsyncIterator[Union[Activity, Awaitable[Activity]]]:
+    ) -> AsyncIterator[Awaitable[Activity]]:
         """
         :param activity_stream: Stream of either :any:`Activity` or Awaitable[Activity].
             It is assumed all obtained activities start idle.

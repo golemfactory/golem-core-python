@@ -235,7 +235,7 @@ class Proposal(
     async def respond(self) -> "Proposal":
         """Respond to a proposal with a counter-proposal.
 
-        Invalid on proposals sent by the provider.
+        Invalid on our responses.
 
         TODO: all the negotiation logic should be reflected in params of this method,
         but negotiations are not implemented yet.

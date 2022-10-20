@@ -9,15 +9,32 @@ from typing import Set
 
 
 class DefaultPaymentManager:
-    """Accepts all new (i.e. having a RECEIVED status) invoices and debit notes for known agreements.
+    """Accepts all incoming debit_notes and invoices.
 
-    Calls `get_data(force=True)` on invoices/debit notes after their status changes,
-    so appropriate ResourceDataChanged event is emitted.
+    Calls `get_data(force=True)` on invoices/debit notes after they are accepted,
+    so appropriate :any:`ResourceDataChanged` event is emitted.
 
-    TODO: this will be extended with `reject_for(activity/agreeement)` in
-          the close future
+    Usage::
+
+        async with GolemNode() as golem:
+            allocation = await golem.create_allocation(BUDGET)
+            payment_manager = DefaultPaymentManager(golem, allocation)
+
+            try:
+                #   ... interact with the Golem Network ...
+            finally:
+                await payment_manager.terminate_agreements()
+                await payment_manager.wait_for_invoices()
+
     """
     def __init__(self, node: GolemNode, allocation: Allocation):
+        """
+        :param node: Debit notes/invoices received by this node will be accepted.
+            :any:`DefaultPaymentManager` will only work if the :any:`GolemNode` was started with
+            `collect_payment_events = True`.
+        :param allocation: Allocation that will be used to accept debit notes/invoices.
+        """
+
         self.allocation = allocation
         self._agreements: Set[Agreement] = set()
 
@@ -34,33 +51,25 @@ class DefaultPaymentManager:
         invoice = event.resource
         assert isinstance(invoice, Invoice)
         if (await invoice.get_data(force=True)).status == 'RECEIVED':  # type: ignore
-            agreement_id = invoice.data.agreement_id
-            if any(agreement.id == agreement_id for agreement in self._agreements):
-                await invoice.accept_full(self.allocation)
-                await invoice.get_data(force=True)
-            else:
-                #   Corresponding agreement was created in some previous run, we don't accept
-                #   this invoice - we should probably reject it, but it's not yet implemented in yagna
-                pass
+            await invoice.accept_full(self.allocation)
+            await invoice.get_data(force=True)
 
     async def on_debit_note(self, event: NewResource) -> None:
         debit_note = event.resource
         assert isinstance(debit_note, DebitNote)
         if (await debit_note.get_data(force=True)).status == 'RECEIVED':  # type: ignore
-            agreement_id = debit_note.data.agreement_id
-            if any(agreement.id == agreement_id for agreement in self._agreements):
-                await debit_note.accept_full(self.allocation)
-                await debit_note.get_data(force=True)
-            else:
-                #   Corresponding agreement was created in some previous run, we don't accept
-                #   this debit note - we should probably reject it, but it's not yet implemented in yagna
-                pass
+            await debit_note.accept_full(self.allocation)
+            await debit_note.get_data(force=True)
 
     async def terminate_agreements(self) -> None:
+        """Terminate all agreements and activities. This is intended to be used just before :any:`wait_for_invoices`."""
         await asyncio.gather(*[agreement.close_all() for agreement in self._agreements])
 
     async def wait_for_invoices(self, timeout: float = 5) -> None:
-        """Wait until we receive and accept/reject all invoices"""
+        """Wait for invoices for all agreements and accept them.
+
+        :param timeout: Maximum wait time in seconds.
+        """
         stop = datetime.now() + timedelta(seconds=timeout)
         while datetime.now() < stop and any(
             agreement.invoice is None or agreement.invoice.data.status == 'RECEIVED'  # type: ignore

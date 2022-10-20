@@ -37,7 +37,7 @@ Classes in this section know nothing about any Golem-specific logic. They should
     :members: __init__, __call__
 .. autoclass:: golem_api.mid.Zip
 .. autoclass:: golem_api.mid.Buffer
-    :members: __init__
+    :members: __init__, __call__
 
 
 Golem-specific components
@@ -76,7 +76,7 @@ Market API
 ----------
 
 .. autoclass:: golem_api.low.market.Demand
-    :members: initial_proposals, start_collecting_events, stop_collecting_events, unsubscribe, proposal
+    :members: initial_proposals, unsubscribe, proposal
 
 .. autoclass:: golem_api.low.market.Proposal
     :members: initial, draft, rejected, demand,
@@ -155,3 +155,10 @@ Logging
 
 .. autoclass:: golem_api.default_logger.DefaultLogger
     :members: __init__, file_name, logger, on_event
+
+Other
+=====
+
+.. autofunction:: golem_api.payload.Payload.from_image_hash
+.. autoclass:: golem_api.default_payment_manager.DefaultPaymentManager
+    :members: __init__, terminate_agreements, wait_for_invoices
