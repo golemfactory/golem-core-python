@@ -18,14 +18,15 @@ class SimpleScorer:
     """Re-orders proposals using a provided scoring function."""
     def __init__(
         self,
-        score_proposal: Callable[[Proposal], Awaitable[float]],
+        score_proposal: Callable[[Proposal], Awaitable[Optional[float]]],
         min_proposals: Optional[int] = None,
         max_wait: Optional[timedelta] = None,
     ):
         """
         :param score_proposal: Proposal-scoring function. Higher score -> better :any:`Proposal`.
+            Score `None` indicates an unacceptable :any:`Proposal` - it will be ignored by the SimpleScorer.
         :param min_proposals: If not None, :func:`__call__` will not yield anything until
-            at least that many proposals were scored (but `max_wait` overrides this)
+            SimpleScorer gathers at least that many proposals with a non-None score (but `max_wait` overrides this).
         :param max_wait: If not None, we'll not wait for `min_proposals` longer than that.
         """
         self._score_proposal = score_proposal
@@ -39,7 +40,7 @@ class SimpleScorer:
 
         :param proposals: Stream of :any:`Proposal` to be reordered.
             In fact, this could be stream of whatever, as long as this whatever matches
-            the scoring function, and this whatever would be yielded (--> TODO - maybe generalize this?).
+            the scoring function, and this whatever would be yielded (--> TODO - maybe turn this into a general Sort?).
         """
         self._no_more_proposals = False
         proposal_scorer_task = asyncio.get_event_loop().create_task(self._process_stream(proposals))
@@ -61,13 +62,16 @@ class SimpleScorer:
             except IndexError:
                 await asyncio.sleep(0.1)
 
-    async def score_proposal(self, proposal: Proposal) -> float:
+    async def score_proposal(self, proposal: Proposal) -> Optional[float]:
         return await self._score_proposal(proposal)
 
     async def _process_stream(self, proposal_stream: AsyncIterator[Proposal]) -> None:
         async for proposal in proposal_stream:
             #   TODO: maybe we should score all proposals at the same time? Or maybe not all, but with a limit?
             score = await self.score_proposal(proposal)
+            if score is None:
+                continue
+
             score = score * -1  # heap -> smallest values first -> reverse
             heapq.heappush(self._scored_proposals, ScoredProposal(score, proposal))
         self._no_more_proposals = True

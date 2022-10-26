@@ -28,7 +28,7 @@ def api_call_wrapper(
                     return None
                 elif e.status == 404:
                     self = args[0]
-                    raise ResourceNotFound(type(self).__name__, self.id)  # type: ignore  # 404 -> we have id
+                    raise ResourceNotFound(self)  # type: ignore
                 else:
                     raise
         return wrapper  # type: ignore  # I don't understand this :/

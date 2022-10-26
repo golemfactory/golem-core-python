@@ -160,5 +160,5 @@ class EventBus:
             if event_template.includes(event):
                 tasks += [callback(event) for callback in callbacks]
         if tasks:
-            await asyncio.gather(*tasks)
+            await asyncio.gather(*tasks, return_exceptions=True)
         self.queue.task_done()

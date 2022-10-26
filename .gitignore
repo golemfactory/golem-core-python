@@ -3,4 +3,4 @@ __pycache__/
 *.log
 poetry.lock
 build/
-
+*.png

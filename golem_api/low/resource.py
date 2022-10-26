@@ -1,5 +1,6 @@
 import asyncio
 from abc import ABC, ABCMeta
+import re
 from typing import AsyncIterator, Awaitable, Callable, Generic, List, Optional, TYPE_CHECKING, Type
 
 from golem_api.events import NewResource, ResourceDataChanged
@@ -19,7 +20,7 @@ class ResourceMeta(ABCMeta):
         assert isinstance(cls, type(Resource))  # mypy
         if args:
             #   Sanity check: when data is passed, it must be a new resource
-            assert id_ not in node._resources[cls]
+            assert id_ not in node._resources[cls], f"Repeated id {id_} for class {cls.__name__}"
 
         if id_ not in node._resources[cls]:
             obj = super(ResourceMeta, cls).__call__(node, id_, *args, **kwargs)  # type: ignore
@@ -64,8 +65,12 @@ class Resource(
     @property
     def parent(self) -> ParentType:
         """Returns a :class:`Resource` we are a child of. Details: :func:`children`."""
-        assert self._parent is not None
+        assert self._parent is not None, f"Parent of {self} is not set"
         return self._parent
+
+    @property
+    def has_parent(self) -> bool:
+        return self._parent is not None
 
     def add_child(self, child: ChildType) -> None:
         assert child._parent is None  # type:ignore
@@ -167,7 +172,7 @@ class Resource(
             if self._data is None or force:
                 old_data = self._data
                 self._data = await self._get_data()
-                if old_data != self._data:
+                if old_data is not None and old_data != self._data:
                     self.node.event_bus.emit(ResourceDataChanged(self, old_data))
 
         assert self._data is not None  # mypy
@@ -186,7 +191,7 @@ class Resource(
         data = await get_all_method()
 
         resources = []
-        id_field = f'{cls.__name__.lower()}_id'
+        id_field = f'{cls._snake_case_name()}_id'
         for raw in data:
             id_ = getattr(raw, id_field)
             resources.append(cls(node, id_, raw))
@@ -201,12 +206,17 @@ class Resource(
     @property
     def _get_method_name(self) -> str:
         """Name of the single GET ya_client method, e.g. get_allocation."""
-        return f'get_{type(self).__name__.lower()}'
+        return f'get_{self._snake_case_name()}'
 
     @classmethod
     def _get_all_method_name(cls) -> str:
         """Name of the collection GET ya_client method, e.g. get_allocations."""
-        return f'get_{cls.__name__.lower()}s'
+        return f'get_{cls._snake_case_name()}s'
 
-    def __str__(self) -> str:
+    @classmethod
+    def _snake_case_name(cls) -> str:
+        replaced = re.sub('([A-Z]+)', r'_\1', cls.__name__).lower()
+        return replaced[1:]
+
+    def __repr__(self) -> str:
         return f'{type(self).__name__}({self._id})'

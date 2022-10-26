@@ -1,53 +1,36 @@
-import asyncio
-from typing import AsyncIterator, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import AsyncIterator, Callable, Dict, List, Optional, TYPE_CHECKING, Union
 from datetime import datetime, timedelta, timezone
 
-from ya_market import RequestorApi, models as models, exceptions
+from ya_market import RequestorApi, models as models
+from ya_market.exceptions import ApiException
 
 from golem_api.events import ResourceClosed
 from .api_call_wrapper import api_call_wrapper
 from .exceptions import ResourceNotFound
+from .payment import Invoice
 from .resource import Resource
 from .resource_internals import _NULL
 from .yagna_event_collector import YagnaEventCollector
 
 if TYPE_CHECKING:
     from golem_api.golem_node import GolemNode
+    from .activity import Activity  # TODO: do we really need this?
 
 
-class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL]):
+class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], YagnaEventCollector):
     """A single demand on the Golem Network.
 
     Created with one of the :class:`Demand`-returning methods of the :any:`GolemNode`.
     """
-    _event_collecting_task: Optional[asyncio.Task] = None
-
     ######################
     #   EXTERNAL INTERFACE
-    def start_collecting_events(self) -> None:
-        """Start collecting `yagna` events in response to this demand.
-
-        Each event is either a new initial :class:`Proposal` (yielded in :func:`initial_proposals`),
-        a response to our counter-proposal (accessible via :func:`Proposal.responses`),
-        or a rejection of a proposal.
-        """
-        if self._event_collecting_task is None:
-            task = asyncio.get_event_loop().create_task(self._process_yagna_events())
-            self._event_collecting_task = task
-
-    async def stop_collecting_events(self) -> None:
-        """Stop collecting events, after a prior call to :func:`start_collecting_events`."""
-        if self._event_collecting_task is not None:
-            self._event_collecting_task.cancel()
-            self._event_collecting_task = None
-
     @api_call_wrapper(ignore=[404, 410])
     async def unsubscribe(self) -> None:
         """Stop all operations related to this demand and remove it.
 
         This is a final operation, unsubscribed demand is not available anymore."""
         self.set_no_more_children()
-        await self.stop_collecting_events()
+        self.stop_collecting_events()
         await self.api.unsubscribe_demand(self.id)
         self.node.event_bus.emit(ResourceClosed(self))
 
@@ -68,6 +51,28 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL]):
 
         return proposal
 
+    ###########################
+    #   Event collector methods
+    def _collect_events_kwargs(self) -> Dict:
+        return {"timeout": 5, "max_events": 10}
+
+    def _collect_events_args(self) -> List:
+        return [self.id]
+
+    @property
+    def _collect_events_func(self) -> Callable:
+        return self.api.collect_offers
+
+    async def _process_event(self, event: Union[models.ProposalEvent, models.ProposalRejectedEvent]) -> None:
+        if isinstance(event, models.ProposalEvent):
+            proposal = Proposal.from_proposal_event(self.node, event)
+            parent = self._get_proposal_parent(proposal)
+            parent.add_child(proposal)
+        elif isinstance(event, models.ProposalRejectedEvent):
+            assert event.proposal_id is not None  # mypy
+            proposal = self.proposal(event.proposal_id)
+            proposal.add_event(event)
+
     #################
     #   OTHER METHODS
     @api_call_wrapper()
@@ -78,7 +83,7 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL]):
         try:
             return next(d for d in all_demands if d.demand_id == self.id)
         except StopIteration:
-            raise ResourceNotFound('Demand', self.id)
+            raise ResourceNotFound(self)
 
     @classmethod
     async def create_from_properties_constraints(
@@ -98,25 +103,6 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL]):
         api = cls._get_api(node)
         demand_id = await api.subscribe_demand(data)
         return cls(node, demand_id)
-
-    async def _process_yagna_events(self) -> None:
-        event_collector = YagnaEventCollector(
-            self.api.collect_offers,
-            [self.id],
-            {"timeout": 5, "max_events": 10},
-        )
-        async with event_collector:
-            queue: asyncio.Queue = event_collector.event_queue()
-            while True:
-                event = await queue.get()
-                if isinstance(event, models.ProposalEvent):
-                    proposal = Proposal.from_proposal_event(self.node, event)
-                    parent = self._get_proposal_parent(proposal)
-                    parent.add_child(proposal)
-                elif isinstance(event, models.ProposalRejectedEvent):
-                    assert event.proposal_id is not None  # mypy
-                    proposal = self.proposal(event.proposal_id)
-                    proposal.add_event(event)
 
     def _get_proposal_parent(self, proposal: "Proposal") -> Union["Demand", "Proposal"]:
         if proposal.initial:
@@ -249,7 +235,7 @@ class Proposal(
     async def respond(self) -> "Proposal":
         """Respond to a proposal with a counter-proposal.
 
-        Invalid on proposals sent by the provider.
+        Invalid on our responses.
 
         TODO: all the negotiation logic should be reflected in params of this method,
         but negotiations are not implemented yet.
@@ -287,7 +273,7 @@ class Proposal(
         return proposal
 
 
-class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", _NULL, _NULL]):
+class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity", _NULL]):
     """A single agreement on the Golem Network.
 
     Sample usage::
@@ -295,7 +281,8 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", _NULL, _NUL
         agreement = await proposal.create_agreement()
         await agreement.confirm()
         await agreement.wait_for_approval()
-        #   Create activity, use the activity
+        activity = await agreement.create_activity()
+        # Use the activity
         await agreement.terminate()
     """
     @api_call_wrapper()
@@ -317,7 +304,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", _NULL, _NUL
         try:
             await self.api.wait_for_approval(self.id, timeout=15, _request_timeout=16)
             return True
-        except exceptions.ApiException as e:
+        except ApiException as e:
             if e.status == 410:
                 return False
             elif e.status == 408:
@@ -327,8 +314,80 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", _NULL, _NUL
                 raise
 
     @api_call_wrapper()
+    async def create_activity(self, autoclose: bool = True, timeout: timedelta = timedelta(seconds=10)) -> "Activity":
+        """Create a new :any:`Activity` for this :any:`Agreement`.
+
+        :param autoclose: Destroy the activity when the :any:`GolemNode` closes.
+        :param timeout: Request timeout.
+        """
+        from .activity import Activity
+        activity = await Activity.create(self.node, self.id, timeout)
+        if autoclose:
+            self.node.add_autoclose_resource(activity)
+        self.add_child(activity)
+        return activity
+
+    @api_call_wrapper()
     async def terminate(self, reason: str = '') -> None:
-        """Terminate the agreement."""
-        #   FIXME: check our state first
-        await self.api.terminate_agreement(self.id, request_body={"message": reason})
+        """Terminate the agreement.
+
+        :param reason: Optional information for the provider explaining why the agreement was terminated.
+        """
+        try:
+            await self.api.terminate_agreement(self.id, request_body={"message": reason})
+        except ApiException as e:
+            if self._is_permanent_410(e):
+                pass
+            else:
+                raise
+
         self.node.event_bus.emit(ResourceClosed(self))
+
+    @property
+    def invoice(self) -> Optional[Invoice]:
+        """:any:`Invoice` for this :any:`Agreement`, or None if we didn't yet receive an invoice."""
+        try:
+            return [child for child in self.children if isinstance(child, Invoice)][0]
+        except IndexError:
+            return None
+
+    @property
+    def activities(self) -> List["Activity"]:
+        """A list of :any:`Activity` created for this :any:`Agreement`."""
+        from .activity import Activity  # circular imports prevention
+        return [child for child in self.children if isinstance(child, Activity)]
+
+    async def close_all(self) -> None:
+        """Terminate agreement, destroy all activities. Ensure success -> retry if there are any problems.
+
+        This is indended to be used in scenarios when we just want to end
+        this agreement and we want to make sure it is really terminated (even if e.g. in some other
+        separate task we're waiting for the provider to approve it).
+        """
+        #   TODO: This method is not pretty, also similar method could be useful for acivity only.
+        #   BUT this probably should be a yagna-side change. Agreement.terminate() should
+        #   just always succeed, as well as Activity.destroy() - yagna should repeat if necessary etc.
+        #   We should only repeat in rare cases when we can't connect to our local `yagna`.
+        while True:
+            try:
+                await self.terminate()
+                break
+            except ApiException as e:
+                if self._is_permanent_410(e):
+                    break
+
+        for activity in self.activities:
+            while True:
+                try:
+                    await activity.destroy()
+                    break
+                except Exception:
+                    pass
+
+    @staticmethod
+    def _is_permanent_410(e: ApiException) -> bool:
+        #   TODO: Remove this check once https://github.com/golemfactory/yagna/issues/2264 is done
+        #         and every 410 is permanent.
+        if e.status != 410:
+            return False
+        return "from Approving" not in str(e) and "from Pending" not in str(e)

@@ -8,17 +8,16 @@ import re
 
 from prettytable import PrettyTable
 
-from yapapi.payload import Payload
 from yapapi.props.base import constraint
 from yapapi.props import inf
 
-from golem_api import GolemNode
+from golem_api import GolemNode, Payload
 from golem_api.low import Allocation, Demand, Proposal
 
 
 def format_allocations(allocations: List[Allocation]) -> str:
     x = PrettyTable()
-    x.field_names = ["id", "address", "network", "driver", "total", "remaining", "timeout"]
+    x.field_names = ["id", "address", "driver", "network", "total", "remaining", "timeout"]
     for allocation in allocations:
         data = allocation.data
         assert data.payment_platform is not None  # mypy
@@ -33,7 +32,7 @@ def format_allocations(allocations: List[Allocation]) -> str:
             data.timeout.isoformat(" ", "seconds") if data.timeout is not None else '',
         ])
 
-    return x.get_string()  # type: ignore
+    return x.get_string()
 
 
 def format_demands(demands: List[Demand]) -> str:
@@ -53,7 +52,7 @@ def format_demands(demands: List[Demand]) -> str:
             subnet,
             created,
         ])
-    return x.get_string()  # type: ignore
+    return x.get_string()
 
 
 def format_proposals(proposals: List[Proposal], first: bool) -> str:
@@ -76,7 +75,7 @@ def format_proposals(proposals: List[Proposal], first: bool) -> str:
     if first:
         return "\n".join(lines[:-1])
     else:
-        return lines[3]  # type: ignore
+        return lines[3]
 
 
 @dataclass
@@ -114,7 +113,7 @@ def async_golem_wrapper(f: Callable[Concatenate[GolemNode, P], Awaitable[R]]) ->
     @wraps(f)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
         async def with_golem_node() -> R:
-            async with GolemNode() as golem:
+            async with GolemNode(collect_payment_events=False) as golem:
                 return await f(golem, *args, **kwargs)
 
         loop = asyncio.get_event_loop()

@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, TYPE_CHECKING
+from typing import Any, Dict, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from golem_api.low.resource import Resource
@@ -32,7 +32,7 @@ class NewResource(ResourceEvent):
     * We create a new resource, e.g. with :any:`GolemNode.create_allocation()`
     * We start interacting with some resource that was created by us before,
       but not with this particular GolemNode instance, eg. :any:`GolemNode.allocation()`
-    * We find a resource created by someone else (e.g. a :any:`Proposal`)
+    * We find a resource created by someone else (e.g. a :any:`Proposal` or a :any:`DebitNote`)
 
     There's no difference between these scenarions from the POV of this event.
     """
@@ -62,6 +62,27 @@ class ResourceDataChanged(ResourceEvent):
     def old_data(self) -> Any:
         """Value of `self.resource.data` before the change."""
         return self._old_data
+
+    def diff(self) -> Dict[str, Tuple[Any, Any]]:
+        """Returns a dictionary {property_name: (old_val, new_val)} with all values that changed."""
+        old_dict = self.old_data.to_dict()
+        new_dict = self.resource.data.to_dict()
+        diff_dict = {}
+
+        for key in old_dict.keys():
+            old_val = old_dict[key]
+            new_val = new_dict[key]
+            if old_val != new_val:
+                diff_dict[key] = (old_val, new_val)
+
+        return diff_dict
+
+    def __repr__(self) -> str:
+        diff = []
+        for key, (old_val, new_val) in self.diff().items():
+            diff.append(f'{key}: {old_val} -> {new_val}')
+        diff_str = ", ".join(diff)
+        return f'{type(self).__name__}({self.resource}, {diff_str})'
 
 
 class ResourceChangePossible(ResourceEvent):
@@ -98,4 +119,5 @@ class ResourceClosed(ResourceEvent):
     :any:`GolemNode.agreement`) does not trigger this event.
 
     This event should never be emitted more than once for a given :any:`Resource`.
+    Currently this is not true for :any:`Activity` - this is a known TODO.
     """

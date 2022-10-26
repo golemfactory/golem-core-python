@@ -6,14 +6,16 @@ from decimal import Decimal
 
 from yapapi import rest
 from yapapi.engine import DEFAULT_DRIVER, DEFAULT_NETWORK, DEFAULT_SUBNET
-from yapapi.payload import Payload
 from yapapi.props.builder import DemandBuilder
 from yapapi import props
 
 from .event_bus import EventBus
-from .low.payment import Allocation
+from .payload import Payload
+from .low.activity import Activity, PoolingBatch
 from .low.market import Demand, Proposal, Agreement
+from .low.payment import Allocation, DebitNote, Invoice
 from .low.resource import Resource
+from .low.payment_event_collector import DebitNoteEventCollector, InvoiceEventCollector
 
 
 DEFAULT_EXPIRATION_TIMEOUT = timedelta(seconds=1800)
@@ -35,20 +37,28 @@ class GolemNode:
 
     """
 
-    def __init__(self, app_key: Optional[str] = None, base_url: Optional[str] = None) -> None:
+    def __init__(
+        self, app_key: Optional[str] = None, *, base_url: Optional[str] = None, collect_payment_events: bool = True
+    ):
         """
         :param app_key: App key used as an authentication token for all `yagna` calls.
                         Defaults to the `YAGNA_APPKEY` env variable.
         :param base_url: Base url for all `yagna` APIs. Defaults to `YAGNA_API_URL` env
                          variable or http://127.0.0.1:7465.
+        :param collect_payment_events: If True, GolemNode will watch for incoming debit notes/invoices
+                                       and create corresponding objects (--> :any:`NewResource` events will be emitted).
         """
         self._api_config = rest.Configuration(app_key, url=base_url)
+        self._collect_payment_events = collect_payment_events
 
         #   All created Resources will be stored here
         #   (This is done internally by the metaclass of the Resource)
         self._resources: DefaultDict[Type[Resource], Dict[str, Resource]] = defaultdict(dict)
         self._autoclose_resources: Set[Resource] = set()
         self._event_bus: EventBus = EventBus()
+
+        self._invoice_event_collector = InvoiceEventCollector(self)
+        self._debit_note_event_collector = DebitNoteEventCollector(self)
 
     ########################
     #   Start/stop interface
@@ -63,24 +73,30 @@ class GolemNode:
 
     async def start(self) -> None:
         self._event_bus.start()
+
         self._ya_market_api = self._api_config.market()
         self._ya_activity_api = self._api_config.activity()
         self._ya_payment_api = self._api_config.payment()
         self._ya_net_api = self._api_config.net()
 
+        if self._collect_payment_events:
+            self._invoice_event_collector.start_collecting_events()
+            self._debit_note_event_collector.start_collecting_events()
+
     async def aclose(self) -> None:
         self._set_no_more_children()
-        await self._stop_event_collectors()
+        self._stop_event_collectors()
         await self._close_autoclose_resources()
         await self._close_apis()
         await self._event_bus.stop()
 
-    async def _stop_event_collectors(self) -> None:
-        #   NOTE: now only Demands collect events, but this will change in the future
-        demands = self._all_resources(Demand)
-        tasks = [demand.stop_collecting_events() for demand in demands]
-        if tasks:
-            await asyncio.gather(*tasks)
+    def _stop_event_collectors(self) -> None:
+        demands = self.all_resources(Demand)
+        batches = self.all_resources(PoolingBatch)
+        payment_event_collectors = [self._invoice_event_collector, self._debit_note_event_collector]
+
+        for event_collector in demands + batches + payment_event_collectors:
+            event_collector.stop_collecting_events()
 
     def _set_no_more_children(self) -> None:
         for resources in self._resources.values():
@@ -97,9 +113,12 @@ class GolemNode:
 
     async def _close_autoclose_resources(self) -> None:
         agreement_msg = "Work finished"
+        activity_tasks = [r.destroy() for r in self._autoclose_resources if isinstance(r, Activity)]
         agreement_tasks = [r.terminate(agreement_msg) for r in self._autoclose_resources if isinstance(r, Agreement)]
         demand_tasks = [r.unsubscribe() for r in self._autoclose_resources if isinstance(r, Demand)]
         allocation_tasks = [r.release() for r in self._autoclose_resources if isinstance(r, Allocation)]
+        if activity_tasks:
+            await asyncio.gather(*activity_tasks)
         if agreement_tasks:
             await asyncio.gather(*agreement_tasks)
         if demand_tasks:
@@ -150,7 +169,7 @@ class GolemNode:
         :param autoclose: Unsubscribe demand on :func:`__aexit__`
         :param autostart: Immediately start collecting yagna events for this :any:`Demand`.
                           Without autostart events for this demand will start being collected after a call to
-                          :any:`Demand.start_collecting_events`.
+                          :func:`Demand.start_collecting_events`.
         """
         if expiration is None:
             expiration = datetime.now(timezone.utc) + DEFAULT_EXPIRATION_TIMEOUT
@@ -186,6 +205,14 @@ class GolemNode:
         """Returns an :any:`Allocation` with a given id (assumed to be correct, there is no validation)."""
         return Allocation(self, allocation_id)
 
+    def debit_note(self, debit_note_id: str) -> DebitNote:
+        """Returns an :any:`DebitNote` with a given id (assumed to be correct, there is no validation)."""
+        return DebitNote(self, debit_note_id)
+
+    def invoice(self, invoice_id: str) -> Invoice:
+        """Returns an :any:`Invoice` with a given id (assumed to be correct, there is no validation)."""
+        return Invoice(self, invoice_id)
+
     def demand(self, demand_id: str) -> Demand:
         """Returns a :any:`Demand` with a given id (assumed to be correct, there is no validation)."""
         return Demand(self, demand_id)
@@ -201,6 +228,18 @@ class GolemNode:
     def agreement(self, agreement_id: str) -> Agreement:
         """Returns an :any:`Agreement` with a given id (assumed to be correct, there is no validation)."""
         return Agreement(self, agreement_id)
+
+    def activity(self, activity_id: str) -> Activity:
+        """Returns an :any:`Activity` with a given id (assumed to be correct, there is no validation)."""
+        return Activity(self, activity_id)
+
+    def batch(self, batch_id: str, activity_id: str) -> PoolingBatch:
+        """Returns a :any:`PoolingBatch` with a given id (assumed to be correct, there is no validation).
+
+        Id of a batch has a meaning only in the context of an activity,
+        so activity_id is also necessary (and also not validated)."""
+        activity = self.activity(activity_id)
+        return activity.batch(batch_id)
 
     ##########################
     #   Multi-resource factories for already existing resources
@@ -220,6 +259,14 @@ class GolemNode:
         """
         return await Demand.get_all(self)
 
+    async def invoices(self) -> List[Invoice]:
+        """Returns a list of :any:`Invoice` objects corresponding to all invoices received by this node."""
+        return await Invoice.get_all(self)
+
+    async def debit_notes(self) -> List[DebitNote]:
+        """Returns a list of :any:`DebitNote` objects corresponding to all debit notes received by this node."""
+        return await DebitNote.get_all(self)
+
     ##########################
     #   Events
     @property
@@ -233,10 +280,11 @@ class GolemNode:
 
     #########
     #   Other
-    def add_autoclose_resource(self, resource: Union["Allocation", "Demand", "Agreement"]) -> None:
+    def add_autoclose_resource(self, resource: Union["Allocation", "Demand", "Agreement", "Activity"]) -> None:
         self._autoclose_resources.add(resource)
 
-    def _all_resources(self, cls: Type[ResourceType]) -> List[ResourceType]:
+    def all_resources(self, cls: Type[ResourceType]) -> List[ResourceType]:
+        """Returns all known resources of a given type"""
         return list(self._resources[cls].values())  # type: ignore
 
     def __str__(self) -> str:

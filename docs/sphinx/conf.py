@@ -58,3 +58,11 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = []  # type: ignore
 
 autodoc_member_order = "bysource"
+autodoc_default_options = {
+    'undoc-members': True,
+}
+
+#   Thanks to this line `X` is equivalent to :code:`X`
+rst_prolog = """
+.. default-role:: code
+"""

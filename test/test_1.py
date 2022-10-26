@@ -4,10 +4,10 @@ import pytest
 import pytest_asyncio
 from random import random
 
-from yapapi.payload import vm
-
-from golem_api.golem_node import GolemNode
+from golem_api import GolemNode, Payload
 from golem_api.low.exceptions import NoMatchingAccount, ResourceNotFound
+
+PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 
 @pytest_asyncio.fixture
@@ -21,12 +21,6 @@ async def golem():
                 await demand.unsubscribe()
             for allocation in await golem.allocations():
                 await allocation.release()
-
-
-@pytest_asyncio.fixture
-async def any_payload():
-    image_hash = "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
-    return await vm.repo(image_hash=image_hash)
 
 
 @pytest.mark.asyncio
@@ -60,10 +54,10 @@ async def test_allocation(golem):
 
 
 @pytest.mark.asyncio
-async def test_demand(any_payload, golem):
+async def test_demand(golem):
     async with golem:
         allocation = await golem.create_allocation(1)
-        demand = await golem.create_demand(any_payload, allocations=[allocation])
+        demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
         async for proposal in demand.initial_proposals():
             break
@@ -77,10 +71,10 @@ async def test_demand(any_payload, golem):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("autoclose", (True, False))
-async def test_autoclose(any_payload, golem, autoclose):
+async def test_autoclose(golem, autoclose):
     async with golem:
         allocation = await golem.create_allocation(1, autoclose=autoclose)
-        demand = await golem.create_demand(any_payload, allocations=[allocation], autoclose=autoclose)
+        demand = await golem.create_demand(PAYLOAD, allocations=[allocation], autoclose=autoclose)
 
     async with golem:
         if autoclose:

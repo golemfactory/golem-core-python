@@ -1,15 +1,40 @@
 """The only purpose of this file is to increase code readability by separating "deep" internals
 from the "important" part od the app logic"""
 
-from typing import get_args, no_type_check, Type, TypeVar, TYPE_CHECKING, Union
+from typing import get_args, no_type_check, Any, Type, TypeVar, TYPE_CHECKING, Union
 
 from ya_payment import models as payment_models, RequestorApi as PaymentApi
 from ya_market import models as market_models, RequestorApi as MarketApi
+from ya_activity import (
+    ApiClient as ActivityApiClient,
+    RequestorControlApi,
+    RequestorStateApi,
+    models as activity_models
+)
 
 if TYPE_CHECKING:
     from golem_api import GolemNode
     from golem_api.low.resource import Resource
-    from golem_api.low import market
+    from golem_api.low import market, activity
+
+
+class ActivityApi:
+    """The purpose of this class is to have a single ActivityApi, just like Payment/Demand/Network,
+    without "estetic" split to Control/State.
+
+    Q: Why?
+    A: Because we want to keep internal interface as unified as possible, at least for now -
+       - we might want to change this in the future.
+    """
+    def __init__(self, ya_activity_api: ActivityApiClient):
+        self.__control_api = RequestorControlApi(ya_activity_api)
+        self.__state_api = RequestorStateApi(ya_activity_api)
+
+    def __getattr__(self, attr_name: str) -> Any:
+        try:
+            return getattr(self.__control_api, attr_name)
+        except AttributeError:
+            return getattr(self.__state_api, attr_name)
 
 
 #########################
@@ -21,10 +46,13 @@ class _NULL:
 
 
 ResourceType = TypeVar("ResourceType", bound="Resource")
-RequestorApiType = TypeVar("RequestorApiType", PaymentApi, MarketApi)
+RequestorApiType = TypeVar("RequestorApiType", PaymentApi, MarketApi, ActivityApi)
 ModelType = TypeVar(
     "ModelType",
+    _NULL,
     payment_models.Allocation,
+    payment_models.DebitNote,
+    payment_models.Invoice,
     market_models.Demand,
     market_models.Proposal,
     market_models.Agreement,
@@ -33,18 +61,23 @@ ParentType = TypeVar(
     "ParentType",
     _NULL,
     "market.Proposal",
+    "market.Agreement",
+    "market.Activity",
     Union["market.Demand", "market.Proposal"]
 )
 ChildType = TypeVar(
     "ChildType",
     _NULL,
     "market.Proposal",
+    "activity.Activity",
+    "activity.PoolingBatch",
     Union["market.Proposal", "market.Agreement"],
 )
 EventType = TypeVar(
     "EventType",
     _NULL,
     Union[market_models.ProposalEvent, market_models.ProposalRejectedEvent],
+    activity_models.ExeScriptCommandResult,
 )
 
 
@@ -60,8 +93,9 @@ def get_requestor_api(cls: Type["Resource"], node: "GolemNode") -> RequestorApiT
     api_type = get_args(cls.__orig_bases__[0])[0]
     if api_type is PaymentApi:
         api = PaymentApi(node._ya_payment_api)
-        assert type(api) is PaymentApi
         return api
     elif api_type is MarketApi:
         return MarketApi(node._ya_market_api)
+    elif api_type is ActivityApi:
+        return ActivityApi(node._ya_activity_api)
     raise TypeError("This should never happen")

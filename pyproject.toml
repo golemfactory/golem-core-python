@@ -24,22 +24,21 @@ python = "^3.8.0"
 #   TODO: We use quite a lot of yapapi dependencies that are not implicitly imported,
 #         this should be fixed - but not now. First we must be sure what is the future of
 #         golem_api, yapapi and how they are related.
-yapapi = "^0.9.2"
+yapapi = "^0.9.3"
 
 #   CLI
-prettytable = "^3.3.0"
-click = "^7.1.2"
+prettytable = "^3.4.1"
+click = "^8.1.3"
 
 #   TODO: why isn't this auto-installed by mypy?
-types-prettytable = "^3.3.0"
-types-click = "^7.1.2"
+types-prettytable = "^3.4.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.3"
 pytest-asyncio = "^0.19"
-mypy = "^0.971"
+mypy = "^0.982"
 
-sphinx = "^5.1.1"
+sphinx = "^5.3.0"
 sphinx-autodoc-typehints = "^1.19.2"
 sphinx-rtd-theme = "^1.0.0"
 

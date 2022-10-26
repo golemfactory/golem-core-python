@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import List, Tuple, TYPE_CHECKING
+from typing import List, Tuple, TYPE_CHECKING, Union
 from decimal import Decimal
 
 from ya_payment import RequestorApi, models
@@ -12,6 +12,8 @@ from .resource_internals import _NULL
 
 if TYPE_CHECKING:
     from golem_api.golem_node import GolemNode
+    from .activity import Activity
+    from .market import Agreement
 
 
 class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL]):
@@ -82,3 +84,34 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
     async def demand_properties_constraints(self) -> Tuple[List[models.MarketProperty], List[str]]:
         data = await self.api.get_demand_decorations([self.id])
         return data.properties, data.constraints
+
+
+class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NULL]):
+    """A single debit note on the Golem Network.
+
+    Ususally created by a :any:`GolemNode` initialized with `collect_payment_events = True`.
+    """
+    async def accept_full(self, allocation: Allocation) -> None:
+        """Accept full debit note amount using a given :any:`Allocation`."""
+        amount_str = (await self.get_data()).total_amount_due
+        await self.accept(allocation, Decimal(amount_str))
+
+    @api_call_wrapper()
+    async def accept(self, allocation: Allocation, amount: Union[Decimal, float]) -> None:
+        acceptance = models.Acceptance(total_amount_accepted=str(amount), allocation_id=allocation.id)
+        await self.api.accept_debit_note(self.id, acceptance)
+
+
+class Invoice(Resource[RequestorApi, models.Invoice, "Agreement", _NULL, _NULL]):
+    """A single invoice on the Golem Network.
+
+    Ususally created by a :any:`GolemNode` initialized with `collect_payment_events = True`."""
+    async def accept_full(self, allocation: Allocation) -> None:
+        """Accept full invoice amount using a given :any:`Allocation`."""
+        amount_str = (await self.get_data()).amount
+        await self.accept(allocation, Decimal(amount_str))
+
+    @api_call_wrapper()
+    async def accept(self, allocation: Allocation, amount: Union[Decimal, float]) -> None:
+        acceptance = models.Acceptance(total_amount_accepted=str(amount), allocation_id=allocation.id)
+        await self.api.accept_invoice(self.id, acceptance)

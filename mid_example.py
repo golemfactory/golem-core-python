@@ -1,34 +1,62 @@
 import asyncio
 from datetime import timedelta
 from random import random
-from typing import AsyncIterator, AsyncGenerator, TypeVar
+from typing import AsyncIterator, Callable, Tuple
 
-from yapapi.payload import vm
+from golem_api import GolemNode, commands, Payload
+from golem_api.low import Activity, Proposal
 
-from golem_api import GolemNode
-from golem_api.low import Agreement, Proposal
-
-from golem_api.mid import Chain, SimpleScorer, DefaultNegotiator, AgreementCreator
+from golem_api.mid import (
+    Buffer, Chain, Map, Zip,
+    ActivityPool, SimpleScorer,
+    default_negotiate, default_create_agreement, default_create_activity,
+)
 from golem_api.default_logger import DefaultLogger
+from golem_api.default_payment_manager import DefaultPaymentManager
 
-
-IMAGE_HASH = "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
-X = TypeVar('X')
+PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 
 async def score_proposal(proposal: Proposal) -> float:
     return random()
 
 
-async def max_3(any_generator: AsyncIterator[X]) -> AsyncGenerator[X, None]:
-    #   This function can be inserted anywhere in the example chain
-    #   (except as the first element)
-    cnt = 0
-    async for x in any_generator:
-        yield x
-        cnt += 1
-        if cnt == 3:
-            break
+async def prepare_activity(activity: Activity) -> Activity:
+    batch = await activity.execute_commands(
+        commands.Deploy(),
+        commands.Start(),
+        commands.Run(["/bin/echo", "-n", f"ACTIVITY {activity.id} IS READY"]),
+    )
+    await batch.wait(timeout=10)
+    assert batch.events[-1].stdout is not None and "IS READY" in batch.events[-1].stdout, "Prepare activity failed"
+    print(batch.events[-1].stdout)
+    return activity
+
+
+async def execute_task(activity: Activity, task_data: int) -> str:
+    assert activity.idle, f"Got a non-idle activity {activity}"
+    command = commands.Run(["/bin/echo", "-n", f"Executed task {task_data} on {activity}"])
+    batch = await activity.execute_commands(command)
+    await batch.wait(timeout=3)
+
+    result = batch.events[-1].stdout
+    assert result is not None and "Executed task" in result, f"Got an incorrect result for {task_data}: {result}"
+
+    if random() > 0.9:
+        1 / 0
+
+    return result
+
+
+task_cnt = 20
+task_data = list(range(task_cnt))
+
+
+async def on_exception(func: Callable, args: Tuple, e: Exception) -> None:
+    activity, in_data = args
+    task_data.append(in_data)
+    print(f"Repeating task {in_data} because of {e}")
+    await activity.parent.close_all()
 
 
 async def main() -> None:
@@ -37,27 +65,42 @@ async def main() -> None:
 
     async with golem:
         allocation = await golem.create_allocation(1)
-        payload = await vm.repo(image_hash=IMAGE_HASH)
-        demand = await golem.create_demand(payload, allocations=[allocation])
+
+        payment_manager = DefaultPaymentManager(golem, allocation)
+
+        demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
+
+        async def task_stream() -> AsyncIterator[int]:
+            while True:
+                if task_data:
+                    yield task_data.pop(0)
+                else:
+                    await asyncio.sleep(0.1)
 
         chain = Chain(
             demand.initial_proposals(),
-            SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=1)),
-            DefaultNegotiator(buffer_size=5),
-            AgreementCreator(),
-            max_3,
+            SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=0.1)),
+            Map(default_negotiate),
+            Map(default_create_agreement),
+            Map(default_create_activity),
+            Map(prepare_activity),
+            ActivityPool(max_size=4),
+            Zip(task_stream()),
+            Map(execute_task, on_exception=on_exception),  # type: ignore  # unfixable (?)
+            Buffer(size=10),
         )
-        agreement: Agreement  # I don't know if it's possible to modify Chain typing to make this redundant
-        async for agreement in chain:
-            print(f"--> {agreement}")
 
-            #   Low-level objects form a tree - each has a parent and children.
-            #   E.g. agreement.parent is the final proposal, and agreement.parent.parent
-            #   is our last response that lead us to the final proposal.
-            #   Proposal state is not auto-updated, but we can update it manually:
-            assert agreement.parent.data.state == "Draft"
-            await agreement.parent.get_data(force=True)
-            assert agreement.parent.data.state == "Accepted"  # type: ignore  # ya_client TODO?
+        returned = 0
+        async for result in chain:
+            returned += 1
+            print(f"RESULT {returned}/{task_cnt} {result}")
+            if returned == task_cnt:
+                break
+
+        print("ALL TASKS DONE")
+
+        await payment_manager.terminate_agreements()
+        await payment_manager.wait_for_invoices()
 
 
 if __name__ == '__main__':
