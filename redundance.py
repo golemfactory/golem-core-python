@@ -28,7 +28,7 @@ async def main() -> None:
         execute_task=execute_task,
         task_data=list(range(10)),
         payload=PAYLOAD,
-        max_workers=5,
+        max_workers=3,
         redundance=(3, 0.7),
     ):
         print(f"GOT RESULT {result}")

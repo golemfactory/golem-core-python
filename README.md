@@ -30,9 +30,9 @@ firefox build/api.html
 3. `cli_example.sh`         - command line interface example
 4. `blender.py`
 5. `redundace.py`           - verification by redundance example
-6.  `yacat.py`              - yacat with business logic
-7.  `detached_activity.py`  - create activity, print activity\_id, stop (but keep the activity running)
-8.  `attach.py`             - take an activity\_id and start using it
+6. `yacat.py`               - yacat with business logic
+7. `detached_activity.py`   - create activity, print activity\_id, stop (but keep the activity running)
+8. `attach.py`              - take an activity\_id and start using it
 
 
 ## CLI
