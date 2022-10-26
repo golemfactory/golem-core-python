@@ -17,7 +17,7 @@ async def prepare_activity(activity: Activity) -> Activity:
         commands.Start(),
         commands.SendFile("cubes.blend", "/golem/resource/scene.blend")
     )
-    await batch.wait(timeout=10)
+    await batch.wait(timeout=60)
     return activity
 
 
