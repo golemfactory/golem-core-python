@@ -141,7 +141,8 @@ class EventBus:
 
         If emit(X) was called before emit(Y), then it is guaranteed that callbacks
         for event Y will start only after all X callbacks finished (TODO - this should change,
-        we don't want the EventBus to stop because of a single never-ending callback).
+        we don't want the EventBus to stop because of a single never-ending callback,
+        https://github.com/golemfactory/golem-api-python/issues/3).
 
         :param event: An event that will be emitted.
         """
@@ -153,8 +154,7 @@ class EventBus:
             await self._emit(event)
 
     async def _emit(self, event: Event) -> None:
-        #   TODO: With this implementation a single never-ending callback will stop
-        #         the whole EventBus. This should be fixed in the future.
+        #   TODO: https://github.com/golemfactory/golem-api-python/issues/3
         tasks = []
         for event_template, callbacks in self.consumers.items():
             if event_template.includes(event):

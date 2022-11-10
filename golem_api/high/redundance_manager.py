@@ -46,7 +46,7 @@ class RedundanceManager:
                 yield proposal
 
         #   TODO: We wait here forever because Map, Zip etc) don't work with finite streams.
-        #         This will be improved in the future.
+        #         https://github.com/golemfactory/golem-api-python/issues/8
         print("All tasks done - no more proposals will be processed")
         await asyncio.Future()
 

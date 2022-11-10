@@ -238,7 +238,9 @@ class Proposal(
         Invalid on our responses.
 
         TODO: all the negotiation logic should be reflected in params of this method,
-        but negotiations are not implemented yet.
+        but negotiations are not implemented yet. Related issues:
+        https://github.com/golemfactory/golem-api-python/issues/17
+        https://github.com/golemfactory/golem-api-python/issues/18
         """
 
         data = await self._response_data()
@@ -368,6 +370,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity",
         #   BUT this probably should be a yagna-side change. Agreement.terminate() should
         #   just always succeed, as well as Activity.destroy() - yagna should repeat if necessary etc.
         #   We should only repeat in rare cases when we can't connect to our local `yagna`.
+        #   Related issue: https://github.com/golemfactory/golem-api-python/issues/19
         while True:
             try:
                 await self.terminate()

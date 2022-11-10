@@ -144,8 +144,7 @@ class GolemNode:
         """
         decimal_amount = Decimal(amount)
 
-        #   TODO (?): It is assumed we have only a single account for (network, driver).
-        #             In the future this assumption might not be true, but we don't care now.
+        #   TODO (?): https://github.com/golemfactory/golem-api-python/issues/34
         allocation = await Allocation.create_any_account(self, decimal_amount, network, driver)
         if autoclose:
             self.add_autoclose_resource(allocation)
@@ -195,8 +194,7 @@ class GolemNode:
             for constraint in constraints:
                 builder.ensure(constraint)
 
-            #   TODO (?): It is assumed there are no conflicts here (i.e. allocations for different addresses
-            #             for the same network/driver pair). One day we might need to change this.
+            #   TODO (?): https://github.com/golemfactory/golem-api-python/issues/35
             builder.properties.update({p.key: p.value for p in properties})
 
     ###########################

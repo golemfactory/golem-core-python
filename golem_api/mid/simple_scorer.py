@@ -40,7 +40,8 @@ class SimpleScorer:
 
         :param proposals: Stream of :any:`Proposal` to be reordered.
             In fact, this could be stream of whatever, as long as this whatever matches
-            the scoring function, and this whatever would be yielded (--> TODO - maybe turn this into a general Sort?).
+            the scoring function, and this whatever would be yielded (TODO - maybe turn this into a general Sort?
+            https://github.com/golemfactory/golem-api-python/issues/11).
         """
         self._no_more_proposals = False
         proposal_scorer_task = asyncio.get_event_loop().create_task(self._process_stream(proposals))
@@ -67,7 +68,7 @@ class SimpleScorer:
 
     async def _process_stream(self, proposal_stream: AsyncIterator[Proposal]) -> None:
         async for proposal in proposal_stream:
-            #   TODO: maybe we should score all proposals at the same time? Or maybe not all, but with a limit?
+            #   TODO: https://github.com/golemfactory/golem-api-python/issues/37
             score = await self.score_proposal(proposal)
             if score is None:
                 continue

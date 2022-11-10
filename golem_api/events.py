@@ -119,5 +119,6 @@ class ResourceClosed(ResourceEvent):
     :any:`GolemNode.agreement`) does not trigger this event.
 
     This event should never be emitted more than once for a given :any:`Resource`.
-    Currently this is not true for :any:`Activity` - this is a known TODO.
+    Currently this is not true for :any:`Activity` - this is a known TODO
+    (https://github.com/golemfactory/golem-api-python/issues/33).
     """

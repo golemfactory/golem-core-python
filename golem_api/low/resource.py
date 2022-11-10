@@ -41,6 +41,7 @@ class Resource(
 
     TODO - in the final version this should disappear from the public docs and all these methods
     should be described on subclasses, but this doesn't make much sense before the previous TODO.
+    Related issue: https://github.com/golemfactory/golem-api-python/issues/26
     """
     def __init__(self, node: "GolemNode", id_: str, data: Optional[ModelType] = None):
         self._node = node
@@ -101,8 +102,7 @@ class Resource(
                 yield self._children[cnt]
                 cnt += 1
             else:
-                #   TODO: make this more efficient (remove sleep)
-                #         (e.g. by setting some awaitable to done in add_child)
+                #   TODO: https://github.com/golemfactory/golem-api-python/issues/36
                 wait_task: asyncio.Task = asyncio.create_task(asyncio.sleep(0.1))
                 await asyncio.wait((wait_task, stop_task), return_when=asyncio.FIRST_COMPLETED)
                 if stop_task.done():
