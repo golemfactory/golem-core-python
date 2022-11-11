@@ -22,7 +22,7 @@ class Network(Resource[RequestorApi, models.Network, _NULL, "Node", _NULL]):
 
         self._create_node_lock = asyncio.Lock()
         self._ip_network: IpNetwork = ip_network(data.ip, strict=False)
-        self._requestor_ips: List[IpAddress] = []
+        self._all_ips = [str(ip) for ip in self._ip_network.hosts()]
 
     @classmethod
     @api_call_wrapper()
@@ -56,12 +56,11 @@ class Network(Resource[RequestorApi, models.Network, _NULL, "Node", _NULL]):
     def _current_ips(self) -> List[IpAddress]:
         #   TODO: this ignores possible removed nodes - once an IP was assigned,
         #         it is always "current_ip". This might not be perfect.
-        return self._requestor_ips + [node.data.ip for node in self.children]
+        return [node.data.ip for node in self.children]
 
     def _next_free_ip(self) -> IpAddress:
         try:
-            #   FIXME: have all ips on a slot
-            return next(str(ip) for ip in self._ip_network.hosts() if ip not in self._current_ips)
+            return next(ip for ip in self._all_ips if ip not in self._current_ips)
         except StopIteration:
             raise Exception(f"{self} is full - there are no free ips left")
 
