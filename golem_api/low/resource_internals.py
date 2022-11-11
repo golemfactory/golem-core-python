@@ -11,11 +11,12 @@ from ya_activity import (
     RequestorStateApi,
     models as activity_models
 )
+from ya_net import models as net_models, RequestorApi as NetworkApi
 
 if TYPE_CHECKING:
     from golem_api import GolemNode
     from golem_api.low.resource import Resource
-    from golem_api.low import market, activity
+    from golem_api.low import market, activity, net
 
 
 class ActivityApi:
@@ -56,6 +57,8 @@ ModelType = TypeVar(
     market_models.Demand,
     market_models.Proposal,
     market_models.Agreement,
+    net_models.Network,
+    net_models.Node,
 )
 ParentType = TypeVar(
     "ParentType",
@@ -63,7 +66,8 @@ ParentType = TypeVar(
     "market.Proposal",
     "market.Agreement",
     "market.Activity",
-    Union["market.Demand", "market.Proposal"]
+    Union["market.Demand", "market.Proposal"],
+    "net.Network",
 )
 ChildType = TypeVar(
     "ChildType",
@@ -72,6 +76,7 @@ ChildType = TypeVar(
     "activity.Activity",
     "activity.PoolingBatch",
     Union["market.Proposal", "market.Agreement"],
+    "net.Node",
 )
 EventType = TypeVar(
     "EventType",
@@ -98,4 +103,6 @@ def get_requestor_api(cls: Type["Resource"], node: "GolemNode") -> RequestorApiT
         return MarketApi(node._ya_market_api)
     elif api_type is ActivityApi:
         return ActivityApi(node._ya_activity_api)
+    elif api_type is NetworkApi:
+        return NetworkApi(node._ya_net_api)
     raise TypeError("This should never happen")

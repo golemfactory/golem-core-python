@@ -14,6 +14,7 @@ from .payload import Payload
 from .low.activity import Activity, PoolingBatch
 from .low.market import Demand, Proposal, Agreement
 from .low.payment import Allocation, DebitNote, Invoice
+from .low.network import Network
 from .low.resource import Resource
 from .low.payment_event_collector import DebitNoteEventCollector, InvoiceEventCollector
 
@@ -187,6 +188,16 @@ class GolemNode:
         if autoclose:
             self.add_autoclose_resource(demand)
         return demand
+
+    async def create_network(
+        self,
+        ip: str,
+        mask: Optional[str] = None,
+        gateway: Optional[str] = None,
+        autoclose: bool = True,
+    ):
+        network = await Network.create(self, ip, mask, gateway)
+        return network
 
     async def _add_builder_allocations(self, builder: DemandBuilder, allocations: Iterable[Allocation]) -> None:
         for allocation in allocations:
