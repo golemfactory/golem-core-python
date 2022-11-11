@@ -118,6 +118,7 @@ class GolemNode:
         agreement_tasks = [r.terminate(agreement_msg) for r in self._autoclose_resources if isinstance(r, Agreement)]
         demand_tasks = [r.unsubscribe() for r in self._autoclose_resources if isinstance(r, Demand)]
         allocation_tasks = [r.release() for r in self._autoclose_resources if isinstance(r, Allocation)]
+        network_tasks = [r.remove() for r in self._autoclose_resources if isinstance(r, Network)]
         if activity_tasks:
             await asyncio.gather(*activity_tasks)
         if agreement_tasks:
@@ -126,6 +127,8 @@ class GolemNode:
             await asyncio.gather(*demand_tasks)
         if allocation_tasks:
             await asyncio.gather(*allocation_tasks)
+        if network_tasks:
+            await asyncio.gather(*network_tasks)
 
     ###########################
     #   Create new resources
@@ -197,6 +200,8 @@ class GolemNode:
         autoclose: bool = True,
     ):
         network = await Network.create(self, ip, mask, gateway)
+        if autoclose:
+            self.add_autoclose_resource(network)
         return network
 
     async def _add_builder_allocations(self, builder: DemandBuilder, allocations: Iterable[Allocation]) -> None:
