@@ -1,12 +1,16 @@
 import asyncio
-from typing import Optional, TYPE_CHECKING
+from typing import List, Optional, Union, TYPE_CHECKING
 
+from ipaddress import ip_network, IPv4Address, IPv6Address, IPv4Network, IPv6Network
 from ya_net import RequestorApi, models
 
 from golem_api.events import ResourceClosed
 from .api_call_wrapper import api_call_wrapper
 from .resource import Resource
 from .resource_internals import _NULL
+
+IpAddress = Union[IPv4Address, IPv6Address]
+IpNetwork = Union[IPv4Network, IPv6Network]
 
 if TYPE_CHECKING:
     from golem_api.golem_node import GolemNode
@@ -17,6 +21,8 @@ class Network(Resource[RequestorApi, models.Network, _NULL, "Node", _NULL]):
         super().__init__(golem_node, id_, data)
 
         self._create_node_lock = asyncio.Lock()
+        self._ip_network: IpNetwork = ip_network(data.ip, strict=False)
+        self._requestor_ips: List[IpAddress] = []
 
     @classmethod
     @api_call_wrapper()
@@ -37,14 +43,27 @@ class Network(Resource[RequestorApi, models.Network, _NULL, "Node", _NULL]):
                 node_ip = self._next_free_ip()
 
             golem_node = self.node
-            node = await Node.create(golem_node, node_id, node_ip)
-            return
+            node = await Node.create(golem_node, self.id, node_id, node_ip)
             self.add_child(node)
 
             return node
 
-    def _next_free_ip(self) -> str:
-        return "123.123"
+    @api_call_wrapper()
+    async def add_requestor_ip(self, ip: str) -> None:
+        await self.api.add_address(self.id, models.Address(ip))
+
+    @property
+    def _current_ips(self) -> List[IpAddress]:
+        #   TODO: this ignores possible removed nodes - once an IP was assigned,
+        #         it is always "current_ip". This might not be perfect.
+        return self._requestor_ips + [node.data.ip for node in self.children]
+
+    def _next_free_ip(self) -> IpAddress:
+        try:
+            #   FIXME: have all ips on a slot
+            return next(str(ip) for ip in self._ip_network.hosts() if ip not in self._current_ips)
+        except StopIteration:
+            raise Exception(f"{self} is full - there are no free ips left")
 
     @classmethod
     def _id_field_name(cls) -> str:
@@ -56,5 +75,8 @@ class Network(Resource[RequestorApi, models.Network, _NULL, "Node", _NULL]):
 class Node(Resource[RequestorApi, models.Node, Network, _NULL, _NULL]):
     @classmethod
     @api_call_wrapper()
-    async def create(cls, golem_node: "GolemNode", id_, ip):
-        print("CREATE", id_, ip)
+    async def create(cls, golem_node: "GolemNode", network_id, node_id, ip):
+        api = cls._get_api(golem_node)
+        data = models.Node(id=network_id, ip=ip)
+        await api.add_node(network_id, data)
+        return Node(golem_node, node_id, data)
