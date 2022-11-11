@@ -80,6 +80,6 @@ class Node(Resource[RequestorApi, models.Node, Network, _NULL, _NULL]):
     @api_call_wrapper()
     async def create(cls, golem_node: "GolemNode", network_id, node_id, ip):
         api = cls._get_api(golem_node)
-        data = models.Node(id=network_id, ip=ip)
+        data = models.Node(id=node_id, ip=ip)
         await api.add_node(network_id, data)
         return Node(golem_node, node_id, data)
