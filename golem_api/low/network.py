@@ -22,6 +22,7 @@ class Network(Resource[RequestorApi, models.Network, _NULL, "Node", _NULL]):
 
         self._create_node_lock = asyncio.Lock()
         self._ip_network: IpNetwork = ip_network(data.ip, strict=False)
+        self._requestor_ips = []
         self._all_ips = [str(ip) for ip in self._ip_network.hosts()]
 
     @property
@@ -53,14 +54,18 @@ class Network(Resource[RequestorApi, models.Network, _NULL, "Node", _NULL]):
             return node
 
     @api_call_wrapper()
-    async def add_requestor_ip(self, ip: str) -> None:
+    async def add_requestor_ip(self, ip: Optional[str]) -> None:
+        async with self._create_node_lock:
+            if ip is None:
+                ip = self._next_free_ip()
+            self._requestor_ips.append(ip)
         await self.api.add_address(self.id, models.Address(ip))
 
     @property
     def _current_ips(self) -> List[IpAddress]:
         #   TODO: this ignores possible removed nodes - once an IP was assigned,
         #         it is always "current_ip". This might not be perfect.
-        return [node.data.ip for node in self.children]
+        return self._requestor_ips + [node.data.ip for node in self.children]
 
     def _next_free_ip(self) -> IpAddress:
         try:

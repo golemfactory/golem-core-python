@@ -299,9 +299,7 @@ class GolemNode:
     #########
     #   Other
     async def add_to_network(self, network: Network, ip: Optional[str] = None) -> None:
-        id_ = await self._get_id()
-        node = await network.create_node(id_, ip)
-        await network.add_requestor_ip(node.data.ip)
+        await network.add_requestor_ip(ip)
 
     def add_autoclose_resource(self, resource: Union["Allocation", "Demand", "Agreement", "Activity"]) -> None:
         self._autoclose_resources.add(resource)
@@ -309,19 +307,6 @@ class GolemNode:
     def all_resources(self, cls: Type[ResourceType]) -> List[ResourceType]:
         """Returns all known resources of a given type"""
         return list(self._resources[cls].values())  # type: ignore
-
-    async def _get_id(self):
-        #   TODO: this logic should one day be implemented in ya_client,
-        #   check e.g.: https://github.com/golemfactory/yapapi/issues/636
-        import aiohttp
-        import json
-
-        url = f"{self._api_config.root_url}/me"
-        headers = self._ya_net_api.default_headers
-        async with aiohttp.ClientSession(headers=headers) as session:
-            async with session.get(url) as response:
-                data = json.loads(await response.text())
-                return data["identity"]
 
     def __str__(self) -> str:
         lines = [
