@@ -298,12 +298,21 @@ class GolemNode:
 
     #########
     #   Other
+    async def add_to_network(self, network: Network, ip: Optional[str] = None) -> None:
+        id_ = self._get_id()
+        node = await network.create_node(id_, ip)
+        return
+        await network.add_requestor_node(node)
+
     def add_autoclose_resource(self, resource: Union["Allocation", "Demand", "Agreement", "Activity"]) -> None:
         self._autoclose_resources.add(resource)
 
     def all_resources(self, cls: Type[ResourceType]) -> List[ResourceType]:
         """Returns all known resources of a given type"""
         return list(self._resources[cls].values())  # type: ignore
+
+    def _get_id(self):
+        return 'aaa'
 
     def __str__(self) -> str:
         lines = [

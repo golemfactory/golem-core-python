@@ -22,7 +22,7 @@ async def main() -> None:
     async with golem:
         network = await golem.create_network("192.168.0.1/24")
         print(network)
-        await network.remove()
+        await golem.add_to_network(network)
         return
 
         allocation = await golem.create_allocation(1)
