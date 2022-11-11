@@ -24,6 +24,10 @@ class Network(Resource[RequestorApi, models.Network, _NULL, "Node", _NULL]):
         self._ip_network: IpNetwork = ip_network(data.ip, strict=False)
         self._all_ips = [str(ip) for ip in self._ip_network.hosts()]
 
+    @property
+    def nodes(self) -> List["Node"]:
+        return self.children
+
     @classmethod
     @api_call_wrapper()
     async def create(cls, golem_node: "GolemNode", ip: str, mask: Optional[str], gateway: Optional[str]) -> "Network":

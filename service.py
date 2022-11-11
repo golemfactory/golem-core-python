@@ -42,20 +42,32 @@ async def main() -> None:
         # awaitable_2 = await activity_chain.__anext__()
         # activity_1, activity_2 = await asyncio.gather(awaitable_1, awaitable_2)
 
+        provider_id = activity.parent.parent.data.issuer_id
+        node = await network.create_node(provider_id)
+        print(node)
+
+        deploy_args = {
+            "net": [
+                {
+                    "id": network.id,
+                    "ip": "192.168.0.0",
+                    "mask": network.data.mask,
+                    "nodeIp": node.data.ip,
+                    "nodes": {node.data.ip: node.id for node in network.nodes},
+                }
+            ]
+        }
+
         password = "".join(random.choice(string.ascii_letters + string.digits) for _ in range(8))
         batch = await activity.execute_commands(
-            commands.Deploy(),
+            commands.Deploy(deploy_args),
             commands.Start(),
             commands.Run("syslogd"),
             commands.Run("ssh-keygen -A"),
             commands.Run(f'echo -e "{password}\n{password}" | passwd'),
             commands.Run("/usr/sbin/sshd"),
         )
-        await batch.wait(5)
-
-        provider_id = activity.parent.parent.data.issuer_id
-        node = await network.create_node(provider_id)
-        print(node)
+        await batch.wait(20)
 
         url = golem._api_config.net_url
         net_api_ws = urlparse(url)._replace(scheme="ws").geturl()

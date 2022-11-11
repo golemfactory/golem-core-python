@@ -31,8 +31,11 @@ class Command(ABC):
 
 class Deploy(Command):
     """Executes `deploy()` in the exeunit."""
+    def __init__(self, args_dict: Optional[ArgsDict] = None):
+        self._args_dict = args_dict or {}
+
     def args_dict(self) -> ArgsDict:
-        return {}
+        return self._args_dict
 
 
 class Start(Command):
