@@ -276,6 +276,10 @@ class GolemNode:
         """Returns a list of :any:`DebitNote` objects corresponding to all debit notes received by this node."""
         return await DebitNote.get_all(self)
 
+    async def networks(self) -> List[Network]:
+        """Returns a list of :any:`Network` objects corresponding to all networks created by this node."""
+        return await Network.get_all(self)
+
     ##########################
     #   Events
     @property

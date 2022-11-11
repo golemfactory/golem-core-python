@@ -191,7 +191,7 @@ class Resource(
         data = await get_all_method()
 
         resources = []
-        id_field = f'{cls._snake_case_name()}_id'
+        id_field = cls._id_field_name()
         for raw in data:
             id_ = getattr(raw, id_field)
             resources.append(cls(node, id_, raw))
@@ -212,6 +212,10 @@ class Resource(
     def _get_all_method_name(cls) -> str:
         """Name of the collection GET ya_client method, e.g. get_allocations."""
         return f'get_{cls._snake_case_name()}s'
+
+    @classmethod
+    def _id_field_name(cls) -> str:
+        return f'{cls._snake_case_name()}_id'
 
     @classmethod
     def _snake_case_name(cls) -> str:
