@@ -4,6 +4,8 @@ from typing import AsyncIterator, Awaitable, List, Union
 
 from golem_api.low.activity import Activity
 
+from .exceptions import InputStreamExhausted
+
 
 class ActivityPool:
     """Collects activities. Yields activities that are currently idle.
@@ -57,6 +59,7 @@ class ActivityPool:
         self._idle_activities: asyncio.Queue[Activity] = asyncio.Queue()
         self._activity_manager_tasks: List[asyncio.Task] = []
         self._in_stream_lock = asyncio.Lock()
+        self._in_stream_empty = False
 
     def full(self) -> bool:
         running_managers = [task for task in self._activity_manager_tasks if not task.done()]
@@ -83,7 +86,11 @@ class ActivityPool:
     async def _activity_destroyed_cleanup(
         self, manager_task: asyncio.Task, future_activity: Awaitable[Activity]
     ) -> None:
-        activity = await future_activity
+        try:
+            activity = await future_activity
+        except InputStreamExhausted:
+            return
+
         await activity.wait_destroyed()
         manager_task.cancel()
 
@@ -91,9 +98,15 @@ class ActivityPool:
         self, activity_stream: AsyncIterator[Union[Activity, Awaitable[Activity]]]
     ) -> Activity:
         while True:
-            if self._idle_activities.empty() and not self.full():
+            if not self._in_stream_empty and self._idle_activities.empty() and not self.full():
                 async with self._in_stream_lock:
-                    future_activity = self._as_awaitable(await activity_stream.__anext__())
+                    try:
+                        maybe_future_activity = await activity_stream.__anext__()
+                    except StopAsyncIteration:
+                        self._in_stream_empty = True
+                        continue
+
+                future_activity = self._as_awaitable(maybe_future_activity)
                 self._create_manager_task(future_activity)
 
             activity = await self._idle_activities.get()
@@ -101,7 +114,11 @@ class ActivityPool:
                 return activity
 
     async def _manage_activity(self, future_activity: Awaitable[Activity]) -> None:
-        activity = await future_activity
+        try:
+            activity = await future_activity
+        except InputStreamExhausted:
+            return
+
         while True:
             self._idle_activities.put_nowait(activity)
             await activity.wait_busy()
