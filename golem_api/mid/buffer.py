@@ -53,17 +53,16 @@ class Buffer(Generic[DataType]):
         """
         self.size = size
 
-        self._semaphore = asyncio.BoundedSemaphore(size)
-        self._result_queue: asyncio.Queue[DataType] = asyncio.Queue()
-        self._tasks: List[asyncio.Task] = []
-        self._main_task: Optional[asyncio.Task] = None
-        self._in_stream_exhausted = False
-
     async def __call__(self, in_stream: AsyncIterator[Union[DataType, Awaitable[DataType]]]) -> AsyncIterator[DataType]:
         """
         :param in_stream: A stream of awaitables.
         """
+        self._tasks: List[asyncio.Task] = []
+        self._main_task: Optional[asyncio.Task] = None
+        self._in_stream_exhausted = False
+        self._result_queue: asyncio.Queue[DataType] = asyncio.Queue()
         self._main_task = asyncio.create_task(self._process_in_stream(in_stream))
+        self._semaphore = asyncio.BoundedSemaphore(self.size)
 
         stop_task = asyncio.create_task(self._wait_until_empty())
 
@@ -95,6 +94,7 @@ class Buffer(Generic[DataType]):
             try:
                 awaited = await in_val
             except InputStreamExhausted:
+                self._main_task.cancel()
                 self._semaphore.release()
                 self._in_stream_exhausted = True
                 return
@@ -118,4 +118,4 @@ class Buffer(Generic[DataType]):
             ):
                 return
             else:
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.01)

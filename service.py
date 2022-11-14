@@ -8,7 +8,7 @@ from yapapi.payload import vm
 
 from golem_api import GolemNode, Payload, commands
 from golem_api.mid import (
-    Buffer, Chain, Map,
+    Buffer, Chain, Limit, Map,
     default_negotiate, default_create_agreement, default_create_activity
 )
 from golem_api.default_logger import DefaultLogger
@@ -65,11 +65,10 @@ async def main() -> None:
             Map(default_create_agreement),
             Map(default_create_activity),
             Map(create_ssh_connection(network)),
+            Limit(2),
             Buffer(2),
         ):
             connections.append((uri, password))
-            if len(connections) == 2:
-                break
 
         await network.refresh_nodes()
 

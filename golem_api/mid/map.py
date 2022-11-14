@@ -57,7 +57,6 @@ class Map(Generic[InType, OutType]):
         self.func = func
         self.on_exception = on_exception
 
-        self._in_stream_lock = asyncio.Lock()
 
     async def __call__(
         self,
@@ -66,6 +65,7 @@ class Map(Generic[InType, OutType]):
         """
         :param in_stream: An async stream of either func args or args-returning awaitables.
         """
+        self._in_stream_lock = asyncio.Lock()
         while True:
             yield asyncio.create_task(self._next_value(in_stream))
 
