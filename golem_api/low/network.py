@@ -53,6 +53,13 @@ class Network(Resource[RequestorApi, models.Network, _NULL, "Node", _NULL]):
 
             return node
 
+    async def refresh_nodes(self):
+        tasks = []
+        for node in self.nodes:
+            data = models.Node(id=node.id, ip=node.data.ip)
+            tasks.append(self.api.add_node(self.id, data))
+        await asyncio.gather(*tasks)
+
     @api_call_wrapper()
     async def add_requestor_ip(self, ip: Optional[str]) -> None:
         async with self._create_node_lock:
@@ -88,3 +95,17 @@ class Node(Resource[RequestorApi, models.Node, Network, _NULL, _NULL]):
         data = models.Node(id=node_id, ip=ip)
         await api.add_node(network_id, data)
         return Node(golem_node, node_id, data)
+
+    def deploy_args(self):
+        network = self.parent
+        return {
+            "net": [
+                {
+                    "id": network.id,
+                    "ip": "192.168.0.0",
+                    "mask": network.data.mask,
+                    "nodeIp": self.data.ip,
+                    "nodes": {node.data.ip: node.id for node in network.nodes},
+                }
+            ]
+        }
