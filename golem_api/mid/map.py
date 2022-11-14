@@ -2,6 +2,8 @@ import asyncio
 import inspect
 from typing import AsyncIterator, Awaitable, Generic, TypeVar, Callable, Tuple, Union
 
+from .exceptions import InputStreamExhausted
+
 InType = TypeVar("InType")
 OutType = TypeVar("OutType")
 
@@ -70,7 +72,10 @@ class Map(Generic[InType, OutType]):
     async def _next_value(self, in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]]) -> OutType:
         while True:
             async with self._in_stream_lock:
-                in_val = await in_stream.__anext__()
+                try:
+                    in_val = await in_stream.__anext__()
+                except StopAsyncIteration:
+                    raise InputStreamExhausted()
 
             args = await self._as_awaited_tuple(in_val)
 
