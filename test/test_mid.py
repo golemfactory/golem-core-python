@@ -31,12 +31,14 @@ async def max_3(val):
     (3, (Limit(3), Zip(src_2()))),
     (3, (Limit(3), Map(identity), Zip(src_2()))),
     (3, (Zip(src_2()), Limit(3))),
+    (4, (Map(max_3), Zip(src_2()))),
     (2, (Limit(7), Map(max_3), Limit(2), Zip(src_2()))),
+    (4, (Map(max_3), Map(identity))),
 ))
 @pytest.mark.asyncio
 async def test_finite_chain(expected_cnt, chain_middle_parts):
     """Create some finite chains. Ensure there are no errors & correct amounts of items are returned."""
-    chain = Chain(src(), *chain_middle_parts, Buffer(100))
+    chain = Chain(src(), *chain_middle_parts, Buffer(2))
 
     cnt = 0
     async for _ in chain:

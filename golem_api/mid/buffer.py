@@ -33,10 +33,6 @@ class Buffer(Generic[DataType]):
         async for x in Buffer(size=2)(stream()):
             print(x)
 
-    Caveats:
-
-    *   Assumes input stream never ends (this is a TODO)
-
     """
 
     def __init__(self, size: int = 1):
@@ -100,6 +96,7 @@ class Buffer(Generic[DataType]):
                 return
             except Exception as e:
                 self._semaphore.release()
+                #   TODO https://github.com/golemfactory/golem-api-python/issues/27
                 print("Exception in Buffer", e)
                 return
         else:

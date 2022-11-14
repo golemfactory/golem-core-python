@@ -10,6 +10,11 @@ Y = TypeVar("Y")
 class Zip:
     """Merges two async iterators into a single async iterator.
 
+    If value from any of the iterators is an awaitable, yielded value is a
+    tuple-returning awaitable. If all values are non-awaitables, yielded value is a tuple.
+
+    If streams have different lengths, there will be as many pairs as there are items in the shorter one.
+
     Sample usage::
 
         async def str_stream():
@@ -25,8 +30,23 @@ class Zip:
             #   ("foo", 1)
             #   ("bar", 2)
 
-    It is currently assumed stream passed to `__call__` yields at least as many values
-    as the stream passed to `__init__` - this is a TODO.
+    Or with an awaitable::
+
+        async def get_x():
+            return "baz"
+
+        async def str_stream():
+            yield get_x()
+            yield get_x()
+
+        async def int_stream():
+            yield 1
+            yield 2
+
+        async for awaitable_pair in Zip(int_stream())(str_stream()):
+            print(await awaitable_pair)
+            #   ("baz", 1)
+            #   ("baz", 2)
     """
 
     def __init__(self, main_stream: AsyncIterator[X]):
@@ -38,17 +58,21 @@ class Zip:
                 other_value = await other_stream.__anext__()
             except StopAsyncIteration:
                 break
-            yield self._merge(other_value, main_value)
 
-    async def _merge(self, val_1, val_2):
-        awaitables = []
-
-        for val in (val_1, val_2):
-            if inspect.isawaitable(val):
-                awaitables.append(val)
+            if any(inspect.isawaitable(val) for val in (main_value, other_value)):
+                yield self._merge_awaitables(other_value, main_value)
             else:
-                fut = asyncio.Future()
-                fut.set_result(val)
-                awaitables.append(fut)
+                yield other_value, main_value
 
-        return tuple(await asyncio.gather(*awaitables))
+    async def _merge_awaitables(self, val_1, val_2):
+        if inspect.isawaitable(val_1):
+            if inspect.isawaitable(val_2):
+                values = await asyncio.gather(val_1, val_2)
+            else:
+                values = [await val_1, val_2]
+        elif inspect.isawaitable(val_2):
+            values = [val_1, await val_2]
+        else:
+            values = [val_1, val_2]
+
+        return tuple(values)

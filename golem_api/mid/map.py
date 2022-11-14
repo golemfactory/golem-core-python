@@ -32,8 +32,6 @@ class Map(Generic[InType, OutType]):
             #   4
 
     Caveats:
-
-    *   Assumes input stream never ends (this is a TODO)
     *   Always yields awaitables
     *   It doesn't matter if source iterator yields `X` or `Awaitable[X]`, which has two consequences:
 
@@ -56,7 +54,6 @@ class Map(Generic[InType, OutType]):
         """
         self.func = func
         self.on_exception = on_exception
-
 
     async def __call__(
         self,
@@ -88,8 +85,7 @@ class Map(Generic[InType, OutType]):
         #   Q: Why this?
         #   A: Because this way it's possible to wait chains of awaitables without
         #      dealing with awaitables at all. E.g. We have Map(X -> Y) followed by Map(Y -> Z)
-        #      and first map returns Awaitable[Y] (because of return_awaitable = True),
-        #      and second map unpacks this Awaitable here.
+        #      and first map returns Awaitable[Y], and second map unpacks this Awaitable here.
         #   (This probably has some downsides, but should be worth it)
         if not isinstance(in_val, tuple):
             if inspect.isawaitable(in_val):
