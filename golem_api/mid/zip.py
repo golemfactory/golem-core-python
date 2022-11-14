@@ -1,3 +1,6 @@
+import asyncio
+import inspect
+
 from typing import AsyncIterator, Tuple, TypeVar
 
 X = TypeVar("X")
@@ -16,7 +19,7 @@ class Zip:
         async def int_stream():
             yield 1
             yield 2
-        
+
         async for pair in Zip(int_stream())(str_stream()):
             print(pair)
             #   ("foo", 1)
@@ -31,5 +34,21 @@ class Zip:
 
     async def __call__(self, other_stream: AsyncIterator[Y]) -> AsyncIterator[Tuple[Y, X]]:
         async for main_value in self._main_stream:
-            other_value = await other_stream.__anext__()
-            yield other_value, main_value  # type: ignore  # mypy, why?
+            try:
+                other_value = await other_stream.__anext__()
+            except StopAsyncIteration:
+                break
+            yield self._merge(other_value, main_value)
+
+    async def _merge(self, val_1, val_2):
+        awaitables = []
+
+        for val in (val_1, val_2):
+            if inspect.isawaitable(val):
+                awaitables.append(val)
+            else:
+                fut = asyncio.Future()
+                fut.set_result(val)
+                awaitables.append(fut)
+
+        return tuple(await asyncio.gather(*awaitables))
