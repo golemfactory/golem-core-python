@@ -1,7 +1,7 @@
 import asyncio
 import inspect
 
-from typing import AsyncIterator, Tuple, TypeVar
+from typing import AsyncIterator, Awaitable, Tuple, TypeVar, Union
 
 X = TypeVar("X")
 Y = TypeVar("Y")
@@ -49,10 +49,12 @@ class Zip:
             #   ("baz", 2)
     """
 
-    def __init__(self, main_stream: AsyncIterator[X]):
+    def __init__(self, main_stream: AsyncIterator[Union[X, Awaitable[X]]]):
         self._main_stream = main_stream
 
-    async def __call__(self, other_stream: AsyncIterator[Y]) -> AsyncIterator[Tuple[Y, X]]:
+    async def __call__(
+        self, other_stream: AsyncIterator[Union[Y, Awaitable[Y]]]
+    ) -> AsyncIterator[Union[Tuple[Y, X], Awaitable[Tuple[Y, X]]]]:
         async for main_value in self._main_stream:
             try:
                 other_value = await other_stream.__anext__()
@@ -60,11 +62,13 @@ class Zip:
                 break
 
             if any(inspect.isawaitable(val) for val in (main_value, other_value)):
-                yield self._merge_awaitables(other_value, main_value)
+                yield self._merge_awaitables(other_value, main_value)  # type: ignore
             else:
-                yield other_value, main_value
+                yield other_value, main_value  # type: ignore
 
-    async def _merge_awaitables(self, val_1, val_2):
+    async def _merge_awaitables(
+        self, val_1: Union[Y, Awaitable[Y]], val_2: Union[X, Awaitable[X]]
+    ) -> Awaitable[Tuple[Y, X]]:
         if inspect.isawaitable(val_1):
             if inspect.isawaitable(val_2):
                 values = await asyncio.gather(val_1, val_2)
@@ -75,4 +79,4 @@ class Zip:
         else:
             values = [val_1, val_2]
 
-        return tuple(values)
+        return tuple(values)  # type: ignore

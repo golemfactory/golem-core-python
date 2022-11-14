@@ -1,6 +1,6 @@
 import asyncio
 import inspect
-from typing import AsyncIterator, Awaitable, Generic, List, Optional, TypeVar, Union
+from typing import AsyncIterator, Awaitable, Generic, List, TypeVar, Union
 
 from .exceptions import InputStreamExhausted
 
@@ -54,7 +54,6 @@ class Buffer(Generic[DataType]):
         :param in_stream: A stream of awaitables.
         """
         self._tasks: List[asyncio.Task] = []
-        self._main_task: Optional[asyncio.Task] = None
         self._in_stream_exhausted = False
         self._result_queue: asyncio.Queue[DataType] = asyncio.Queue()
         self._main_task = asyncio.create_task(self._process_in_stream(in_stream))

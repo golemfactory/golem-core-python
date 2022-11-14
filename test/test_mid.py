@@ -1,19 +1,21 @@
 import pytest
 
+from typing import Any, AsyncIterator, Callable, Tuple
+
 from golem_api.mid import Buffer, Chain, Limit, Map, Zip
 
-async def src():
+async def src() -> AsyncIterator[int]:
     for x in range(10):
         yield x
 
-async def src_2():
+async def src_2() -> AsyncIterator[str]:
     for x in 'abcde':
         yield x
 
-async def identity(x):
+async def identity(x: Any) -> Any:
     return x
 
-async def max_3(val):
+async def max_3(val: int) -> int:
     if val > 3:
         raise ValueError
     return val
@@ -36,7 +38,7 @@ async def max_3(val):
     (4, (Map(max_3), Map(identity))),
 ))
 @pytest.mark.asyncio
-async def test_finite_chain(expected_cnt, chain_middle_parts):
+async def test_finite_chain(expected_cnt: int, chain_middle_parts: Tuple[Callable]) -> None:
     """Create some finite chains. Ensure there are no errors & correct amounts of items are returned."""
     chain = Chain(src(), *chain_middle_parts, Buffer(2))
 
