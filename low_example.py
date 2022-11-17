@@ -300,25 +300,6 @@ async def example_12() -> None:
         #   Wait, ignore errors (it doesn't matter if the batch already finished)
         await batch.wait(ignore_errors=True)
 
-async def app_session_id_example_1() -> None:
-    app_session_id = "0"
-    golem_1 = GolemNode(app_session_id=app_session_id, collect_payment_events=False)
-    golem_2 = GolemNode()
-
-    events = []
-
-    async def save_event(event):
-        events.append(event)
-
-    golem_2.event_bus.listen(save_event)
-
-    async with golem_2:
-        async with get_activity(golem_1):
-            pass
-
-        await asyncio.sleep(5)
-    print(events)
-
 
 async def main() -> None:
     # NOTE: this example assumes correct allocation/demand/proposal IDs
@@ -358,10 +339,8 @@ async def main() -> None:
     # print("\n---------- EXAMPLE 11 -------------\n")
     # await example_11()
 
-    # print("\n---------- EXAMPLE 12 -------------\n")
-    # await example_12()
-
-    await app_session_id_example_1()
+    print("\n---------- EXAMPLE 12 -------------\n")
+    await example_12()
 
 
 if __name__ == '__main__':

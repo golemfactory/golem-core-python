@@ -4,7 +4,11 @@ import asyncio
 from golem_api import GolemNode
 from golem_api.low import DebitNote, Invoice
 
-from low_example import get_activity
+from .helpers import get_activity
+
+def test_different_app_session_id():
+    assert GolemNode().app_session_id != GolemNode().app_session_id
+
 
 @pytest.mark.parametrize("kwargs, has_events", (
     ({"app_session_id": "0"}, True),
@@ -26,6 +30,11 @@ async def test_app_session_id(kwargs, has_events):
         other_golem = GolemNode(app_session_id="0")
         async with get_activity(other_golem):
             pass
+
+        #   TODO: This is not great because test might sometimes fail when there is
+        #         a network delay, and usually it will take too long.
+        #         This can be improved: don't wait a fixed time, only wait until
+        #         `other_golem` got expected events.
         await asyncio.sleep(3)
 
     if has_events:
