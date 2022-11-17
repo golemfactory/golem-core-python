@@ -6,6 +6,7 @@ from golem_api.low import DebitNote, Invoice
 
 from .helpers import get_activity
 
+
 def test_different_app_session_id():
     assert GolemNode().app_session_id != GolemNode().app_session_id
 

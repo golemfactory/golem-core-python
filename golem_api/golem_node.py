@@ -56,7 +56,10 @@ class GolemNode:
                          variable or http://127.0.0.1:7465.
         :param collect_payment_events: If True, GolemNode will watch for incoming debit notes/invoices
                                        and create corresponding objects (--> :any:`NewResource` events will be emitted).
-        :param session_id: [TODO]
+        :param app_session_id: A correlation/session identifier. :any:`GolemNode` objects with the same `app_session_id`
+                               will receive the same debit note/invoice/agreement events.
+                               Defaults to a random sting. If set to `None`, this GolemNode will receive all events
+                               regardless of their corresponding session ids.
         """
         self._api_config = rest.Configuration(app_key, url=base_url)
         self._collect_payment_events = collect_payment_events
