@@ -39,7 +39,7 @@ class PaymentEventCollector(YagnaEventCollector):
         self.min_ts = datetime.now(timezone.utc)
 
     def _collect_events_kwargs(self) -> Dict:
-        return {'after_timestamp': self.min_ts}
+        return {'after_timestamp': self.min_ts, 'app_session_id': self.node.app_session_id}
 
     async def _process_event(self, event: Union[InvoiceEvent, DebitNoteEvent]) -> None:
         self.min_ts = max(event.event_date, self.min_ts)

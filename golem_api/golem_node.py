@@ -1,6 +1,7 @@
 import asyncio
 from collections import defaultdict
 from typing import Any, DefaultDict, Dict, Iterable, Optional, List, Set, Type, TypeVar, Union
+from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
@@ -22,6 +23,8 @@ from .low.payment_event_collector import DebitNoteEventCollector, InvoiceEventCo
 DEFAULT_EXPIRATION_TIMEOUT = timedelta(seconds=1800)
 ResourceType = TypeVar("ResourceType", bound=Resource)
 
+class _RandomSessionId:
+    pass
 
 class GolemNode:
     """Main entrypoint to the python Golem API, communicates with `yagna`.
@@ -39,7 +42,12 @@ class GolemNode:
     """
 
     def __init__(
-        self, app_key: Optional[str] = None, *, base_url: Optional[str] = None, collect_payment_events: bool = True
+        self,
+        app_key: Optional[str] = None,
+        *,
+        base_url: Optional[str] = None,
+        collect_payment_events: bool = True,
+        app_session_id: Optional[Union[str, _RandomSessionId]] = _RandomSessionId,
     ):
         """
         :param app_key: App key used as an authentication token for all `yagna` calls.
@@ -48,9 +56,11 @@ class GolemNode:
                          variable or http://127.0.0.1:7465.
         :param collect_payment_events: If True, GolemNode will watch for incoming debit notes/invoices
                                        and create corresponding objects (--> :any:`NewResource` events will be emitted).
+        :param session_id: [TODO]
         """
         self._api_config = rest.Configuration(app_key, url=base_url)
         self._collect_payment_events = collect_payment_events
+        self.app_session_id = uuid4().hex if app_session_id is _RandomSessionId else app_session_id
 
         #   All created Resources will be stored here
         #   (This is done internally by the metaclass of the Resource)
@@ -312,6 +322,7 @@ class GolemNode:
         lines = [
             f"{type(self).__name__}(",
             f"  app_key = {self._api_config.app_key},",
+            f"  app_session_id = {self.app_session_id},",
             f"  market_url = {self._api_config.market_url},",
             f"  payment_url = {self._api_config.payment_url},",
             f"  activity_url = {self._api_config.activity_url},",

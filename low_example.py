@@ -2,7 +2,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from tempfile import TemporaryDirectory
 from os import path
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 
 from golem_api import GolemNode, commands, Script, Payload
 from golem_api.events import ResourceEvent
@@ -137,9 +137,11 @@ async def example_6() -> None:
 
 
 @asynccontextmanager
-async def get_activity() -> AsyncGenerator[Activity, None]:
+async def get_activity(golem: Optional[GolemNode] = None) -> AsyncGenerator[Activity, None]:
     """Create a single activity"""
-    golem = GolemNode()
+    if golem is None:
+        golem = GolemNode()
+
     async with golem:
         allocation = await golem.create_allocation(1)
         demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
@@ -298,6 +300,25 @@ async def example_12() -> None:
         #   Wait, ignore errors (it doesn't matter if the batch already finished)
         await batch.wait(ignore_errors=True)
 
+async def app_session_id_example_1() -> None:
+    app_session_id = "0"
+    golem_1 = GolemNode(app_session_id=app_session_id, collect_payment_events=False)
+    golem_2 = GolemNode()
+
+    events = []
+
+    async def save_event(event):
+        events.append(event)
+
+    golem_2.event_bus.listen(save_event)
+
+    async with golem_2:
+        async with get_activity(golem_1):
+            pass
+
+        await asyncio.sleep(5)
+    print(events)
+
 
 async def main() -> None:
     # NOTE: this example assumes correct allocation/demand/proposal IDs
@@ -328,8 +349,8 @@ async def main() -> None:
     # print("\n---------- EXAMPLE 8 -------------\n")
     # await example_8()
 
-    print("\n---------- EXAMPLE 9 -------------\n")
-    await example_9()
+    # print("\n---------- EXAMPLE 9 -------------\n")
+    # await example_9()
 
     # print("\n---------- EXAMPLE 10 -------------\n")
     # await example_10()
@@ -337,8 +358,10 @@ async def main() -> None:
     # print("\n---------- EXAMPLE 11 -------------\n")
     # await example_11()
 
-    print("\n---------- EXAMPLE 12 -------------\n")
-    await example_12()
+    # print("\n---------- EXAMPLE 12 -------------\n")
+    # await example_12()
+
+    await app_session_id_example_1()
 
 
 if __name__ == '__main__':

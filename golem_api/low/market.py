@@ -293,7 +293,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity",
 
         First step that leads to an active agreement.
         """
-        await self.api.confirm_agreement(self.id)
+        await self.api.confirm_agreement(self.id, app_session_id=self.node.app_session_id)
 
     @api_call_wrapper()
     async def wait_for_approval(self) -> bool:
