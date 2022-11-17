@@ -44,7 +44,6 @@ async def test_finite_chain(expected_cnt: int, chain_middle_parts: Tuple[Callabl
 
     cnt = 0
     async for _ in chain:
-        print(_)
         cnt += 1
 
     assert cnt == expected_cnt
