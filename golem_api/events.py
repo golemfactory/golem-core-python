@@ -3,6 +3,7 @@ from typing import Any, Dict, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from golem_api.low.resource import Resource
+    from golem_api.low import PoolingBatch
     from golem_api import GolemNode
 
 
@@ -126,3 +127,8 @@ class ResourceClosed(ResourceEvent):
     Currently this is not true for :any:`Activity` - this is a known TODO
     (https://github.com/golemfactory/golem-api-python/issues/33).
     """
+
+
+class BatchFinished(ResourceEvent):
+    def __init__(self, resource: "PoolingBatch"):
+        super().__init__(resource)
