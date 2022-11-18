@@ -110,27 +110,6 @@ class ResourceDataChanged(ResourceEvent):
         return f'{type(self).__name__}({self.resource}, {diff_str})'
 
 
-class ResourceChangePossible(ResourceEvent):
-    """Emitted when we receive an information that a :any:`Resource.data` might be outdated.
-
-    E.g. this is emitted for a `Proposal` when an agreement is created based on this proposal.
-
-    It is **not** guaranteed that anything really changed, but e.g. if you want to keep some :any:`Resource`
-    objects as up-to-date as possible, you might consider something like::
-
-        async def update_resource(event: ResourceEvent) -> None:
-            await event.resource.get_data(force=True)
-
-        golem.event_bus.resource_listen(
-            update_resource,
-            event_classes=[ResourceChangePossible],
-            ids=[an_important_resource.id]
-        )
-
-    NOTE: This is **NOT IMPLEMENTED** yet, as it's pretty complex and useless now, and maybe not a good idea at all.
-    """
-
-
 class ResourceClosed(ResourceEvent):
     """Emitted when a resource is deleted or rendered unusable.
 
