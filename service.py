@@ -53,8 +53,6 @@ async def main() -> None:
 
     async with golem:
         network = await golem.create_network("192.168.0.1/24")
-        await golem.add_to_network(network)
-
         allocation = await golem.create_allocation(1)
         demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 

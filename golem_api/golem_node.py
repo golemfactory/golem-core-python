@@ -220,10 +220,26 @@ class GolemNode:
         mask: Optional[str] = None,
         gateway: Optional[str] = None,
         autoclose: bool = True,
+        add_requestor: bool = True,
+        requestor_ip: Optional[str] = None,
     ):
+        """Create a new :any:`Network`.
+
+        :param ip: TODO
+        :param mask: TODO
+        :param gateway: TODO
+        :param autoclose: Remove network on :func:`__aexit__`
+        :param add_requestor: If True, adds requestor with ip `requestor_ip` to the network.
+                              If False, requestor will be able to interact with other nodes only
+                              after an additional call to :func:`add_to_network`.
+        :param requestor_ip: Ip of the requestor node in the network. Ignored if not `add_requestor`.
+                             If `None`, next free ip will be assigned.
+        """
         network = await Network.create(self, ip, mask, gateway)
         if autoclose:
             self.add_autoclose_resource(network)
+        if add_requestor:
+            await self.add_to_network(network, requestor_ip)
         return network
 
     async def _add_builder_allocations(self, builder: DemandBuilder, allocations: Iterable[Allocation]) -> None:
