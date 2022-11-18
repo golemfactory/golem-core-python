@@ -22,10 +22,10 @@ def create_ssh_connection(network):
     async def _create_ssh_connection(activity):
         #   1.  Create node
         provider_id = activity.parent.parent.data.issuer_id
-        node = await network.create_node(provider_id)
+        ip = await network.create_node(provider_id)
 
         #   2.  Run commands
-        deploy_args = node.deploy_args()
+        deploy_args = network.deploy_args(ip)
         password = "".join(random.choice(string.ascii_letters + string.digits) for _ in range(8))
 
         batch = await activity.execute_commands(
@@ -41,7 +41,7 @@ def create_ssh_connection(network):
         #   3.  Create connection uri
         url = network.node._api_config.net_url
         net_api_ws = urlparse(url)._replace(scheme="ws").geturl()
-        connection_uri = f"{net_api_ws}/net/{network.id}/tcp/{node.data.ip}/22"
+        connection_uri = f"{net_api_ws}/net/{network.id}/tcp/{ip}/22"
 
         return connection_uri, password
     return _create_ssh_connection

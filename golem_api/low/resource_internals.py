@@ -58,7 +58,6 @@ ModelType = TypeVar(
     market_models.Proposal,
     market_models.Agreement,
     net_models.Network,
-    net_models.Node,
 )
 ParentType = TypeVar(
     "ParentType",
@@ -76,7 +75,6 @@ ChildType = TypeVar(
     "activity.Activity",
     "activity.PoolingBatch",
     Union["market.Proposal", "market.Agreement"],
-    "net.Node",
 )
 EventType = TypeVar(
     "EventType",
