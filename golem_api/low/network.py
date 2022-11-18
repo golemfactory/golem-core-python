@@ -6,6 +6,7 @@ from ya_net import RequestorApi, models
 
 from golem_api.events import ResourceClosed
 from .api_call_wrapper import api_call_wrapper
+from .exceptions import NetworkFull
 from .resource import Resource
 from .resource_internals import _NULL
 
@@ -78,7 +79,7 @@ class Network(Resource[RequestorApi, models.Network, _NULL, "Node", _NULL]):
         try:
             return next(ip for ip in self._all_ips if ip not in self._current_ips)
         except StopIteration:
-            raise Exception(f"{self} is full - there are no free ips left")
+            raise NetworkFull(self)
 
     @classmethod
     def _id_field_name(cls) -> str:

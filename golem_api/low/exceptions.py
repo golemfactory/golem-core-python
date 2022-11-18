@@ -5,6 +5,7 @@ from yapapi.engine import NoPaymentAccountError
 if TYPE_CHECKING:
     from golem_api.low.resource import Resource
     from golem_api.low.activity import PoolingBatch
+    from golem_api.low.network import Network
 
 
 class ResourceNotFound(Exception):
@@ -105,3 +106,14 @@ class CommandCancelled(BatchError):
             f"Details: command {event.index} failed with {event.message}"
         )
         super().__init__(batch, msg)
+
+
+class NetworkFull(Exception):
+    """Raised when we need a new free ip but there are no free ips left in the :any:`Network`."""
+    def __init__(self, network: "Network"):
+        self._network = network
+        super().__init__(f"{network} is full - there are no free ips left")
+
+    @property
+    def network(self) -> "Network":
+        return self._network
