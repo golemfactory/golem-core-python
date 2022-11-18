@@ -2,12 +2,13 @@ import pytest
 import asyncio
 
 from golem_api import GolemNode
+from golem_api.events import ResourceEvent
 from golem_api.low import DebitNote, Invoice
 
 from .helpers import get_activity
 
 
-def test_different_app_session_id():
+def test_different_app_session_id() -> None:
     assert GolemNode().app_session_id != GolemNode().app_session_id
 
 
@@ -18,10 +19,10 @@ def test_different_app_session_id():
     ({"app_session_id": "1"}, False),
 ))
 @pytest.mark.asyncio
-async def test_app_session_id(kwargs, has_events):
+async def test_app_session_id(kwargs: dict, has_events: bool) -> None:
     events = []
 
-    async def save_event(event):
+    async def save_event(event: ResourceEvent) -> None:
         events.append(event)
 
     golem = GolemNode(**kwargs)

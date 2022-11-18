@@ -166,7 +166,7 @@ async def main() -> None:
                 Map(default_create_activity),
                 Map(default_prepare_activity),
                 ActivityPool(max_size=MAX_WORKERS),
-                Zip(async_queue_aiter(tasks_queue)),
+                Zip(async_queue_aiter(tasks_queue)),  # type: ignore  # mypy, why?
                 Map(
                     lambda activity, task: task.execute(activity),  # type: ignore
                     on_exception=close_agreement_repeat_task,  # type: ignore

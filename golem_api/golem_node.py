@@ -48,7 +48,7 @@ class GolemNode:
         *,
         base_url: Optional[str] = None,
         collect_payment_events: bool = True,
-        app_session_id: Optional[Union[str, _RandomSessionId]] = _RandomSessionId,
+        app_session_id: Optional[Union[str, Type[_RandomSessionId]]] = _RandomSessionId,
     ):
         """
         :param app_key: App key used as an authentication token for all `yagna` calls.
@@ -222,7 +222,7 @@ class GolemNode:
         autoclose: bool = True,
         add_requestor: bool = True,
         requestor_ip: Optional[str] = None,
-    ):
+    ) -> Network:
         """Create a new :any:`Network`.
 
         :param ip: TODO
@@ -339,7 +339,9 @@ class GolemNode:
     async def add_to_network(self, network: Network, ip: Optional[str] = None) -> None:
         await network.add_requestor_ip(ip)
 
-    def add_autoclose_resource(self, resource: Union["Allocation", "Demand", "Agreement", "Activity"]) -> None:
+    def add_autoclose_resource(
+        self, resource: Union["Allocation", "Demand", "Agreement", "Activity", "Network"]
+    ) -> None:
         self._autoclose_resources.add(resource)
 
     def all_resources(self, cls: Type[ResourceType]) -> List[ResourceType]:

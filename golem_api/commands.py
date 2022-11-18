@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from tempfile import TemporaryDirectory
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 from pathlib import Path
 import shlex
 
 from yapapi.storage import Destination, Source
 from yapapi.storage.gftp import GftpProvider
 
-ArgsDict = Dict[str, Union[str, List[str], Dict[str, Any]]]
+ArgsDict = Mapping[str, Union[str, List, Dict[str, Any]]]
 
 
 class Command(ABC):

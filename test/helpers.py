@@ -1,14 +1,15 @@
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import AsyncGenerator, Optional
 
 from golem_api import GolemNode, Payload
 from golem_api.mid import Chain, Map, default_negotiate, default_create_agreement, default_create_activity
+from golem_api.low import Activity
 
 ANY_PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 
 @asynccontextmanager
-async def get_activity(golem: Optional[GolemNode] = None):
+async def get_activity(golem: Optional[GolemNode] = None) -> AsyncGenerator[Activity, None]:
     if golem is None:
         golem = GolemNode()
 

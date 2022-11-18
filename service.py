@@ -1,6 +1,7 @@
 import asyncio
 import random
 import string
+from typing import Awaitable, Callable, Tuple
 from uuid import uuid4
 from urllib.parse import urlparse
 
@@ -13,19 +14,22 @@ from golem_api.mid import (
 )
 from golem_api.default_logger import DefaultLogger
 
+from golem_api.low import Activity, Network
+
 PAYLOAD = Payload.from_image_hash(
     "1e06505997e8bd1b9e1a00bd10d255fc6a390905e4d6840a22a79902",
     capabilities=[vm.VM_CAPS_VPN],
 )
 
-def create_ssh_connection(network):
-    async def _create_ssh_connection(activity):
+def create_ssh_connection(network: Network) -> Callable[[Activity], Awaitable[Tuple[str, str]]]:
+    async def _create_ssh_connection(activity: Activity) -> Tuple[str, str]:
         #   1.  Create node
         provider_id = activity.parent.parent.data.issuer_id
+        assert provider_id is not None  # mypy
         ip = await network.create_node(provider_id)
 
         #   2.  Run commands
-        deploy_args = network.deploy_args(ip)
+        deploy_args = {"net": [network.deploy_args(ip)]}
         password = "".join(random.choice(string.ascii_letters + string.digits) for _ in range(8))
 
         batch = await activity.execute_commands(

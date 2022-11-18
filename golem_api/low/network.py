@@ -1,5 +1,5 @@
 import asyncio
-from typing import List, Optional, Union, TYPE_CHECKING
+from typing import Dict, List, Optional, Union, TYPE_CHECKING, TypedDict
 
 from ipaddress import ip_network, IPv4Address, IPv6Address, IPv4Network, IPv6Network
 from ya_net import RequestorApi, models
@@ -17,6 +17,14 @@ if TYPE_CHECKING:
     from golem_api.golem_node import GolemNode
 
 
+class DeployArgsType(TypedDict):
+    id: str
+    ip: str
+    mask: Optional[str]
+    nodeIp: str
+    nodes: Dict[str, str]
+
+
 class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
     def __init__(self, golem_node: "GolemNode", id_: str, data: models.Network):
         super().__init__(golem_node, id_, data)
@@ -25,11 +33,11 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
         self._ip_network: IpNetwork = ip_network(data.ip, strict=False)
         self._all_ips = [str(ip) for ip in self._ip_network.hosts()]
 
-        self._requestor_ips = []
-        self._nodes = {}
+        self._requestor_ips: List[str] = []
+        self._nodes: Dict[str, str] = {}
 
     @property
-    def network_address(self):
+    def network_address(self) -> str:
         return str(self._ip_network.network_address)
 
     @classmethod
@@ -41,7 +49,7 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
         return cls(golem_node, created_data.id, created_data)
 
     @api_call_wrapper()
-    async def remove(self):
+    async def remove(self) -> None:
         await self.api.remove_network(self.id)
         self.node.event_bus.emit(ResourceClosed(self))
 
@@ -57,32 +65,29 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
         async with self._create_node_lock:
             if node_ip is None:
                 node_ip = self._next_free_ip()
+            assert node_ip is not None  # mypy, why?
 
-            data = models.Node(id=provider_id, ip=node_ip)
+            data = models.Node(id=provider_id, ip=node_ip)  # type: ignore  # mypy, why?
             await self.api.add_node(self.id, data)
 
             self._nodes[node_ip] = provider_id
             return node_ip
 
     @api_call_wrapper()
-    async def refresh_nodes(self):
+    async def refresh_nodes(self) -> None:
         tasks = []
         for ip, provider_id in self._nodes.items():
-            data = models.Node(id=provider_id, ip=ip)
+            data = models.Node(id=provider_id, ip=ip)  # type: ignore  # mypy, why?
             tasks.append(self.api.add_node(self.id, data))
         await asyncio.gather(*tasks)
 
-    def deploy_args(self, ip: str):
+    def deploy_args(self, ip: str) -> DeployArgsType:
         return {
-            "net": [
-                {
-                    "id": self.id,
-                    "ip": self.network_address,
-                    "mask": self.data.mask,
-                    "nodeIp": ip,
-                    "nodes": self._nodes,
-                }
-            ]
+            "id": self.id,
+            "ip": self.network_address,
+            "mask": self.data.mask,
+            "nodeIp": ip,
+            "nodes": self._nodes,
         }
 
     @api_call_wrapper()
@@ -97,7 +102,7 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
     def _current_ips(self) -> List[str]:
         return self._requestor_ips + list(self._nodes)
 
-    def _next_free_ip(self) -> IpAddress:
+    def _next_free_ip(self) -> str:
         try:
             return next(ip for ip in self._all_ips if ip not in self._current_ips)
         except StopIteration:

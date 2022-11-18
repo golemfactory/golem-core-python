@@ -16,7 +16,7 @@ from ya_net import models as net_models, RequestorApi as NetworkApi
 if TYPE_CHECKING:
     from golem_api import GolemNode
     from golem_api.low.resource import Resource
-    from golem_api.low import market, activity, net
+    from golem_api.low import market, activity, network
 
 
 class ActivityApi:
@@ -47,7 +47,7 @@ class _NULL:
 
 
 ResourceType = TypeVar("ResourceType", bound="Resource")
-RequestorApiType = TypeVar("RequestorApiType", PaymentApi, MarketApi, ActivityApi)
+RequestorApiType = TypeVar("RequestorApiType", PaymentApi, MarketApi, ActivityApi, NetworkApi)
 ModelType = TypeVar(
     "ModelType",
     _NULL,
@@ -66,7 +66,7 @@ ParentType = TypeVar(
     "market.Agreement",
     "activity.Activity",
     Union["market.Demand", "market.Proposal"],
-    "net.Network",
+    "network.Network",
 )
 ChildType = TypeVar(
     "ChildType",

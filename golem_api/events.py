@@ -34,7 +34,7 @@ class GolemNodeEvent(Event, ABC):
     def node(self) -> "GolemNode":
         return self._node
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'{type(self).__name__}({self.node.app_key}, app_session_id: {self.node.app_session_id})'
 
 
