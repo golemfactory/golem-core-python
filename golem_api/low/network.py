@@ -27,6 +27,10 @@ class Network(Resource[RequestorApi, models.Network, _NULL, "Node", _NULL]):
         self._all_ips = [str(ip) for ip in self._ip_network.hosts()]
 
     @property
+    def network_address(self):
+        return str(self._ip_network.network_address)
+
+    @property
     def nodes(self) -> List["Node"]:
         return self.children
 
@@ -103,7 +107,7 @@ class Node(Resource[RequestorApi, models.Node, Network, _NULL, _NULL]):
             "net": [
                 {
                     "id": network.id,
-                    "ip": "192.168.0.0",
+                    "ip": network.network_address,
                     "mask": network.data.mask,
                     "nodeIp": self.data.ip,
                     "nodes": {node.data.ip: node.id for node in network.nodes},
