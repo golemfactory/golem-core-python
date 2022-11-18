@@ -65,7 +65,7 @@ ParentType = TypeVar(
     _NULL,
     "market.Proposal",
     "market.Agreement",
-    "market.Activity",
+    "activity.Activity",
     Union["market.Demand", "market.Proposal"],
     "net.Network",
 )
