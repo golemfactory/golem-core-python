@@ -3,11 +3,11 @@ from typing import Any, Dict, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from golem_api.low.resource import Resource
+    from golem_api import GolemNode
 
 
 class Event(ABC):
     """Base class for all events."""
-    pass
 
 
 class ResourceEvent(Event, ABC):
@@ -22,6 +22,31 @@ class ResourceEvent(Event, ABC):
 
     def __repr__(self) -> str:
         return f'{type(self).__name__}({self.resource})'
+
+
+class GolemNodeEvent(Event, ABC):
+    """Base class for all events related to a particular :any:`GolemNode` only."""
+    def __init__(self, node: "GolemNode"):
+        self._node = node
+
+    @property
+    def node(self) -> "GolemNode":
+        return self._node
+
+    def __repr__(self):
+        return f'{type(self).__name__}({self.node.app_key}, app_session_id: {self.node.app_session_id})'
+
+
+class SessionStarted(GolemNodeEvent):
+    """Emitted when a :any:`GolemNode` starts operating."""
+
+
+class ShutdownStarted(GolemNodeEvent):
+    """:any:`GolemNode` is closing."""
+
+
+class ShutdownFinished(GolemNodeEvent):
+    """:any:`GolemNode` closed succesfully."""
 
 
 class NewResource(ResourceEvent):

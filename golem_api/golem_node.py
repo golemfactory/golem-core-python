@@ -11,6 +11,7 @@ from yapapi.props.builder import DemandBuilder
 from yapapi import props
 
 from .event_bus import EventBus
+from .events import SessionStarted, ShutdownStarted, ShutdownFinished
 from .payload import Payload
 from .low.activity import Activity, PoolingBatch
 from .low.market import Demand, Proposal, Agreement
@@ -74,6 +75,10 @@ class GolemNode:
         self._invoice_event_collector = InvoiceEventCollector(self)
         self._debit_note_event_collector = DebitNoteEventCollector(self)
 
+    @property
+    def app_key(self) -> str:
+        return self._api_config.app_key
+
     ########################
     #   Start/stop interface
     async def __aenter__(self) -> "GolemNode":
@@ -97,11 +102,15 @@ class GolemNode:
             self._invoice_event_collector.start_collecting_events()
             self._debit_note_event_collector.start_collecting_events()
 
+        self.event_bus.emit(SessionStarted(self))
+
     async def aclose(self) -> None:
+        self.event_bus.emit(ShutdownStarted(self))
         self._set_no_more_children()
         self._stop_event_collectors()
         await self._close_autoclose_resources()
         await self._close_apis()
+        self.event_bus.emit(ShutdownFinished(self))
         await self._event_bus.stop()
 
     def _stop_event_collectors(self) -> None:
@@ -324,7 +333,7 @@ class GolemNode:
     def __str__(self) -> str:
         lines = [
             f"{type(self).__name__}(",
-            f"  app_key = {self._api_config.app_key},",
+            f"  app_key = {self.app_key},",
             f"  app_session_id = {self.app_session_id},",
             f"  market_url = {self._api_config.market_url},",
             f"  payment_url = {self._api_config.payment_url},",
