@@ -1,56 +1,50 @@
-# Golem Api
+# Golem Api Workshop
 
-## Current state
+## Prereqs
 
-Few apps are in a "pretty advanced POC" state:
+* ubuntu + python3.8 (newer should also be fine) - maybe not necessary, but the library was not tested in any other environment
+* git, poetry
+* yagna 0.10.1 (PLEASE NOTE THE VERSION)
 
-*   blender - just like the `yapapi` blender
-*   verification by redundance
-*   yacat-with-business-logic ("Run as many tasks as possible but ensure they cost at most X per result")
-
-## Start
-
-### Install
+## Installation
 
 ```
+git clone git@github.com:golemfactory/golem-api-python.git
+cd golem-api-python
+git checkout workshop
 poetry install
+
+#   Check if this works - wait for "SUCCESS" print
+python3 workshop.py
 ```
 
-### Docs
+##  API Reference
 
 ```
 poetry run poe sphinx
 firefox build/api.html
 ```
 
-### Examples
+## Workshop
 
-1. `low_example.py`         - few low-level interface examples
-2. `mid_example.py`         - a mid-level interface example
-3. `cli_example.sh`         - command line interface example
-4. `blender.py`
-5. `redundace.py`           - verification by redundance example
-6. `yacat.py`               - yacat with business logic
-7. `detached_activity.py`   - create activity, print activity\_id, stop (but keep the activity running)
-8. `attach.py`              - take an activity\_id and start using it
+### Notes
+*   All tasks should be solved by modyfying `workshop.py` file. Don't change `golem_api/*` or `workshop_internals.py`.
+*   There are multiple correct solutions.
+*   Be careful with Ctrl+C - we don't want to have too many providers with hanging activities on the devnet
+    (or spawn your private `goth` subnet)
 
+### Tasks
 
-## CLI
-
-```bash
-python3 -m golem_api status
-
-python3 -m golem_api find-node --runtime vm
-python3 -m golem_api find-node --runtime vm --subnet public-beta 
-python3 -m golem_api find-node --runtime vm --timeout 7  # stops after 7  seconds
-python3 -m golem_api find-node --runtime vm --timeout 1m # stops after 60 seconds
-
-python3 -m golem_api allocation list
-
-python3 -m golem_api allocation new 1
-python3 -m golem_api allocation new 2 --driver erc20 --network rinkeby
-
-python3 -m golem_api allocation clean
-```
-
-"Status" command is not really useful now, but we don't yet have components to make it good.
+1.  Implement a blocklist.
+    * Have a collection of provider ids.
+    * Never sign agreements with those providers.
+2.  Whenever a task fails, add the provider of the failing activity to the blocklist.
+3.  Print some stats at the end of the execution, e.g.:
+    *   number of batches per (activity/agreement/provider)
+    *   average time/batch
+    *   average time/batch for each provider
+    *   ...
+4.  Repeat failed tasks. 
+    NOTE: Unless you have some clever idea I didn't think of, this will probably be done in two steps:
+    *   Ensure all tasks are computed, accept that script hangs forever
+    *   Ensure script stops after all tasks are computed
