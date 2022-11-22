@@ -36,7 +36,8 @@ class Map(Generic[InType, OutType]):
     *   It doesn't matter if source iterator yields `X` or `Awaitable[X]`, which has two consequences:
 
         *   (good) Maps can be stacked one after another in a :any:`Chain`
-        *   (bad) Mapping functions that accept an awaitable as an agrument should be avoided.
+        *   (bad) Mapping functions that accept an awaitable as an argument should be avoided.
+
     *   If input stream yields tuples, they will be passed to mapping function unpacked
 
     """

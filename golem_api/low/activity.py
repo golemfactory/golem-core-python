@@ -187,7 +187,7 @@ class PoolingBatch(
 
     @property
     def success(self) -> bool:
-        """True if this batch finished without errors. Raises AttributeError if batch is not :any:`done`."""
+        """True if this batch finished without errors. Raises `AttributeError` if batch is not :any:`done`."""
         if not self.done:
             raise AttributeError("Success can be determined only for finished batches")
         return self.events[-1].result == "Ok"

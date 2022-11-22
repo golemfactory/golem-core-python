@@ -126,9 +126,14 @@ class ResourceClosed(ResourceEvent):
     This event should never be emitted more than once for a given :any:`Resource`.
     Currently this is not true for :any:`Activity` - this is a known TODO
     (https://github.com/golemfactory/golem-api-python/issues/33).
+
+    Not all resources are closed, e.g. :any:`PoolingBatch` is not.
     """
 
 
 class BatchFinished(ResourceEvent):
+    """Emitted when the execution of a :any:`PoolingBatch` finishes.
+
+    The same event is emitted for succesful and failed batches."""
     def __init__(self, resource: "PoolingBatch"):
         super().__init__(resource)
