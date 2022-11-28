@@ -8,11 +8,16 @@ CREATE TABLE run (
     start   timestamp DEFAULT now()
 );
 
-CREATE TABLE proposal (
+CREATE TABLE demand (
     id      text PRIMARY KEY,
-    run_id  text NOT NULL REFERENCES run(id),
-    initial bool NOT NULL,
-    data    json
+    run_id  text NOT NULL REFERENCES run(id)
+);
+
+CREATE TABLE proposal (
+    id          text PRIMARY KEY,
+    demand_id   text NOT NULL REFERENCES demand(id),
+    initial     bool NOT NULL,
+    data        json
 );
 
 CREATE TABLE agreement (
