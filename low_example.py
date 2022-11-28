@@ -2,7 +2,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from tempfile import TemporaryDirectory
 from os import path
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 
 from golem_api import GolemNode, commands, Script, Payload
 from golem_api.events import ResourceEvent
@@ -137,9 +137,11 @@ async def example_6() -> None:
 
 
 @asynccontextmanager
-async def get_activity() -> AsyncGenerator[Activity, None]:
+async def get_activity(golem: Optional[GolemNode] = None) -> AsyncGenerator[Activity, None]:
     """Create a single activity"""
-    golem = GolemNode()
+    if golem is None:
+        golem = GolemNode()
+
     async with golem:
         allocation = await golem.create_allocation(1)
         demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
@@ -328,8 +330,8 @@ async def main() -> None:
     # print("\n---------- EXAMPLE 8 -------------\n")
     # await example_8()
 
-    print("\n---------- EXAMPLE 9 -------------\n")
-    await example_9()
+    # print("\n---------- EXAMPLE 9 -------------\n")
+    # await example_9()
 
     # print("\n---------- EXAMPLE 10 -------------\n")
     # await example_10()

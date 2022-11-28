@@ -2,6 +2,8 @@ import asyncio
 import inspect
 from typing import AsyncIterator, Awaitable, Generic, TypeVar, Callable, Tuple, Union
 
+from .exceptions import InputStreamExhausted
+
 InType = TypeVar("InType")
 OutType = TypeVar("OutType")
 
@@ -30,13 +32,12 @@ class Map(Generic[InType, OutType]):
             #   4
 
     Caveats:
-
-    *   Assumes input stream never ends (this is a TODO)
     *   Always yields awaitables
     *   It doesn't matter if source iterator yields `X` or `Awaitable[X]`, which has two consequences:
 
         *   (good) Maps can be stacked one after another in a :any:`Chain`
-        *   (bad) Mapping functions that accept an awaitable as an agrument should be avoided.
+        *   (bad) Mapping functions that accept an awaitable as an argument should be avoided.
+
     *   If input stream yields tuples, they will be passed to mapping function unpacked
 
     """
@@ -55,8 +56,6 @@ class Map(Generic[InType, OutType]):
         self.func = func
         self.on_exception = on_exception
 
-        self._in_stream_lock = asyncio.Lock()
-
     async def __call__(
         self,
         in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]],
@@ -64,13 +63,17 @@ class Map(Generic[InType, OutType]):
         """
         :param in_stream: An async stream of either func args or args-returning awaitables.
         """
+        self._in_stream_lock = asyncio.Lock()
         while True:
             yield asyncio.create_task(self._next_value(in_stream))
 
     async def _next_value(self, in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]]) -> OutType:
         while True:
             async with self._in_stream_lock:
-                in_val = await in_stream.__anext__()
+                try:
+                    in_val = await in_stream.__anext__()
+                except StopAsyncIteration:
+                    raise InputStreamExhausted()
 
             args = await self._as_awaited_tuple(in_val)
 
@@ -83,8 +86,7 @@ class Map(Generic[InType, OutType]):
         #   Q: Why this?
         #   A: Because this way it's possible to wait chains of awaitables without
         #      dealing with awaitables at all. E.g. We have Map(X -> Y) followed by Map(Y -> Z)
-        #      and first map returns Awaitable[Y] (because of return_awaitable = True),
-        #      and second map unpacks this Awaitable here.
+        #      and first map returns Awaitable[Y], and second map unpacks this Awaitable here.
         #   (This probably has some downsides, but should be worth it)
         if not isinstance(in_val, tuple):
             if inspect.isawaitable(in_val):

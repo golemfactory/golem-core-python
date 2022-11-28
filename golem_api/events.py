@@ -3,11 +3,12 @@ from typing import Any, Dict, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from golem_api.low.resource import Resource
+    from golem_api.low import PoolingBatch
+    from golem_api import GolemNode
 
 
 class Event(ABC):
     """Base class for all events."""
-    pass
 
 
 class ResourceEvent(Event, ABC):
@@ -22,6 +23,31 @@ class ResourceEvent(Event, ABC):
 
     def __repr__(self) -> str:
         return f'{type(self).__name__}({self.resource})'
+
+
+class GolemNodeEvent(Event, ABC):
+    """Base class for all events related to a particular :any:`GolemNode` only."""
+    def __init__(self, node: "GolemNode"):
+        self._node = node
+
+    @property
+    def node(self) -> "GolemNode":
+        return self._node
+
+    def __repr__(self) -> str:
+        return f'{type(self).__name__}({self.node.app_key}, app_session_id: {self.node.app_session_id})'
+
+
+class SessionStarted(GolemNodeEvent):
+    """Emitted when a :any:`GolemNode` starts operating."""
+
+
+class ShutdownStarted(GolemNodeEvent):
+    """:any:`GolemNode` is closing."""
+
+
+class ShutdownFinished(GolemNodeEvent):
+    """:any:`GolemNode` closed succesfully."""
 
 
 class NewResource(ResourceEvent):
@@ -85,27 +111,6 @@ class ResourceDataChanged(ResourceEvent):
         return f'{type(self).__name__}({self.resource}, {diff_str})'
 
 
-class ResourceChangePossible(ResourceEvent):
-    """Emitted when we receive an information that a :any:`Resource.data` might be outdated.
-
-    E.g. this is emitted for a `Proposal` when an agreement is created based on this proposal.
-
-    It is **not** guaranteed that anything really changed, but e.g. if you want to keep some :any:`Resource`
-    objects as up-to-date as possible, you might consider something like::
-
-        async def update_resource(event: ResourceEvent) -> None:
-            await event.resource.get_data(force=True)
-
-        golem.event_bus.resource_listen(
-            update_resource,
-            event_classes=[ResourceChangePossible],
-            ids=[an_important_resource.id]
-        )
-
-    NOTE: This is **NOT IMPLEMENTED** yet, as it's pretty complex and useless now, and maybe not a good idea at all.
-    """
-
-
 class ResourceClosed(ResourceEvent):
     """Emitted when a resource is deleted or rendered unusable.
 
@@ -121,4 +126,14 @@ class ResourceClosed(ResourceEvent):
     This event should never be emitted more than once for a given :any:`Resource`.
     Currently this is not true for :any:`Activity` - this is a known TODO
     (https://github.com/golemfactory/golem-api-python/issues/33).
+
+    Not all resources are closed, e.g. :any:`PoolingBatch` is not.
     """
+
+
+class BatchFinished(ResourceEvent):
+    """Emitted when the execution of a :any:`PoolingBatch` finishes.
+
+    The same event is emitted for succesful and failed batches."""
+    def __init__(self, resource: "PoolingBatch"):
+        super().__init__(resource)

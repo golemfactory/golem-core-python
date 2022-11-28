@@ -1,6 +1,7 @@
 import asyncio
 from collections import defaultdict
 from typing import Any, DefaultDict, Dict, Iterable, Optional, List, Set, Type, TypeVar, Union
+from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
@@ -10,10 +11,12 @@ from yapapi.props.builder import DemandBuilder
 from yapapi import props
 
 from .event_bus import EventBus
+from .events import SessionStarted, ShutdownStarted, ShutdownFinished
 from .payload import Payload
 from .low.activity import Activity, PoolingBatch
 from .low.market import Demand, Proposal, Agreement
 from .low.payment import Allocation, DebitNote, Invoice
+from .low.network import Network
 from .low.resource import Resource
 from .low.payment_event_collector import DebitNoteEventCollector, InvoiceEventCollector
 
@@ -21,6 +24,8 @@ from .low.payment_event_collector import DebitNoteEventCollector, InvoiceEventCo
 DEFAULT_EXPIRATION_TIMEOUT = timedelta(seconds=1800)
 ResourceType = TypeVar("ResourceType", bound=Resource)
 
+class _RandomSessionId:
+    pass
 
 class GolemNode:
     """Main entrypoint to the python Golem API, communicates with `yagna`.
@@ -38,7 +43,12 @@ class GolemNode:
     """
 
     def __init__(
-        self, app_key: Optional[str] = None, *, base_url: Optional[str] = None, collect_payment_events: bool = True
+        self,
+        app_key: Optional[str] = None,
+        *,
+        base_url: Optional[str] = None,
+        collect_payment_events: bool = True,
+        app_session_id: Optional[Union[str, Type[_RandomSessionId]]] = _RandomSessionId,
     ):
         """
         :param app_key: App key used as an authentication token for all `yagna` calls.
@@ -47,9 +57,14 @@ class GolemNode:
                          variable or http://127.0.0.1:7465.
         :param collect_payment_events: If True, GolemNode will watch for incoming debit notes/invoices
                                        and create corresponding objects (--> :any:`NewResource` events will be emitted).
+        :param app_session_id: A correlation/session identifier. :any:`GolemNode` objects with the same `app_session_id`
+                               will receive the same debit note/invoice/agreement events.
+                               Defaults to a random sting. If set to `None`, this GolemNode will receive all events
+                               regardless of their corresponding session ids.
         """
         self._api_config = rest.Configuration(app_key, url=base_url)
         self._collect_payment_events = collect_payment_events
+        self.app_session_id = uuid4().hex if app_session_id is _RandomSessionId else app_session_id
 
         #   All created Resources will be stored here
         #   (This is done internally by the metaclass of the Resource)
@@ -59,6 +74,10 @@ class GolemNode:
 
         self._invoice_event_collector = InvoiceEventCollector(self)
         self._debit_note_event_collector = DebitNoteEventCollector(self)
+
+    @property
+    def app_key(self) -> str:
+        return self._api_config.app_key
 
     ########################
     #   Start/stop interface
@@ -83,11 +102,15 @@ class GolemNode:
             self._invoice_event_collector.start_collecting_events()
             self._debit_note_event_collector.start_collecting_events()
 
+        self.event_bus.emit(SessionStarted(self))
+
     async def aclose(self) -> None:
+        self.event_bus.emit(ShutdownStarted(self))
         self._set_no_more_children()
         self._stop_event_collectors()
         await self._close_autoclose_resources()
         await self._close_apis()
+        self.event_bus.emit(ShutdownFinished(self))
         await self._event_bus.stop()
 
     def _stop_event_collectors(self) -> None:
@@ -117,6 +140,7 @@ class GolemNode:
         agreement_tasks = [r.terminate(agreement_msg) for r in self._autoclose_resources if isinstance(r, Agreement)]
         demand_tasks = [r.unsubscribe() for r in self._autoclose_resources if isinstance(r, Demand)]
         allocation_tasks = [r.release() for r in self._autoclose_resources if isinstance(r, Allocation)]
+        network_tasks = [r.remove() for r in self._autoclose_resources if isinstance(r, Network)]
         if activity_tasks:
             await asyncio.gather(*activity_tasks)
         if agreement_tasks:
@@ -125,6 +149,8 @@ class GolemNode:
             await asyncio.gather(*demand_tasks)
         if allocation_tasks:
             await asyncio.gather(*allocation_tasks)
+        if network_tasks:
+            await asyncio.gather(*network_tasks)
 
     ###########################
     #   Create new resources
@@ -187,6 +213,34 @@ class GolemNode:
         if autoclose:
             self.add_autoclose_resource(demand)
         return demand
+
+    async def create_network(
+        self,
+        ip: str,
+        mask: Optional[str] = None,
+        gateway: Optional[str] = None,
+        autoclose: bool = True,
+        add_requestor: bool = True,
+        requestor_ip: Optional[str] = None,
+    ) -> Network:
+        """Create a new :any:`Network`.
+
+        :param ip: IP address of the network. May contain netmask, e.g. `192.168.0.0/24`.
+        :param mask: Optional netmask (only if not provided within the `ip` argument).
+        :param gateway: Optional gateway address for the network.
+        :param autoclose: Remove network on :func:`__aexit__`
+        :param add_requestor: If True, adds requestor with ip `requestor_ip` to the network.
+                              If False, requestor will be able to interact with other nodes only
+                              after an additional call to :func:`add_to_network`.
+        :param requestor_ip: Ip of the requestor node in the network. Ignored if not `add_requestor`.
+                             If `None`, next free ip will be assigned.
+        """
+        network = await Network.create(self, ip, mask, gateway)
+        if autoclose:
+            self.add_autoclose_resource(network)
+        if add_requestor:
+            await self.add_to_network(network, requestor_ip)
+        return network
 
     async def _add_builder_allocations(self, builder: DemandBuilder, allocations: Iterable[Allocation]) -> None:
         for allocation in allocations:
@@ -265,6 +319,13 @@ class GolemNode:
         """Returns a list of :any:`DebitNote` objects corresponding to all debit notes received by this node."""
         return await DebitNote.get_all(self)
 
+    async def networks(self) -> List[Network]:
+        """Returns a list of :any:`Network` objects corresponding to all networks created by this node.
+
+        These are all networks created with the current APP_KEY - it doesn't matter if they were created
+        with this :class:`GolemNode` instance (or if :class:`GolemNode` was used at all)."""
+        return await Network.get_all(self)
+
     ##########################
     #   Events
     @property
@@ -278,7 +339,20 @@ class GolemNode:
 
     #########
     #   Other
-    def add_autoclose_resource(self, resource: Union["Allocation", "Demand", "Agreement", "Activity"]) -> None:
+    async def add_to_network(self, network: Network, ip: Optional[str] = None) -> None:
+        """Add requestor to the network.
+
+        :param network: A :any:`Network` we're adding the requestor to.
+        :param ip: IP of the requestor node, defaults to a new free IP in the network.
+
+        This is only necessary if we either called :func:`create_network` with `add_requestor=False`,
+        or we want the requestor to have multiple IPs in the network
+        (TODO: is there a scenario where this makes sense?)."""
+        await network.add_requestor_ip(ip)
+
+    def add_autoclose_resource(
+        self, resource: Union["Allocation", "Demand", "Agreement", "Activity", "Network"]
+    ) -> None:
         self._autoclose_resources.add(resource)
 
     def all_resources(self, cls: Type[ResourceType]) -> List[ResourceType]:
@@ -288,7 +362,8 @@ class GolemNode:
     def __str__(self) -> str:
         lines = [
             f"{type(self).__name__}(",
-            f"  app_key = {self._api_config.app_key},",
+            f"  app_key = {self.app_key},",
+            f"  app_session_id = {self.app_session_id},",
             f"  market_url = {self._api_config.market_url},",
             f"  payment_url = {self._api_config.payment_url},",
             f"  activity_url = {self._api_config.activity_url},",

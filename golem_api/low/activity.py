@@ -5,7 +5,7 @@ import json
 
 from ya_activity import models
 
-from golem_api.events import ResourceClosed
+from golem_api.events import BatchFinished, ResourceClosed
 from golem_api.commands import Command
 from .payment import DebitNote
 from .market import Agreement
@@ -187,7 +187,7 @@ class PoolingBatch(
 
     @property
     def success(self) -> bool:
-        """True if this batch finished without errors. Raises AttributeError if batch is not :any:`done`."""
+        """True if this batch finished without errors. Raises `AttributeError` if batch is not :any:`done`."""
         if not self.done:
             raise AttributeError("Success can be determined only for finished batches")
         return self.events[-1].result == "Ok"
@@ -263,6 +263,7 @@ class PoolingBatch(
                 self._futures[event.index].set_result(event)
 
         if event.is_batch_finished:
+            self.node.event_bus.emit(BatchFinished(self))
             self.finished_event.set()
             self.parent.running_batch_counter -= 1
             self.stop_collecting_events()
