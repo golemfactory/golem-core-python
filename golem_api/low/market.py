@@ -105,7 +105,9 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], Ya
         return cls(node, demand_id)
 
     def _get_proposal_parent(self, proposal: "Proposal") -> Union["Demand", "Proposal"]:
-        if proposal.initial:
+        assert proposal.data is not None
+
+        if proposal.data.state == 'Initial':
             parent = self
         else:
             parent_proposal_id = proposal.data.prev_proposal_id
@@ -148,8 +150,7 @@ class Proposal(
     @property
     def initial(self) -> bool:
         """True for proposals matched directly to the demand."""
-        assert self.data is not None
-        return self.data.state == 'Initial'
+        return self.parent == self.demand
 
     @property
     def draft(self) -> bool:
