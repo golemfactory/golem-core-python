@@ -225,9 +225,9 @@ class GolemNode:
     ) -> Network:
         """Create a new :any:`Network`.
 
-        :param ip: TODO
-        :param mask: TODO
-        :param gateway: TODO
+        :param ip: IP address of the network. May contain netmask, e.g. `192.168.0.0/24`.
+        :param mask: Optional netmask (only if not provided within the `ip` argument).
+        :param gateway: Optional gateway address for the network.
         :param autoclose: Remove network on :func:`__aexit__`
         :param add_requestor: If True, adds requestor with ip `requestor_ip` to the network.
                               If False, requestor will be able to interact with other nodes only
@@ -320,7 +320,10 @@ class GolemNode:
         return await DebitNote.get_all(self)
 
     async def networks(self) -> List[Network]:
-        """Returns a list of :any:`Network` objects corresponding to all networks created by this node."""
+        """Returns a list of :any:`Network` objects corresponding to all networks created by this node.
+
+        These are all networks created with the current APP_KEY - it doesn't matter if they were created
+        with this :class:`GolemNode` instance (or if :class:`GolemNode` was used at all)."""
         return await Network.get_all(self)
 
     ##########################
@@ -337,6 +340,14 @@ class GolemNode:
     #########
     #   Other
     async def add_to_network(self, network: Network, ip: Optional[str] = None) -> None:
+        """Add requestor to the network.
+
+        :param network: A :any:`Network` we're adding the requestor to.
+        :param ip: IP of the requestor node, defaults to a new free IP in the network.
+
+        This is only necessary if we either called :func:`create_network` with `add_requestor=False`,
+        or we want the requestor to have multiple IPs in the network
+        (TODO: is there a scenario where this makes sense?)."""
         await network.add_requestor_ip(ip)
 
     def add_autoclose_resource(

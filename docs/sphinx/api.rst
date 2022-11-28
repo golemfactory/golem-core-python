@@ -9,12 +9,12 @@ GolemNode
 
 .. autoclass:: golem_api.GolemNode
     :members: __init__, __aenter__, __aexit__, 
-              create_allocation, create_demand, 
+              create_allocation, create_demand, create_network,
               allocation, debit_note, invoice, 
               demand, proposal, agreement,
               activity, batch,
-              allocations, demands,
-              event_bus
+              allocations, demands, networks,
+              event_bus, add_to_network
 
 High-Level API
 ==============
@@ -112,6 +112,12 @@ Activity API
 .. autoclass:: golem_api.low.activity.Script
     :members: add_command
 
+Network API
+-----------
+
+.. autoclass:: golem_api.low.network.Network
+    :members: create_node, deploy_args, refresh_nodes, remove
+
 Commands
 --------
 
@@ -140,6 +146,8 @@ Exceptions
     :members: batch
 .. autoclass:: golem_api.low.exceptions.CommandCancelled
     :members: batch
+.. autoclass:: golem_api.low.exceptions.NetworkFull
+    :members: network
 
 Events
 ======
