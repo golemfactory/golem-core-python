@@ -26,7 +26,8 @@ CREATE TABLE agreement (
 
 CREATE TABLE activity (
     id              text PRIMARY KEY,
-    agreement_id    text NOT NULL REFERENCES agreement(id)
+    agreement_id    text NOT NULL REFERENCES agreement(id),
+    status          text NOT NULL DEFAULT 'NEW'
 );
 
 CREATE TABLE batch (

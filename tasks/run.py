@@ -4,6 +4,7 @@ from golem_api import GolemNode
 
 from tasks.db import DB
 
+from tasks.create_activities import create_activities
 from tasks.process_tasks import process_tasks
 from tasks.save_new_objects import save_new_objects
 
@@ -15,16 +16,18 @@ async def main(*, payload, get_tasks, results_cnt, dsn):
 
     async with golem:
         await db.aexecute("INSERT INTO run (id) VALUES (%s)", (golem.app_session_id,))
-
-        main_task = asyncio.create_task(process_tasks(golem, payload, get_tasks))
+ 
+        process_tasks_task = asyncio.create_task(process_tasks(golem, db, get_tasks))
+        create_activities_task = asyncio.create_task(create_activities(golem, db, payload, 3))
         save_new_objects_task = asyncio.create_task(save_new_objects(golem, db))
 
         try:
-            await main_task
+            await process_tasks_task
         finally:
-            main_task.cancel()
+            process_tasks_task.cancel()
+            create_activities_task.cancel()
             save_new_objects_task.cancel()
-            await asyncio.gather(main_task, save_new_objects_task)
+            await asyncio.gather(process_tasks_task, save_new_objects_task, create_activities_task)
             await db.aclose()
 
 
