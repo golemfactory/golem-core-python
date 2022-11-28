@@ -38,6 +38,8 @@ Classes in this section know nothing about any Golem-specific logic. They should
 .. autoclass:: golem_api.mid.Zip
 .. autoclass:: golem_api.mid.Buffer
     :members: __init__, __call__
+.. autoclass:: golem_api.mid.Limit
+    :members: __init__
 
 
 Golem-specific components
