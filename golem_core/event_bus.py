@@ -4,8 +4,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, DefaultDict, Iterable, List, Optional, Tuple, Type, TypeVar
 
-from golem_api.events import Event, ResourceEvent
-from golem_api.low.resource import Resource
+from golem_core.events import Event, ResourceEvent
+from golem_core.low.resource import Resource
 
 EventType = TypeVar("EventType", bound=Event)
 ResourceEventType = TypeVar("ResourceEventType", bound=ResourceEvent)
@@ -128,7 +128,7 @@ class EventBus:
         :param callback: An async function to be executed.
         :param event_classes: A list of :any:`ResourceEvent` subclasses - if not empty,
             `callback` will only be executed only on events of matching classes.
-        :param resource_classes: A list of :class:`~golem_api.low.Resource` subclasses - if not empty,
+        :param resource_classes: A list of :class:`~golem_core.low.Resource` subclasses - if not empty,
             `callback` will only be executed on events related to resources of a matching class.
         :param ids: A list of resource IDs - if not empty,
             `callback` will only be executed on events related to resources with a matching ID.
@@ -142,7 +142,7 @@ class EventBus:
         If emit(X) was called before emit(Y), then it is guaranteed that callbacks
         for event Y will start only after all X callbacks finished (TODO - this should change,
         we don't want the EventBus to stop because of a single never-ending callback,
-        https://github.com/golemfactory/golem-api-python/issues/3).
+        https://github.com/golemfactory/golem-core-python/issues/3).
 
         :param event: An event that will be emitted.
         """
@@ -154,7 +154,7 @@ class EventBus:
             await self._emit(event)
 
     async def _emit(self, event: Event) -> None:
-        #   TODO: https://github.com/golemfactory/golem-api-python/issues/3
+        #   TODO: https://github.com/golemfactory/golem-core-python/issues/3
         tasks = []
         for event_template, callbacks in self.consumers.items():
             if event_template.includes(event):

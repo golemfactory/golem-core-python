@@ -30,7 +30,7 @@ class TaskDataStream(Generic[TaskData]):
         assert returned == task_cnt
         print(processed)
     """
-    #   TODO: https://github.com/golemfactory/golem-api-python/issues/16
+    #   TODO: https://github.com/golemfactory/golem-core-python/issues/16
     def __init__(self, in_stream: Iterable[TaskData]):
         self.in_stream = iter(in_stream)
 

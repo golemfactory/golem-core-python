@@ -1,9 +1,9 @@
 import asyncio
 import sys
 
-from golem_api.events import NewResource
-from golem_api.low import DebitNote
-from golem_api import GolemNode, commands
+from golem_core.events import NewResource
+from golem_core.low import DebitNote
+from golem_core import GolemNode, commands
 
 ACTIVITY_ID = sys.argv[1].strip()
 

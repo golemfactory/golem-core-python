@@ -95,7 +95,7 @@ class Buffer(Generic[DataType]):
                 return
             except Exception as e:
                 self._semaphore.release()
-                #   TODO https://github.com/golemfactory/golem-api-python/issues/27
+                #   TODO https://github.com/golemfactory/golem-core-python/issues/27
                 print("Exception in Buffer", e)
                 return
         else:

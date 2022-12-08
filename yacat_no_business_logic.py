@@ -4,9 +4,9 @@ from typing import List, Union
 import random
 import string
 
-from golem_api import execute_tasks, Payload
-from golem_api.commands import Run
-from golem_api.low import Activity
+from golem_core import execute_tasks, Payload
+from golem_core.commands import Run
+from golem_core.low import Activity
 
 PAYLOAD = Payload.from_image_hash("055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db")
 PASSWORD_LENGTH = 3

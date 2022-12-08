@@ -1,9 +1,9 @@
 import pytest
 import asyncio
 
-from golem_api import GolemNode
-from golem_api.events import ResourceEvent
-from golem_api.low import DebitNote, Invoice
+from golem_core import GolemNode
+from golem_core.events import ResourceEvent
+from golem_core.low import DebitNote, Invoice
 
 from .helpers import get_activity
 

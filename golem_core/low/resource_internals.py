@@ -14,9 +14,9 @@ from ya_activity import (
 from ya_net import models as net_models, RequestorApi as NetworkApi
 
 if TYPE_CHECKING:
-    from golem_api import GolemNode
-    from golem_api.low.resource import Resource
-    from golem_api.low import market, activity
+    from golem_core import GolemNode
+    from golem_core.low.resource import Resource
+    from golem_core.low import market, activity
 
 
 class ActivityApi:

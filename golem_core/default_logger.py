@@ -2,7 +2,7 @@ import logging
 
 from yapapi.log import _YagnaDatetimeFormatter
 
-from golem_api.events import Event
+from golem_core.events import Event
 
 
 class DefaultLogger:
@@ -35,7 +35,7 @@ class DefaultLogger:
         return self._logger
 
     def _prepare_logger(self) -> logging.Logger:
-        logger = logging.getLogger("golem_api")
+        logger = logging.getLogger("golem_core")
         logger.setLevel(logging.DEBUG)
 
         format_ = "[%(asctime)s %(levelname)s %(name)s] %(message)s"

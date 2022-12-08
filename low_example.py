@@ -4,10 +4,10 @@ from tempfile import TemporaryDirectory
 from os import path
 from typing import AsyncGenerator, Optional
 
-from golem_api import GolemNode, commands, Script, Payload
-from golem_api.events import ResourceEvent
-from golem_api.low import Activity
-from golem_api.low.exceptions import BatchError, CommandFailed, CommandCancelled
+from golem_core import GolemNode, commands, Script, Payload
+from golem_core.events import ResourceEvent
+from golem_core.low import Activity
+from golem_core.low.exceptions import BatchError, CommandFailed, CommandCancelled
 
 PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
@@ -118,7 +118,7 @@ async def example_5() -> None:
     assert got_events[0].resource == allocation
     assert got_events[1].resource == allocation
 
-    from golem_api import events
+    from golem_core import events
     assert isinstance(got_events[0], events.NewResource)
     assert isinstance(got_events[1], events.ResourceClosed)
 

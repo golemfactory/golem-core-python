@@ -4,16 +4,16 @@ from typing import Any, AsyncIterator, Callable, DefaultDict, Iterable, List, Op
 
 from prettytable import PrettyTable
 
-from golem_api import GolemNode
-from golem_api.default_logger import DefaultLogger
-from golem_api.default_payment_manager import DefaultPaymentManager
-from golem_api.mid import (
+from golem_core import GolemNode
+from golem_core.default_logger import DefaultLogger
+from golem_core.default_payment_manager import DefaultPaymentManager
+from golem_core.mid import (
     Buffer, Chain, Map, Zip,
     ActivityPool, SimpleScorer,
     default_negotiate, default_create_agreement, default_create_activity, default_prepare_activity
 )
-from golem_api.low import DebitNote, PoolingBatch, Activity, Proposal
-from golem_api.events import NewResource, ResourceClosed
+from golem_core.low import DebitNote, PoolingBatch, Activity, Proposal
+from golem_core.events import NewResource, ResourceClosed
 
 from yacat_no_business_logic import PAYLOAD, main_task_source, tasks_queue, results
 

@@ -2,7 +2,7 @@ import asyncio
 import inspect
 from typing import AsyncIterator, Awaitable, List, Union
 
-from golem_api.low.activity import Activity
+from golem_core.low.activity import Activity
 
 from .exceptions import InputStreamExhausted
 
@@ -12,9 +12,9 @@ class ActivityPool:
 
     Sample usage::
 
-        from golem_api import GolemNode
-        from golem_api.mid import Chain, Buffer, Map, ActivityPool
-        from golem_api.commands import Run
+        from golem_core import GolemNode
+        from golem_core.mid import Chain, Buffer, Map, ActivityPool
+        from golem_core.commands import Run
 
         async def say_hi(activity):
             batch = await activity.execute_commands(Run(f"echo -n 'Hi, this is {activity}'"))

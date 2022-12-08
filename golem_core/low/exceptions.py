@@ -3,9 +3,9 @@ from typing import Optional, TYPE_CHECKING
 from yapapi.engine import NoPaymentAccountError
 
 if TYPE_CHECKING:
-    from golem_api.low.resource import Resource
-    from golem_api.low.activity import PoolingBatch
-    from golem_api.low.network import Network
+    from golem_core.low.resource import Resource
+    from golem_core.low.activity import PoolingBatch
+    from golem_core.low.network import Network
 
 
 class ResourceNotFound(Exception):

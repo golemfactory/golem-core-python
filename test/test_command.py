@@ -1,7 +1,7 @@
 import pytest
 from typing import List, Union
 
-from golem_api.commands import Run
+from golem_core.commands import Run
 
 list_c = ["echo", "foo"]
 str_c = "echo foo"

@@ -5,8 +5,8 @@ import json
 
 from ya_activity import models
 
-from golem_api.events import BatchFinished, ResourceClosed
-from golem_api.commands import Command
+from golem_core.events import BatchFinished, ResourceClosed
+from golem_core.commands import Command
 from .payment import DebitNote
 from .market import Agreement
 from .resource import Resource
@@ -16,7 +16,7 @@ from .api_call_wrapper import api_call_wrapper
 from .exceptions import BatchError, BatchTimeoutError, CommandFailed, CommandCancelled
 
 if TYPE_CHECKING:
-    from golem_api import GolemNode
+    from golem_core import GolemNode
 
 
 class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):

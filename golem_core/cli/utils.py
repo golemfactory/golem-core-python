@@ -11,8 +11,8 @@ from prettytable import PrettyTable
 from yapapi.props.base import constraint
 from yapapi.props import inf
 
-from golem_api import GolemNode, Payload
-from golem_api.low import Allocation, Demand, Proposal
+from golem_core import GolemNode, Payload
+from golem_core.low import Allocation, Demand, Proposal
 
 
 def format_allocations(allocations: List[Allocation]) -> str:

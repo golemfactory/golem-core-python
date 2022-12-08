@@ -1,7 +1,7 @@
 import asyncio
-from golem_api import GolemNode, Payload, commands
-from golem_api.mid import Chain, Map, default_negotiate
-from golem_api.low import Activity, Agreement, Proposal
+from golem_core import GolemNode, Payload, commands
+from golem_core.mid import Chain, Map, default_negotiate
+from golem_core.low import Activity, Agreement, Proposal
 
 PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 

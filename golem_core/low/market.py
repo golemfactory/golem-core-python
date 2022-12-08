@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from ya_market import RequestorApi, models as models
 from ya_market.exceptions import ApiException
 
-from golem_api.events import ResourceClosed
+from golem_core.events import ResourceClosed
 from .api_call_wrapper import api_call_wrapper
 from .exceptions import ResourceNotFound
 from .payment import Invoice
@@ -13,7 +13,7 @@ from .resource_internals import _NULL
 from .yagna_event_collector import YagnaEventCollector
 
 if TYPE_CHECKING:
-    from golem_api.golem_node import GolemNode
+    from golem_core.golem_node import GolemNode
     from .activity import Activity  # TODO: do we really need this?
 
 
@@ -239,8 +239,8 @@ class Proposal(
 
         TODO: all the negotiation logic should be reflected in params of this method,
         but negotiations are not implemented yet. Related issues:
-        https://github.com/golemfactory/golem-api-python/issues/17
-        https://github.com/golemfactory/golem-api-python/issues/18
+        https://github.com/golemfactory/golem-core-python/issues/17
+        https://github.com/golemfactory/golem-core-python/issues/18
         """
 
         data = await self._response_data()
@@ -370,7 +370,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity",
         #   BUT this probably should be a yagna-side change. Agreement.terminate() should
         #   just always succeed, as well as Activity.destroy() - yagna should repeat if necessary etc.
         #   We should only repeat in rare cases when we can't connect to our local `yagna`.
-        #   Related issue: https://github.com/golemfactory/golem-api-python/issues/19
+        #   Related issue: https://github.com/golemfactory/golem-core-python/issues/19
         while True:
             try:
                 await self.terminate()

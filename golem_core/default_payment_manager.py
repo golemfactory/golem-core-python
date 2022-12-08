@@ -1,9 +1,9 @@
 import asyncio
 from datetime import datetime, timedelta
 
-from golem_api.events import NewResource
-from golem_api.low import Agreement, Allocation, DebitNote, Invoice
-from golem_api import GolemNode
+from golem_core.events import NewResource
+from golem_core.low import Agreement, Allocation, DebitNote, Invoice
+from golem_core import GolemNode
 
 from typing import Set
 

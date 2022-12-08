@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Union, TYPE_CHECKING, TypedDict
 from ipaddress import ip_network, IPv4Address, IPv6Address, IPv4Network, IPv6Network
 from ya_net import RequestorApi, models
 
-from golem_api.events import ResourceClosed
+from golem_core.events import ResourceClosed
 from .api_call_wrapper import api_call_wrapper
 from .exceptions import NetworkFull
 from .resource import Resource
@@ -14,7 +14,7 @@ IpAddress = Union[IPv4Address, IPv6Address]
 IpNetwork = Union[IPv4Network, IPv6Network]
 
 if TYPE_CHECKING:
-    from golem_api.golem_node import GolemNode
+    from golem_core.golem_node import GolemNode
 
 
 class DeployArgsType(TypedDict):
@@ -82,7 +82,7 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
         """
         #   Q: Why is there no `Node` class?
         #   A: Mostly because yagna nodes don't have proper IDs (they are just provider_ids), and this
-        #      is strongly against the current golem_api object model (e.g. what if we want to have the
+        #      is strongly against the current golem_core object model (e.g. what if we want to have the
         #      same provider in muliple networks? Nodes would share the same id, but are totally diferent objects).
         #      We could bypass this by having some internal ids (e.g. network_id-provider_id, or just uuid),
         #      but this would not be pretty and there's no gain from having a Node object either way.
