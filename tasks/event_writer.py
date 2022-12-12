@@ -47,13 +47,12 @@ class EventWriter:
             db.execute("INSERT INTO batch (id, activity_id) VALUES (%s, %s)", (resource_id, resource.parent.id))
 
     async def _save_activity_closed(self, event):
-        print("EVENT", event)
         activity_id = event.resource.id
 
         try:
             self.db.execute("""
                 UPDATE  activity
-                SET     stop_reason = COALESCE(stop_reason, 'app closing')
+                SET     (status, stop_reason) = ('STOPPED', COALESCE(stop_reason, 'app closing'))
                 WHERE   id = %(activity_id)s
             """, {"activity_id": activity_id})
         except Exception as e:

@@ -21,13 +21,15 @@ def install(dsn) -> None:
 
 @cli.command()
 @click.argument("module_name", type=str)
+@click.option("--run-id", type=str, default=None)
 @click.option("--dsn", type=str, default="")
-def run(module_name, dsn) -> None:
+def run(module_name, run_id, dsn) -> None:
     module = import_module(module_name)
     _tasks_run(
         payload=module.PAYLOAD,
         get_tasks=module.get_tasks,
         results_cnt=module.results_cnt,
+        run_id=run_id,
         dsn=dsn,
     )
 
@@ -56,7 +58,7 @@ def show(run_id, dsn):
 
 def _default_run_id(conn):
     cursor = conn.cursor()
-    cursor.execute("SELECT id FROM tasks.run ORDER BY start DESC LIMIT 1")
+    cursor.execute("SELECT id FROM tasks.run ORDER BY created_ts DESC LIMIT 1")
     try:
         return cursor.fetchone()[0]
     except TypeError:
@@ -72,26 +74,18 @@ def _get_raw_data(conn, run_id):
 SHOW_DATA_SQL = """
     WITH
     activities AS (
-        WITH
-        activities AS (
-            SELECT  activity_id,
-                    count(DISTINCT batch_id) AS batch_cnt
-            FROM    tasks.batches(%(app_session_id)s)
-            GROUP BY 1
-        )
-        SELECT  our_act.activity_id,
-                all_act.status,
-                our_act.batch_cnt,
-                all_act.stop_reason
-        FROM    activities      our_act
-        JOIN    tasks.activity  all_act
-            ON  all_act.id = our_act.activity_id
+        SELECT  activity_id,
+                count(DISTINCT batch_id) AS batch_cnt
+        FROM    tasks.batches(%(app_session_id)s)
+        GROUP BY 1
     )
-    SELECT  row_number() OVER (ORDER BY activity_id),
-            activity_id,
-            status,
-            batch_cnt,
-            coalesce(stop_reason, '')
-    FROM    activities
-    ORDER BY 2
+    SELECT  row_number() OVER (ORDER BY all_act.created_ts),
+            our_act.activity_id,
+            all_act.status,
+            our_act.batch_cnt,
+            coalesce(all_act.stop_reason, '')
+    FROM    activities      our_act
+    JOIN    tasks.activity  all_act
+       ON  all_act.id = our_act.activity_id
+    ORDER BY all_act.created_ts
 """

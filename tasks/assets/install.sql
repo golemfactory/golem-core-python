@@ -4,28 +4,32 @@ CREATE SCHEMA tasks;
 SET search_path TO tasks;
 
 CREATE TABLE run (
-    id      text PRIMARY KEY,
-    start   timestamp DEFAULT now()
+    id          text PRIMARY KEY,
+    created_ts  timestamp DEFAULT now()
 );
 
 CREATE TABLE demand (
-    id      text PRIMARY KEY,
-    run_id  text NOT NULL REFERENCES run(id) ON DELETE CASCADE
+    id          text PRIMARY KEY,
+    created_ts  timestamp DEFAULT now(),              
+    run_id      text NOT NULL REFERENCES run(id) ON DELETE CASCADE
 );
 
 CREATE TABLE proposal (
     id          text PRIMARY KEY,
+    created_ts  timestamp DEFAULT now(),              
     demand_id   text NOT NULL REFERENCES demand(id) ON DELETE CASCADE,
     data        json
 );
 
 CREATE TABLE agreement (
     id          text PRIMARY KEY,
+    created_ts  timestamp DEFAULT now(),              
     proposal_id text NOT NULL REFERENCES proposal(id) ON DELETE CASCADE
 );
 
 CREATE TABLE activity (
     id              text PRIMARY KEY,
+    created_ts      timestamp DEFAULT now(),              
     agreement_id    text NOT NULL REFERENCES agreement(id) ON DELETE CASCADE,
     status          text NOT NULL DEFAULT 'NEW',
     stop_reason     text
@@ -33,6 +37,7 @@ CREATE TABLE activity (
 
 CREATE TABLE batch (
     id          text PRIMARY KEY,
+    created_ts  timestamp DEFAULT now(),              
     activity_id text NOT NULL REFERENCES activity(id) ON DELETE CASCADE
 );
 
