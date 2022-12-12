@@ -7,12 +7,12 @@ from golem_core.mid import (
 from golem_core.low.exceptions import BatchError, BatchTimeoutError
 
 class ActivityManager:
-    def __init__(self, golem, db, *, payload, max_activities, max_concurrent=2):
+    def __init__(self, golem, db, *, payload, max_activities, max_concurrent=None):
         self.golem = golem
         self.db = db
         self.payload = payload
         self.max_activities = max_activities
-        self.max_concurrent = max_concurrent
+        self.max_concurrent = max_concurrent if max_concurrent is not None else max_activities
 
     async def run(self):
         chain = await self._get_chain()

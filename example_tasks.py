@@ -2,10 +2,8 @@ from itertools import count
 
 from golem_core import Payload, commands
 
-# PAYLOAD = Payload.from_image_hash("055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db")
+#   TASKS INTERFACE
 PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
-
-results = {}
 
 def get_tasks():
     for i in count(0):
@@ -14,6 +12,9 @@ def get_tasks():
 def results_cnt():
     return len(results)
 
+
+#   INTERNALS
+results = {}
 def _get_task(task_data):
     async def execute_task(activity):
         batch = await activity.execute_commands(
