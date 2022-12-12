@@ -10,29 +10,29 @@ CREATE TABLE run (
 
 CREATE TABLE demand (
     id      text PRIMARY KEY,
-    run_id  text NOT NULL REFERENCES run(id)
+    run_id  text NOT NULL REFERENCES run(id) ON DELETE CASCADE
 );
 
 CREATE TABLE proposal (
     id          text PRIMARY KEY,
-    demand_id   text NOT NULL REFERENCES demand(id),
+    demand_id   text NOT NULL REFERENCES demand(id) ON DELETE CASCADE,
     data        json
 );
 
 CREATE TABLE agreement (
     id          text PRIMARY KEY,
-    proposal_id text NOT NULL REFERENCES proposal(id)
+    proposal_id text NOT NULL REFERENCES proposal(id) ON DELETE CASCADE
 );
 
 CREATE TABLE activity (
     id              text PRIMARY KEY,
-    agreement_id    text NOT NULL REFERENCES agreement(id),
+    agreement_id    text NOT NULL REFERENCES agreement(id) ON DELETE CASCADE,
     status          text NOT NULL DEFAULT 'NEW'
 );
 
 CREATE TABLE batch (
     id          text PRIMARY KEY,
-    activity_id text NOT NULL REFERENCES activity(id)
+    activity_id text NOT NULL REFERENCES activity(id) ON DELETE CASCADE
 );
 
 

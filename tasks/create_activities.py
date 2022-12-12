@@ -1,6 +1,6 @@
 import asyncio
 
-from golem_api.mid import (
+from golem_core.mid import (
     Chain, Map,
     default_negotiate, default_create_agreement, default_create_activity, default_prepare_activity,
 )

@@ -1,6 +1,6 @@
 import asyncio
 
-from golem_api import GolemNode
+from golem_core import GolemNode
 
 from tasks.db import DB
 
@@ -16,9 +16,9 @@ async def main(*, payload, get_tasks, results_cnt, dsn):
 
     async with golem:
         await db.aexecute("INSERT INTO run (id) VALUES (%s)", (golem.app_session_id,))
- 
+
         process_tasks_task = asyncio.create_task(process_tasks(golem, db, get_tasks))
-        create_activities_task = asyncio.create_task(create_activities(golem, db, payload, 3))
+        create_activities_task = asyncio.create_task(create_activities(golem, db, payload, 2))
         save_new_objects_task = asyncio.create_task(save_new_objects(golem, db))
 
         try:

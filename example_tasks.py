@@ -1,8 +1,9 @@
 from itertools import count
 
-from golem_api import Payload, commands
+from golem_core import Payload, commands
 
-PAYLOAD = Payload.from_image_hash("055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db")
+# PAYLOAD = Payload.from_image_hash("055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db")
+PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 results = {}
 
@@ -22,6 +23,7 @@ def _get_task(task_data):
         await batch.wait(5)
 
         result = batch.events[-1].stdout
+        #   FIXME: result == None -> invalid result --> what now?
         results[task_data] = result
 
         print(f"{task_data} -> {result}")

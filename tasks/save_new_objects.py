@@ -1,7 +1,7 @@
 import asyncio
 
-from golem_api.low import Demand, Agreement, Activity, PoolingBatch
-from golem_api.events import NewResource
+from golem_core.low import Demand, Agreement, Activity, PoolingBatch
+from golem_core.events import NewResource
 
 
 async def save_new_objects(golem, db):
