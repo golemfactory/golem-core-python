@@ -1,4 +1,5 @@
 import asyncio
+import psycopg2
 
 from golem_core.low import Demand, Agreement, Activity, PoolingBatch
 from golem_core.events import NewResource, ResourceClosed
@@ -33,18 +34,24 @@ class EventWriter:
         resource = event.resource
         resource_id = resource.id
 
-        if isinstance(event.resource, Demand):
-            db.execute("INSERT INTO demand (id, run_id) VALUES (%s, %s)", (resource_id, self.golem.app_session_id))
-        elif isinstance(event.resource, Agreement):
-            proposal = resource.parent
-            db.execute("""
-                INSERT INTO proposal (id, demand_id) VALUES (%(proposal_id)s, %(demand_id)s);
-                INSERT INTO agreement (id, proposal_id) VALUES (%(agreement_id)s, %(proposal_id)s);
-            """, {"proposal_id": proposal.id, "demand_id": proposal.demand.id, "agreement_id": resource_id})
-        elif isinstance(event.resource, Activity):
-            db.execute("INSERT INTO activity (id, agreement_id) VALUES (%s, %s)", (resource_id, resource.parent.id))
-        elif isinstance(event.resource, PoolingBatch):
-            db.execute("INSERT INTO batch (id, activity_id) VALUES (%s, %s)", (resource_id, resource.parent.id))
+        try:
+            if isinstance(event.resource, Demand):
+                db.execute("INSERT INTO demand (id, run_id) VALUES (%s, %s)", (resource_id, self.golem.app_session_id))
+            elif isinstance(event.resource, Agreement):
+                proposal = resource.parent
+                db.execute("""
+                    INSERT INTO proposal (id, demand_id) VALUES (%(proposal_id)s, %(demand_id)s);
+                    INSERT INTO agreement (id, proposal_id) VALUES (%(agreement_id)s, %(proposal_id)s);
+                """, {"proposal_id": proposal.id, "demand_id": proposal.demand.id, "agreement_id": resource_id})
+            elif isinstance(event.resource, Activity):
+                db.execute("INSERT INTO activity (id, agreement_id) VALUES (%s, %s)", (resource_id, resource.parent.id))
+            elif isinstance(event.resource, PoolingBatch):
+                db.execute("INSERT INTO batch (id, activity_id) VALUES (%s, %s)", (resource_id, resource.parent.id))
+        except psycopg2.errors.UniqueViolation:
+            #   This is possible when recovering. We discover already existing objects and try to insert them again.
+            #   This problem will disappear once we have ResourceCreated/ResourceFound distinction
+            #   (described in https://github.com/golemfactory/golem-core-python/issues/6).
+            pass
 
     async def _save_activity_closed(self, event):
         activity_id = event.resource.id

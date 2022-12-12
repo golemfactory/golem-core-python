@@ -31,6 +31,54 @@ class ActivityManager:
                 semaphore.release()
                 await asyncio.sleep(1)
 
+    async def recover(self):
+        #   Recoverable
+        our_ready_activities = await self.db.select("""
+            UPDATE  tasks.activity all_act
+            SET     status = 'RECOVERING'
+            FROM    tasks.activities(%s) our_act
+            WHERE   all_act.id     = our_act.activity_id
+                AND all_act.status = 'READY'
+            RETURNING all_act.id
+        """, (self.golem.app_session_id,))
+
+        #   Unrecoverable
+        await self.db.aexecute("""
+            UPDATE  tasks.activity all_act
+            SET     (status, stop_reason) = ('STOPPED', 'could not recover from status ' || status)
+            FROM    tasks.activities(%s) our_act
+            WHERE   all_act.id     = our_act.activity_id
+                AND all_act.status NOT IN ('STOPPED', 'RECOVERING')
+        """, (self.golem.app_session_id,))
+
+        for activity_id in [row[0] for row in our_ready_activities]:
+            asyncio.create_task(self._recover_activity(activity_id))
+
+    async def _recover_activity(self, activity_id):
+        #   Activity has now state "RECOVERING".
+        #   We're waiting for the last batch to finish at most 30s, if it finishes
+        #   (or is already finished) we set it to "READY", if not - we try to close the
+        #   activity.
+        agreement_id = (await self.db.select("""
+            SELECT  agreement_id
+            FROM    tasks.activity
+            WHERE   id = %s
+        """, (activity_id,)))[0][0]
+
+        batch_id = (await self.db.select("""
+            SELECT  id
+            FROM    tasks.batch
+            WHERE   activity_id = %s
+            ORDER BY created_ts DESC
+            LIMIT 1
+        """, (activity_id,)))[0][0]
+        
+        agreement = self.golem.agreement(agreement_id)
+        activity = self.golem.activity(activity_id)
+        batch = self.golem.batch(batch_id, activity_id)
+
+        print(agreement, activity, batch)
+
     async def _get_running_activity_cnt(self):
         #   Q: why don't we use golem.all_resources(Activity) here?
         #   A: because:

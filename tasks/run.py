@@ -38,6 +38,8 @@ class Runner:
             activity_manager = ActivityManager(golem, db, payload=self.payload, max_activities=2)
             event_writer = EventWriter(golem, db)
 
+            await activity_manager.recover()
+
             execute_tasks_task = asyncio.create_task(task_executor.run())
             manage_activities_task = asyncio.create_task(activity_manager.run())
             event_writer_task = asyncio.create_task(event_writer.run())
