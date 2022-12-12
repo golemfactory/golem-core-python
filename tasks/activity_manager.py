@@ -4,6 +4,7 @@ from golem_core.mid import (
     Chain, Map,
     default_negotiate, default_create_agreement, default_create_activity, default_prepare_activity,
 )
+from golem_core.low.exceptions import BatchError, BatchTimeoutError
 
 class ActivityManager:
     def __init__(self, golem, db, *, payload, max_activities, max_concurrent=2):
@@ -72,12 +73,27 @@ class ActivityManager:
             ORDER BY created_ts DESC
             LIMIT 1
         """, (activity_id,)))[0][0]
-        
+
         agreement = self.golem.agreement(agreement_id)
-        activity = self.golem.activity(activity_id)
         batch = self.golem.batch(batch_id, activity_id)
 
-        print(agreement, activity, batch)
+        try:
+            #   FIXME: This never succeeds. Why?
+            #          (Also: maybe we'd rather destroy & recreate activity?)
+            batch.start_collecting_events()
+            await batch.wait(30)
+            await self.db.aexecute("""
+                UPDATE  tasks.activity
+                SET     status = 'READY'
+                WHERE   id = %s
+            """, (activity_id,))
+        except (BatchError, BatchTimeoutError):
+            await agreement.close_all()
+            await self.db.aexecute("""
+                UPDATE  tasks.activity
+                SET     (status, stop_reason) = ('STOPPED', 'recovery failed')
+                WHERE   id = %s
+            """, (activity_id,))
 
     async def _get_running_activity_cnt(self):
         #   Q: why don't we use golem.all_resources(Activity) here?
