@@ -46,7 +46,7 @@ def show(run_id, dsn):
 
     table = PrettyTable()
     table.field_names = [
-        "ix", "activity_id", "status", "batches"
+        "ix", "activity_id", "status", "batches", "stop_reason"
     ]
 
     for row in data:
@@ -81,7 +81,8 @@ SHOW_DATA_SQL = """
         )
         SELECT  our_act.activity_id,
                 all_act.status,
-                our_act.batch_cnt
+                our_act.batch_cnt,
+                all_act.stop_reason
         FROM    activities      our_act
         JOIN    tasks.activity  all_act
             ON  all_act.id = our_act.activity_id
@@ -89,7 +90,8 @@ SHOW_DATA_SQL = """
     SELECT  row_number() OVER (ORDER BY activity_id),
             activity_id,
             status,
-            batch_cnt
+            batch_cnt,
+            coalesce(stop_reason, '')
     FROM    activities
     ORDER BY 2
 """

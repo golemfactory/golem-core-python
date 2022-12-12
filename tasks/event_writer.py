@@ -1,25 +1,30 @@
 import asyncio
 
 from golem_core.low import Demand, Agreement, Activity, PoolingBatch
-from golem_core.events import NewResource
+from golem_core.events import NewResource, ResourceClosed
 
-class NewResourceManager:
+class EventWriter:
     def __init__(self, golem, db):
         self.golem = golem
         self.db = db
 
     async def run(self):
         self.golem.event_bus.resource_listen(
-            self._save_resource,
+            self._save_new_resource,
             event_classes=[NewResource],
             resource_classes=[Demand, Agreement, Activity, PoolingBatch],
+        )
+        self.golem.event_bus.resource_listen(
+            self._save_activity_closed,
+            event_classes=[ResourceClosed],
+            resource_classes=[Activity],
         )
 
         #   We just wait here forever now, but in the future we might want to remove
         #   the listiner once run() is cancelled. This doesn't matter now. We could also just return.
         await asyncio.Future()
 
-    async def _save_resource(self, event):
+    async def _save_new_resource(self, event):
         #   NOTE: We have only a single callback (instead of separate callbacks for separate resources)
         #         because the order of the inserts **must** be preserved (because of the foreign keys).
         #         This doesn't matter that much now, but might matter more after
@@ -40,3 +45,16 @@ class NewResourceManager:
             db.execute("INSERT INTO activity (id, agreement_id) VALUES (%s, %s)", (resource_id, resource.parent.id))
         elif isinstance(event.resource, PoolingBatch):
             db.execute("INSERT INTO batch (id, activity_id) VALUES (%s, %s)", (resource_id, resource.parent.id))
+
+    async def _save_activity_closed(self, event):
+        print("EVENT", event)
+        activity_id = event.resource.id
+
+        try:
+            self.db.execute("""
+                UPDATE  activity
+                SET     stop_reason = COALESCE(stop_reason, 'app closing')
+                WHERE   id = %(activity_id)s
+            """, {"activity_id": activity_id})
+        except Exception as e:
+            print(e)

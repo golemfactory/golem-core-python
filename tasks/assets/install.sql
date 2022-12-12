@@ -27,7 +27,8 @@ CREATE TABLE agreement (
 CREATE TABLE activity (
     id              text PRIMARY KEY,
     agreement_id    text NOT NULL REFERENCES agreement(id) ON DELETE CASCADE,
-    status          text NOT NULL DEFAULT 'NEW'
+    status          text NOT NULL DEFAULT 'NEW',
+    stop_reason     text
 );
 
 CREATE TABLE batch (
