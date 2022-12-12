@@ -4,9 +4,9 @@ from golem_core import GolemNode
 
 from tasks.db import DB
 
-from tasks.create_activities import create_activities
-from tasks.process_tasks import process_tasks
-from tasks.save_new_objects import save_new_objects
+from tasks.task_executor import TaskExecutor
+from tasks.activity_manager import ActivityManager
+from tasks.new_resource_manager import NewResourceManager
 
 
 async def main(*, payload, get_tasks, results_cnt, dsn):
@@ -17,17 +17,21 @@ async def main(*, payload, get_tasks, results_cnt, dsn):
     async with golem:
         await db.aexecute("INSERT INTO run (id) VALUES (%s)", (golem.app_session_id,))
 
-        process_tasks_task = asyncio.create_task(process_tasks(golem, db, get_tasks))
-        create_activities_task = asyncio.create_task(create_activities(golem, db, payload, 2))
-        save_new_objects_task = asyncio.create_task(save_new_objects(golem, db))
+        task_executor = TaskExecutor(golem, db, get_tasks=get_tasks, max_concurrent=2)
+        activity_manager = ActivityManager(golem, db, payload=payload, max_activities=2)
+        new_resource_manager = NewResourceManager(golem, db)
+
+        execute_tasks_task = asyncio.create_task(task_executor.run())
+        manage_activities_task = asyncio.create_task(activity_manager.run())
+        manage_new_resources_task = asyncio.create_task(new_resource_manager.run())
 
         try:
-            await process_tasks_task
+            await execute_tasks_task
         finally:
-            process_tasks_task.cancel()
-            create_activities_task.cancel()
-            save_new_objects_task.cancel()
-            await asyncio.gather(process_tasks_task, save_new_objects_task, create_activities_task)
+            execute_tasks_task.cancel()
+            manage_activities_task.cancel()
+            manage_new_resources_task.cancel()
+            await asyncio.gather(execute_tasks_task, manage_activities_task, manage_new_resources_task)
             await db.aclose()
 
 
