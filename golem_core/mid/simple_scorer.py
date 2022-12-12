@@ -5,7 +5,7 @@ import heapq
 
 from typing import AsyncIterator, Awaitable, Callable, List, Optional, Tuple
 
-from golem_api.low.market import Proposal
+from golem_core.low.market import Proposal
 
 
 @dataclass(order=True)
@@ -41,7 +41,7 @@ class SimpleScorer:
         :param proposals: Stream of :any:`Proposal` to be reordered.
             In fact, this could be stream of whatever, as long as this whatever matches
             the scoring function, and this whatever would be yielded (TODO - maybe turn this into a general Sort?
-            https://github.com/golemfactory/golem-api-python/issues/11).
+            https://github.com/golemfactory/golem-core-python/issues/11).
         """
         self._no_more_proposals = False
         proposal_scorer_task = asyncio.get_event_loop().create_task(self._process_stream(proposals))
@@ -68,7 +68,7 @@ class SimpleScorer:
 
     async def _process_stream(self, proposal_stream: AsyncIterator[Proposal]) -> None:
         async for proposal in proposal_stream:
-            #   TODO: https://github.com/golemfactory/golem-api-python/issues/37
+            #   TODO: https://github.com/golemfactory/golem-core-python/issues/37
             score = await self.score_proposal(proposal)
             if score is None:
                 continue

@@ -1,6 +1,6 @@
 import asyncio
-from golem_api import commands, execute_tasks, Payload
-from golem_api.low import Activity
+from golem_core import commands, execute_tasks, Payload
+from golem_core.low import Activity
 
 TASK_DATA = list(range(7))
 BUDGET = 1

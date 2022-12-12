@@ -1,5 +1,5 @@
-from golem_api.commands import Deploy, Start
-from golem_api.low import Activity, Agreement, Proposal
+from golem_core.commands import Deploy, Start
+from golem_core.low import Activity, Agreement, Proposal
 
 
 async def default_negotiate(proposal: Proposal) -> Proposal:

@@ -2,7 +2,7 @@ import asyncio
 from typing import AsyncIterator, Awaitable, Callable, DefaultDict, List, Optional, Set, Tuple, TypeVar
 from collections import Counter, defaultdict
 
-from golem_api.low import Activity, Proposal
+from golem_core.low import Activity, Proposal
 
 from .task_data_stream import TaskDataStream
 
@@ -46,7 +46,7 @@ class RedundanceManager:
                 yield proposal
 
         #   TODO: We wait here forever because Map, Zip etc) don't work with finite streams.
-        #         https://github.com/golemfactory/golem-api-python/issues/8
+        #         https://github.com/golemfactory/golem-core-python/issues/8
         print("All tasks done - no more proposals will be processed")
         await asyncio.Future()
 

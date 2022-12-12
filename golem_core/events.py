@@ -2,9 +2,9 @@ from abc import ABC
 from typing import Any, Dict, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from golem_api.low.resource import Resource
-    from golem_api.low import PoolingBatch
-    from golem_api import GolemNode
+    from golem_core.low.resource import Resource
+    from golem_core.low import PoolingBatch
+    from golem_core import GolemNode
 
 
 class Event(ABC):
@@ -125,7 +125,7 @@ class ResourceClosed(ResourceEvent):
 
     This event should never be emitted more than once for a given :any:`Resource`.
     Currently this is not true for :any:`Activity` - this is a known TODO
-    (https://github.com/golemfactory/golem-api-python/issues/33).
+    (https://github.com/golemfactory/golem-core-python/issues/33).
 
     Not all resources are closed, e.g. :any:`PoolingBatch` is not.
     """

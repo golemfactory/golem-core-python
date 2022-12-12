@@ -3,16 +3,16 @@ from datetime import timedelta
 from random import random
 from typing import AsyncIterator, Callable, Tuple
 
-from golem_api import GolemNode, commands, Payload
-from golem_api.low import Activity, Proposal
+from golem_core import GolemNode, commands, Payload
+from golem_core.low import Activity, Proposal
 
-from golem_api.mid import (
+from golem_core.mid import (
     Buffer, Chain, Map, Zip,
     ActivityPool, SimpleScorer,
     default_negotiate, default_create_agreement, default_create_activity,
 )
-from golem_api.default_logger import DefaultLogger
-from golem_api.default_payment_manager import DefaultPaymentManager
+from golem_core.default_logger import DefaultLogger
+from golem_core.default_payment_manager import DefaultPaymentManager
 
 PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 

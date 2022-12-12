@@ -20,8 +20,8 @@ class Chain():
 
     A more Golem-specific usage::
 
-        from golem_api import Payload, GolemNode
-        from golem_api.mid import (
+        from golem_core import Payload, GolemNode
+        from golem_core.mid import (
             Buffer, Chain, Map,
             default_negotiate, default_create_agreement, default_create_activity
         )

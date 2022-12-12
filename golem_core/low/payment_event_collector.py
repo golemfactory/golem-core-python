@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from ya_payment import models
 
 if TYPE_CHECKING:
-    from golem_api import GolemNode
+    from golem_core import GolemNode
 
 from .resource import Resource
 from .payment import DebitNote, Invoice

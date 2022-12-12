@@ -2,17 +2,17 @@ from typing import AsyncIterator, Awaitable, Callable, Iterable, Optional, Tuple
 from random import random
 from datetime import timedelta
 
-from golem_api import GolemNode, Payload
-from golem_api.low import Activity, Demand, Proposal
-from golem_api.mid import default_prepare_activity
+from golem_core import GolemNode, Payload
+from golem_core.low import Activity, Demand, Proposal
+from golem_core.mid import default_prepare_activity
 
-from golem_api.mid import (
+from golem_core.mid import (
     Buffer, Chain, Map, Zip,
     ActivityPool, SimpleScorer,
     default_negotiate, default_create_agreement, default_create_activity,
 )
-from golem_api.default_logger import DefaultLogger
-from golem_api.default_payment_manager import DefaultPaymentManager
+from golem_core.default_logger import DefaultLogger
+from golem_core.default_payment_manager import DefaultPaymentManager
 
 from .task_data_stream import TaskDataStream
 from .redundance_manager import RedundanceManager

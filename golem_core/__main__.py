@@ -1,4 +1,4 @@
-from golem_api.cli import cli
+from golem_core.cli import cli
 
 
 if __name__ == '__main__':

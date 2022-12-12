@@ -170,7 +170,7 @@ class GolemNode:
         """
         decimal_amount = Decimal(amount)
 
-        #   TODO (?): https://github.com/golemfactory/golem-api-python/issues/34
+        #   TODO (?): https://github.com/golemfactory/golem-core-python/issues/34
         allocation = await Allocation.create_any_account(self, decimal_amount, network, driver)
         if autoclose:
             self.add_autoclose_resource(allocation)
@@ -248,7 +248,7 @@ class GolemNode:
             for constraint in constraints:
                 builder.ensure(constraint)
 
-            #   TODO (?): https://github.com/golemfactory/golem-api-python/issues/35
+            #   TODO (?): https://github.com/golemfactory/golem-core-python/issues/35
             builder.properties.update({p.key: p.value for p in properties})
 
     ###########################

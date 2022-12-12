@@ -3,14 +3,14 @@ from abc import ABC, ABCMeta
 import re
 from typing import AsyncIterator, Awaitable, Callable, Generic, List, Optional, TYPE_CHECKING, Type
 
-from golem_api.events import NewResource, ResourceDataChanged
-from golem_api.low.api_call_wrapper import api_call_wrapper
-from golem_api.low.resource_internals import (
+from golem_core.events import NewResource, ResourceDataChanged
+from golem_core.low.api_call_wrapper import api_call_wrapper
+from golem_core.low.resource_internals import (
     get_requestor_api, ResourceType, RequestorApiType, ModelType, ParentType, ChildType, EventType
 )
 
 if TYPE_CHECKING:
-    from golem_api import GolemNode
+    from golem_core import GolemNode
 
 
 class ResourceMeta(ABCMeta):
@@ -41,7 +41,7 @@ class Resource(
 
     TODO - in the final version this should disappear from the public docs and all these methods
     should be described on subclasses, but this doesn't make much sense before the previous TODO.
-    Related issue: https://github.com/golemfactory/golem-api-python/issues/26
+    Related issue: https://github.com/golemfactory/golem-core-python/issues/26
     """
     def __init__(self, node: "GolemNode", id_: str, data: Optional[ModelType] = None):
         self._node = node
@@ -102,7 +102,7 @@ class Resource(
                 yield self._children[cnt]
                 cnt += 1
             else:
-                #   TODO: https://github.com/golemfactory/golem-api-python/issues/36
+                #   TODO: https://github.com/golemfactory/golem-core-python/issues/36
                 wait_task: asyncio.Task = asyncio.create_task(asyncio.sleep(0.1))
                 await asyncio.wait((wait_task, stop_task), return_when=asyncio.FIRST_COMPLETED)
                 if stop_task.done():
@@ -116,7 +116,7 @@ class Resource(
     def events(self) -> List[EventType]:
         """Returns a list of all `yagna` events related to this :class:`Resource`.
 
-        Note: these are **yagna** events and should not be confused with `golem_api.events`.
+        Note: these are **yagna** events and should not be confused with `golem_core.events`.
         """
         return self._events.copy()
 

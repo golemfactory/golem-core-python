@@ -2,7 +2,7 @@ import pytest
 
 from typing import Any, AsyncIterator, Callable, Tuple
 
-from golem_api.mid import Buffer, Chain, Limit, Map, Zip
+from golem_core.mid import Buffer, Chain, Limit, Map, Zip
 
 async def src() -> AsyncIterator[int]:
     for x in range(10):
