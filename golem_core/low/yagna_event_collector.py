@@ -21,7 +21,14 @@ class YagnaEventCollector(ABC):
         while True:
             args = self._collect_events_args()
             kwargs = self._collect_events_kwargs()
-            events = await self._collect_events_func(*args, **kwargs)
+            try:
+                events = await self._collect_events_func(*args, **kwargs)
+            except Exception as e:
+                #   FIXME: https://github.com/golemfactory/yagna-sdk-team/issues/232
+                print(e)
+                import traceback
+                traceback.print_exc()
+                raise
             if events:
                 for event in events:
                     await self._process_event(event)

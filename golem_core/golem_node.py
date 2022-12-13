@@ -19,6 +19,7 @@ from .low.payment import Allocation, DebitNote, Invoice
 from .low.network import Network
 from .low.resource import Resource
 from .low.payment_event_collector import DebitNoteEventCollector, InvoiceEventCollector
+from .low.agreement_event_collector import AgreementEventCollector
 
 
 DEFAULT_EXPIRATION_TIMEOUT = timedelta(seconds=1800)
@@ -74,6 +75,7 @@ class GolemNode:
 
         self._invoice_event_collector = InvoiceEventCollector(self)
         self._debit_note_event_collector = DebitNoteEventCollector(self)
+        self._agreement_event_collector = AgreementEventCollector(self)
 
     @property
     def app_key(self) -> str:
@@ -102,6 +104,13 @@ class GolemNode:
             self._invoice_event_collector.start_collecting_events()
             self._debit_note_event_collector.start_collecting_events()
 
+        #   Q: Why is there no _collect_agreement_events (as we have _collect_payment_events now?)
+        #   A: 1. Because there's no usecase.
+        #      2. Because now ResourceClosed for Agreements is emitted in AgreementEventCollector
+        #         and we want this event to be emitted always.
+
+        # FIXME: waiting for https://github.com/golemfactory/yagna-sdk-team/issues/232
+        # self._agreement_event_collector.start_collecting_events()
         self.event_bus.emit(SessionStarted(self))
 
     async def aclose(self) -> None:
@@ -116,9 +125,13 @@ class GolemNode:
     def _stop_event_collectors(self) -> None:
         demands = self.all_resources(Demand)
         batches = self.all_resources(PoolingBatch)
-        payment_event_collectors = [self._invoice_event_collector, self._debit_note_event_collector]
+        event_collectors = [
+            self._invoice_event_collector,
+            self._debit_note_event_collector,
+            self._agreement_event_collector,
+        ]
 
-        for event_collector in demands + batches + payment_event_collectors:
+        for event_collector in demands + batches + event_collectors:
             event_collector.stop_collecting_events()
 
     def _set_no_more_children(self) -> None:
