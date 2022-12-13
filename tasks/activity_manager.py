@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime, timezone, timedelta
 
 from golem_core.mid import (
     Chain, Map,
@@ -14,8 +15,11 @@ class ActivityManager:
         self.max_activities = max_activities
         self.max_concurrent = max_concurrent if max_concurrent is not None else max_activities
 
+        self._demand_expiration = None
+        self._chain = None
+        self._get_chain_lock = asyncio.Lock()
+
     async def run(self):
-        chain = await self._get_chain()
         tasks = []
 
         semaphore = asyncio.BoundedSemaphore(self.max_concurrent)
@@ -27,7 +31,7 @@ class ActivityManager:
             running_task_cnt = len([task for task in tasks if not task.done()])
 
             if running_activity_cnt + running_task_cnt < self.max_activities:
-                tasks.append(asyncio.create_task(self._get_new_activity(chain_lock, chain, semaphore)))
+                tasks.append(asyncio.create_task(self._get_new_activity(chain_lock, semaphore)))
             else:
                 semaphore.release()
                 await asyncio.sleep(1)
@@ -125,8 +129,26 @@ class ActivityManager:
         return activity
 
     async def _get_chain(self):
+        async with self._get_chain_lock:
+            if self._chain is None or (await self._demand_expires_soon()):
+                self._chain = await self._create_new_chain()
+        return self._chain
+
+    async def _demand_expires_soon(self):
+        assert self._demand_expiration is not None
+        return (self._demand_expiration - datetime.now(timezone.utc)) < timedelta(seconds=300)
+
+    async def _create_new_chain(self):
+        #   TODO
+        #   1.  We now create a new allocation for each chain
+        #   2.  We don't terminate old allocations (only when app exits)
+        #   both seems wrong, but we must first decide about whole budgeting thing.
         allocation = await self.golem.create_allocation(amount=1)
-        demand = await self.golem.create_demand(self.payload, allocations=[allocation])
+
+        self._demand_expiration = datetime.now(timezone.utc) + timedelta(seconds=1800)
+        demand = await self.golem.create_demand(
+            self.payload, allocations=[allocation], expiration=self._demand_expiration
+        )
 
         chain = Chain(
             demand.initial_proposals(),
@@ -137,7 +159,8 @@ class ActivityManager:
         )
         return chain
 
-    async def _get_new_activity(self, chain_lock, chain, semaphore):
+    async def _get_new_activity(self, chain_lock, semaphore):
+        chain = await self._get_chain()
         try:
             async with chain_lock:
                 activity_awaitable = await chain.__anext__()
