@@ -111,12 +111,17 @@ class ActivityManager:
         return data[0][0]
 
     async def _prepare_activity(self, activity):
-        await default_prepare_activity(activity)
-        await self.db.aexecute("""
-            UPDATE  activity
-            SET     status = 'READY'
-            WHERE   id = %s
-        """, (activity.id,))
+        try:
+            await default_prepare_activity(activity)
+        except Exception:
+            await self.db.aexecute("""
+                UPDATE  activity
+                SET     (status, stop_reason) = ('STOPPED', 'deploy/start failed')
+                WHERE   id = %s
+            """, (activity.id,))
+            raise
+
+        await self.db.aexecute("UPDATE activity SET status = 'READY' WHERE id = %s", (activity.id,))
         return activity
 
     async def _get_chain(self):
