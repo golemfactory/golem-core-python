@@ -190,6 +190,11 @@ class PoolingBatch(
         """True if this batch finished without errors. Raises `AttributeError` if batch is not :any:`done`."""
         if not self.done:
             raise AttributeError("Success can be determined only for finished batches")
+        if not self.events:
+            #   We got no events but we're done -> only possibility is event collection failure
+            #   (In the future maybe also cancelled batch?)
+            return False
+
         return self.events[-1].result == "Ok"
 
     async def wait(
@@ -237,6 +242,15 @@ class PoolingBatch(
 
     ###########################
     #   Event collector methods
+    async def _collect_yagna_events(self) -> None:
+        try:
+            await super()._collect_yagna_events()
+        except Exception:
+            #   This happens when activity is destroyed when we're waiting for batch results
+            #   (I'm not sure if always - for sure when provider destroys activity because
+            #   agreement timed out). Maybe some other scenarios are also possible.
+            self._set_finished()
+
     def _collect_events_kwargs(self) -> Dict:
         return {"timeout": 5, "_request_timeout": 5.5}
 
@@ -263,10 +277,13 @@ class PoolingBatch(
                 self._futures[event.index].set_result(event)
 
         if event.is_batch_finished:
-            self.node.event_bus.emit(BatchFinished(self))
-            self.finished_event.set()
-            self.parent.running_batch_counter -= 1
-            self.stop_collecting_events()
+            self._set_finished()
+
+    def _set_finished(self):
+        self.node.event_bus.emit(BatchFinished(self))
+        self.finished_event.set()
+        self.parent.running_batch_counter -= 1
+        self.stop_collecting_events()
 
 
 class Script:
