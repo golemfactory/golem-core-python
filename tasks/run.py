@@ -55,10 +55,14 @@ class Runner:
                 manage_activities_task.cancel()
                 manage_payments_task.cancel()
                 event_writer_task.cancel()
+
                 await asyncio.gather(
-                    execute_tasks_task, manage_activities_task, manage_payments_task, event_writer_task
+                    execute_tasks_task, manage_activities_task, manage_payments_task, event_writer_task,
+                    return_exceptions=True,
                 )
-                await db.aclose()
+
+                await payment_manager.terminate_agreements()
+                await payment_manager.wait_for_invoices()
 
 
 def run(*, payload, get_tasks, results_cnt, dsn, run_id, workers):

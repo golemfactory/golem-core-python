@@ -23,7 +23,7 @@ class YagnaEventCollector(ABC):
             kwargs = self._collect_events_kwargs()
             try:
                 events = await self._collect_events_func(*args, **kwargs)
-            except Exception as e:
+            except ValueError as e:
                 #   FIXME: https://github.com/golemfactory/yagna-sdk-team/issues/232
                 print(e)
                 import traceback
