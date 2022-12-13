@@ -9,11 +9,12 @@ from tasks.activity_manager import ActivityManager
 from tasks.event_writer import EventWriter
 
 class Runner:
-    def __init__(self, *, payload, get_tasks, results_cnt, dsn, run_id):
+    def __init__(self, *, payload, get_tasks, results_cnt, dsn, run_id, workers):
         self.payload = payload
         self.get_tasks = get_tasks
         self.results_cnt = results_cnt
         self.dsn = dsn
+        self.workers = workers
 
         self.db = DB(self.dsn)
         if run_id is None:
@@ -34,8 +35,8 @@ class Runner:
         await db.aexecute("INSERT INTO run (id) VALUES (%s) ON CONFLICT DO NOTHING", (golem.app_session_id,))
 
         async with golem:
-            task_executor = TaskExecutor(golem, db, get_tasks=self.get_tasks, max_concurrent=2)
-            activity_manager = ActivityManager(golem, db, payload=self.payload, max_activities=2)
+            task_executor = TaskExecutor(golem, db, get_tasks=self.get_tasks, max_concurrent=self.workers)
+            activity_manager = ActivityManager(golem, db, payload=self.payload, max_activities=self.workers)
             event_writer = EventWriter(golem, db)
 
             await activity_manager.recover()
@@ -54,13 +55,14 @@ class Runner:
                 await db.aclose()
 
 
-def run(*, payload, get_tasks, results_cnt, dsn, run_id):
+def run(*, payload, get_tasks, results_cnt, dsn, run_id, workers):
     runner = Runner(
         payload=payload,
         get_tasks=get_tasks,
         results_cnt=results_cnt,
         dsn=dsn,
         run_id=run_id,
+        workers=workers,
     )
     loop = asyncio.get_event_loop()
     task = loop.create_task(runner.main())

@@ -23,7 +23,8 @@ def install(dsn) -> None:
 @click.argument("module_name", type=str)
 @click.option("--run-id", type=str, default=None)
 @click.option("--dsn", type=str, default="")
-def run(module_name, run_id, dsn) -> None:
+@click.option("--workers", type=int, default=1)
+def run(module_name, run_id, dsn, workers) -> None:
     module = import_module(module_name)
     _tasks_run(
         payload=module.PAYLOAD,
@@ -31,6 +32,7 @@ def run(module_name, run_id, dsn) -> None:
         results_cnt=module.results_cnt,
         run_id=run_id,
         dsn=dsn,
+        workers=workers,
     )
 
 @cli.command()
