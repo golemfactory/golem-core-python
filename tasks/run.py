@@ -6,6 +6,7 @@ from tasks.db import DB
 
 from tasks.task_executor import TaskExecutor
 from tasks.activity_manager import ActivityManager
+from tasks.payment_manager import PaymentManager
 from tasks.event_writer import EventWriter
 
 class Runner:
@@ -37,12 +38,14 @@ class Runner:
         async with golem:
             task_executor = TaskExecutor(golem, db, get_tasks=self.get_tasks, max_concurrent=self.workers)
             activity_manager = ActivityManager(golem, db, payload=self.payload, max_activities=self.workers)
+            payment_manager = PaymentManager(golem, db)
             event_writer = EventWriter(golem, db)
 
             await activity_manager.recover()
 
             execute_tasks_task = asyncio.create_task(task_executor.run())
             manage_activities_task = asyncio.create_task(activity_manager.run())
+            manage_payments_task = asyncio.create_task(payment_manager.run())
             event_writer_task = asyncio.create_task(event_writer.run())
 
             try:
@@ -50,8 +53,11 @@ class Runner:
             finally:
                 execute_tasks_task.cancel()
                 manage_activities_task.cancel()
+                manage_payments_task.cancel()
                 event_writer_task.cancel()
-                await asyncio.gather(execute_tasks_task, manage_activities_task, event_writer_task)
+                await asyncio.gather(
+                    execute_tasks_task, manage_activities_task, manage_payments_task, event_writer_task
+                )
                 await db.aclose()
 
 

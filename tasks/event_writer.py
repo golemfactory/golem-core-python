@@ -1,4 +1,3 @@
-import asyncio
 import psycopg2
 
 from golem_core.low import Demand, Agreement, Activity, PoolingBatch
@@ -20,10 +19,6 @@ class EventWriter:
             event_classes=[ResourceClosed],
             resource_classes=[Activity],
         )
-
-        #   We just wait here forever now, but in the future we might want to remove
-        #   the listiner once run() is cancelled. This doesn't matter now. We could also just return.
-        await asyncio.Future()
 
     async def _save_new_resource(self, event):
         #   NOTE: We have only a single callback (instead of separate callbacks for separate resources)
