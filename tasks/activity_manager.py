@@ -110,7 +110,7 @@ class ActivityManager:
             FROM    activities(%s) run_act
             JOIN    activity       all_act
                 ON  run_act.activity_id = all_act.id
-            WHERE   all_act.status != 'STOPPED'
+            WHERE   all_act.status IN ('NEW', 'READY')
         """, (self.golem.app_session_id,))
         return data[0][0]
 
