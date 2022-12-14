@@ -8,6 +8,13 @@ CREATE TABLE run (
     created_ts  timestamp DEFAULT now()
 );
 
+CREATE TABLE results (
+    id          serial,
+    created_ts  timestamp DEFAULT now(),
+    run_id      text NOT NULL REFERENCES run(id) ON DELETE CASCADE,
+    cnt         int NOT NULL CHECK (cnt >= 0)
+);
+
 CREATE TABLE demand (
     id          text PRIMARY KEY,
     created_ts  timestamp DEFAULT now(),              
