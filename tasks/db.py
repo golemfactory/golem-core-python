@@ -5,7 +5,7 @@ from uuid import uuid4
 class DB:
     def __init__(self, dsn, run_id):
         self._dsn = dsn
-        self._run_id = run_id if run_id else uuid4()
+        self._run_id = run_id if run_id else uuid4().hex
         self._schema = "tasks"
         self._pool = None
 
@@ -55,5 +55,5 @@ class DB:
 
     async def aclose(self):
         if self._pool is not None:
-            self._pool.terminate()
+            self._pool.close()
             await self._pool.wait_closed()

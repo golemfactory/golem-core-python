@@ -18,20 +18,27 @@ class ActivityManager:
         self._demand_expiration = None
         self._chain = None
         self._get_chain_lock = asyncio.Lock()
+        self._tasks = []
 
     async def run(self):
-        tasks = []
+        try:
+            await self._run()
+        except asyncio.CancelledError:
+            [task.cancel() for task in self._tasks]
+            await asyncio.gather(*self._tasks, return_exceptions=True)
+            raise
 
+    async def _run(self):
         semaphore = asyncio.BoundedSemaphore(self.max_concurrent)
         chain_lock = asyncio.Lock()
         while True:
             await semaphore.acquire()
 
             running_activity_cnt = await self._get_running_activity_cnt()
-            running_task_cnt = len([task for task in tasks if not task.done()])
+            running_task_cnt = len([task for task in self._tasks if not task.done()])
 
             if running_activity_cnt + running_task_cnt < self.max_activities:
-                tasks.append(asyncio.create_task(self._get_new_activity(chain_lock, semaphore)))
+                self._tasks.append(asyncio.create_task(self._get_new_activity(chain_lock, semaphore)))
             else:
                 semaphore.release()
                 await asyncio.sleep(1)

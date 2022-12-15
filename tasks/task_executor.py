@@ -13,21 +13,28 @@ class TaskExecutor:
 
         self.locked_activities = []
 
+        self._stopping = False
+
     async def run(self):
-        async for _ in Chain(
-            self._activity_stream(),
-            Zip(self._task_stream()),
-            Map(self._process_task),
-            Buffer(size=self.max_concurrent),
-        ):
-            pass
+        try:
+            async for _ in Chain(
+                self._activity_stream(),
+                Zip(self._task_stream()),
+                Map(self._process_task),
+                Buffer(size=self.max_concurrent),
+            ):
+                pass
+        except asyncio.CancelledError:
+            self._stopping = True
+            raise
 
     async def _task_stream(self):
-        for task in self.get_tasks():
-            yield task
+        task_gen = self.get_tasks()
+        while not self._stopping:
+            yield next(task_gen)
 
     async def _activity_stream(self):
-        while True:
+        while not self._stopping:
             next_activity_id = await self._get_next_activity_id()
             if next_activity_id is not None:
                 yield self.golem.activity(next_activity_id)

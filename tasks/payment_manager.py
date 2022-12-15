@@ -56,16 +56,19 @@ class PaymentManager:
         self._agreement_has_invoice[agreement_id] = True
 
     async def terminate_agreements(self):
+        print("Terminating agreements")
         agreements = [
             self.golem.agreement(id_) for id_, finished in self._agreement_has_invoice.items() if not finished
         ]
-        tasks = [asyncio.create_task(agreement.terminate()) for agreement in agreements]
+        tasks = [asyncio.create_task(agreement.close_all()) for agreement in agreements]
         await asyncio.gather(*tasks)
+        print("All agreements terminated")
 
     async def wait_for_invoices(self):
         end = datetime.now() + timedelta(seconds=5)
         while not all(self._agreement_has_invoice.values()) and datetime.now() < end:
             await asyncio.sleep(0.1)
+        print("Waiting for invoices finished")
 
     def _get_allocation(self):
         try:

@@ -23,49 +23,48 @@ class Runner:
     async def main(self):
         try:
             await self.db.init_run()
+            await self.golem.start()
             await self._main()
         finally:
+            await self.golem.aclose()
             await self.db.aclose()
 
     async def _main(self):
         golem = self.golem
         db = self.db
 
-        async with golem:
-            #   Parts of logic based on events
-            event_writer = EventWriter(golem, db)
-            event_writer.start()
+        #   Logic based on event listeners only
+        event_writer = EventWriter(golem, db)
+        event_writer.start()
 
-            payment_manager = PaymentManager(golem, db)
-            payment_manager.start()
+        payment_manager = PaymentManager(golem, db)
+        payment_manager.start()
 
-            #   Perpetual tasks
-            task_executor = TaskExecutor(golem, db, get_tasks=self.get_tasks, max_concurrent=self.workers)
-            activity_manager = ActivityManager(golem, db, payload=self.payload, max_activities=self.workers)
+        #   Never-ending tasks
+        task_executor = TaskExecutor(golem, db, get_tasks=self.get_tasks, max_concurrent=self.workers)
+        activity_manager = ActivityManager(golem, db, payload=self.payload, max_activities=self.workers)
 
-            all_tasks = (
-                asyncio.create_task(task_executor.run()),
-                asyncio.create_task(activity_manager.run()),
-                asyncio.create_task(_save_results_cnt(golem, db, self.results_cnt)),
-            )
+        all_tasks = (
+            asyncio.create_task(task_executor.run()),
+            asyncio.create_task(activity_manager.run()),
+            asyncio.create_task(_save_results_cnt(golem, db, self.results_cnt)),
+        )
 
-            try:
-                await asyncio.wait(all_tasks, return_when=asyncio.FIRST_COMPLETED)
+        try:
+            await asyncio.wait(all_tasks, return_when=asyncio.FIRST_COMPLETED)
 
-                for task in all_tasks:
-                    if task.done() and task.exception():
-                        print("Shutting down because of", task.exception())
-                        raise task.exception()
+            for task in all_tasks:
+                if task.done() and task.exception():
+                    print("Shutting down because of", task.exception())
+                    raise task.exception()
 
-                print("All tasks done")
-            finally:
-                for task in all_tasks:
-                    task.cancel()
-                await asyncio.gather(*all_tasks, return_exceptions=True)
+            print("All tasks done")
+        finally:
+            [task.cancel() for task in all_tasks]
+            await asyncio.gather(*all_tasks, return_exceptions=True)
 
-                await payment_manager.terminate_agreements()
-                await payment_manager.wait_for_invoices()
-                print("Waiting for invoices finished")
+            await payment_manager.terminate_agreements()
+            await payment_manager.wait_for_invoices()
 
 async def _save_results_cnt(golem, db, results_cnt):
     while True:
