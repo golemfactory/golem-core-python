@@ -1,3 +1,4 @@
+import aiofiles
 import queue
 import hashlib
 import random
@@ -22,15 +23,21 @@ def get_tasks(run_id):
         except queue.Empty:
             insert_main_tasks(10)
 
-def results_cnt(run_id):
-    return len(results)
+async def results_cnt(run_id):
+    try:
+        async with aiofiles.open(results_fname(run_id), mode='r') as f:
+            return len(await f.readlines())
+    except FileNotFoundError:
+        return 0
 
 
 #   INTERNALS
 PASSWORD_LENGTH = 3
 CHUNK_SIZE = 2 ** 12
 tasks_queue = queue.LifoQueue()
-results = set()
+
+def results_fname(run_id):
+    return f"_yacat_results_{run_id}"
 
 class MainTask:
     def __init__(self, mask: str, hash_: str, hash_type: int, attack_mode: int):
@@ -74,7 +81,8 @@ class AttackPartTask:
         result = batch.events[-1].stdout
         if result is not None:
             print(f"FOUND {result.strip()} between {self.skip} and {self.limit}")
-            results.add(result)
+            async with aiofiles.open(results_fname(run_id), mode='a+') as f:
+                await f.write(result)
 
     def _commands(self):
         out_fname = "/golem/output/out.potfile"

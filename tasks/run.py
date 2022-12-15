@@ -68,7 +68,7 @@ class Runner:
 
 async def _save_results_cnt(golem, db, results_cnt):
     while True:
-        cnt = results_cnt(db.run_id)
+        cnt = await results_cnt(db.run_id)
         await db.aexecute("INSERT INTO results (run_id, cnt) VALUES (%(run_id)s, %(cnt)s)", {"cnt": cnt})
         await asyncio.sleep(1)
 

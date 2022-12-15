@@ -9,7 +9,7 @@ def get_tasks(run_id):
     for i in count(0):
         yield _get_task(i)
 
-def results_cnt(run_id):
+async def results_cnt(run_id):
     return len(results)
 
 
