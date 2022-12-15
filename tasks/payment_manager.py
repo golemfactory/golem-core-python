@@ -11,7 +11,7 @@ class PaymentManager:
         self._allocations = []
         self._agreement_has_invoice = {}
 
-    async def run(self):
+    def start(self):
         self.golem.event_bus.resource_listen(
             self._save_allocation,
             event_classes=[NewResource],

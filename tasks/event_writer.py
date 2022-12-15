@@ -8,7 +8,7 @@ class EventWriter:
         self.golem = golem
         self.db = db
 
-    async def run(self):
+    def start(self):
         self.golem.event_bus.resource_listen(
             self._save_new_resource,
             event_classes=[NewResource],
@@ -46,7 +46,7 @@ class EventWriter:
                     {"activity_id": resource_id, "agreement_id": resource.parent.id})
             elif isinstance(event.resource, PoolingBatch):
                 await db.aexecute(
-                    "INSERT INTO batch (id, activity_id) VALUES (%(batch_id)s, %(activity_id)s)", 
+                    "INSERT INTO batch (id, activity_id) VALUES (%(batch_id)s, %(activity_id)s)",
                     {"batch_id": resource_id, "activity_id": resource.parent.id})
         except psycopg2.errors.UniqueViolation:
             #   This is possible when recovering. We discover already existing objects and try to insert them again.

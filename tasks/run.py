@@ -30,39 +30,42 @@ class Runner:
     async def _main(self):
         golem = self.golem
         db = self.db
-        
+
         async with golem:
+            #   Parts of logic based on events
+            event_writer = EventWriter(golem, db)
+            event_writer.start()
+
+            payment_manager = PaymentManager(golem, db)
+            payment_manager.start()
+
+            #   Perpetual tasks
             task_executor = TaskExecutor(golem, db, get_tasks=self.get_tasks, max_concurrent=self.workers)
             activity_manager = ActivityManager(golem, db, payload=self.payload, max_activities=self.workers)
-            payment_manager = PaymentManager(golem, db)
-            event_writer = EventWriter(golem, db)
 
-            await activity_manager.recover()
-
-            save_results_cnt_task = asyncio.create_task(_save_results_cnt(golem, db, self.results_cnt))
-            await asyncio.sleep(5)
-            execute_tasks_task = asyncio.create_task(task_executor.run())
-            manage_activities_task = asyncio.create_task(activity_manager.run())
-            manage_payments_task = asyncio.create_task(payment_manager.run())
-            event_writer_task = asyncio.create_task(event_writer.run())
+            all_tasks = (
+                asyncio.create_task(task_executor.run()),
+                asyncio.create_task(activity_manager.run()),
+                asyncio.create_task(_save_results_cnt(golem, db, self.results_cnt)),
+            )
 
             try:
-                await execute_tasks_task
-            finally:
-                execute_tasks_task.cancel()
-                manage_activities_task.cancel()
-                manage_payments_task.cancel()
-                event_writer_task.cancel()
-                save_results_cnt_task.cancel()
+                await asyncio.wait(all_tasks, return_when=asyncio.FIRST_COMPLETED)
 
-                await asyncio.gather(
-                    execute_tasks_task, manage_activities_task, manage_payments_task, event_writer_task,
-                    save_results_cnt_task,
-                    return_exceptions=True,
-                )
+                for task in all_tasks:
+                    if task.done() and task.exception():
+                        print("Shutting down because of", task.exception())
+                        raise task.exception()
+
+                print("All tasks done")
+            finally:
+                for task in all_tasks:
+                    task.cancel()
+                await asyncio.gather(*all_tasks, return_exceptions=True)
 
                 await payment_manager.terminate_agreements()
                 await payment_manager.wait_for_invoices()
+                print("Waiting for invoices finished")
 
 async def _save_results_cnt(golem, db, results_cnt):
     while True:
