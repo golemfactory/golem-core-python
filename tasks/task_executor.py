@@ -29,7 +29,7 @@ class TaskExecutor:
             raise
 
     async def _task_stream(self):
-        task_gen = self.get_tasks()
+        task_gen = self.get_tasks(self.db.run_id)
         while not self._stopping:
             yield next(task_gen)
 

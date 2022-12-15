@@ -5,11 +5,11 @@ from golem_core import Payload, commands
 #   TASKS INTERFACE
 PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
-def get_tasks():
+def get_tasks(run_id):
     for i in count(0):
         yield _get_task(i)
 
-def results_cnt():
+def results_cnt(run_id):
     return len(results)
 
 

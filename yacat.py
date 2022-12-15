@@ -10,15 +10,19 @@ from golem_core.low import Activity
 #   TASKS INTERFACE
 PAYLOAD = Payload.from_image_hash("055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db")
 
-def get_tasks():
+def get_tasks(run_id):
     while True:
         try:
             task = tasks_queue.get_nowait()
-            yield task.execute
+
+            async def execute_task(activity):
+                await task.execute(run_id, activity)
+
+            yield execute_task
         except queue.Empty:
             insert_main_tasks(10)
 
-def results_cnt():
+def results_cnt(run_id):
     return len(results)
 
 
@@ -35,7 +39,7 @@ class MainTask:
         self.hash_type = hash_type
         self.attack_mode = attack_mode
 
-    async def execute(self, activity: Activity) -> None:
+    async def execute(self, run_id: str, activity: Activity) -> None:
         cmd = f"hashcat --keyspace -a {self.attack_mode} -m {self.hash_type} {self.mask}"
         batch = await activity.execute_commands(Run(cmd))
         await batch.wait(timeout=30)
@@ -64,7 +68,7 @@ class AttackPartTask:
         self.skip = skip
         self.limit = limit
 
-    async def execute(self, activity: Activity) -> None:
+    async def execute(self, run_id: str, activity: Activity) -> None:
         batch = await activity.execute_commands(*self._commands())
         await batch.wait(timeout=120)
         result = batch.events[-1].stdout
