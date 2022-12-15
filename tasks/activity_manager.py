@@ -38,7 +38,8 @@ class ActivityManager:
             running_task_cnt = len([task for task in self._tasks if not task.done()])
 
             if running_activity_cnt + running_task_cnt < self.max_activities:
-                self._tasks.append(asyncio.create_task(self._get_new_activity(chain_lock, semaphore)))
+                chain = await self._get_chain()
+                self._tasks.append(asyncio.create_task(self._get_new_activity(chain, chain_lock, semaphore)))
             else:
                 semaphore.release()
                 await asyncio.sleep(1)
@@ -169,8 +170,7 @@ class ActivityManager:
         )
         return chain
 
-    async def _get_new_activity(self, chain_lock, semaphore):
-        chain = await self._get_chain()
+    async def _get_new_activity(self, chain, chain_lock, semaphore):
         try:
             async with chain_lock:
                 activity_awaitable = await chain.__anext__()
