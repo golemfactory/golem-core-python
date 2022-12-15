@@ -4,8 +4,9 @@ CREATE SCHEMA tasks;
 SET search_path TO tasks;
 
 CREATE TABLE run (
-    id          text PRIMARY KEY,
-    created_ts  timestamp DEFAULT now()
+    id              text PRIMARY KEY,
+    app_session_id  text UNIQUE,
+    created_ts      timestamp DEFAULT now()
 );
 
 CREATE TABLE results (

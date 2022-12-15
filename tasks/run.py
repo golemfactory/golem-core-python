@@ -17,14 +17,12 @@ class Runner:
         self.dsn = dsn
         self.workers = workers
 
-        self.db = DB(self.dsn)
-        if run_id is None:
-            self.golem = GolemNode()
-        else:
-            self.golem = GolemNode(app_session_id=run_id)
+        self.db = DB(self.dsn, run_id)
+        self.golem = GolemNode(app_session_id=self.db.app_session_id)
 
     async def main(self):
         try:
+            await self.db.init_run()
             await self._main()
         finally:
             await self.db.aclose()
@@ -32,9 +30,7 @@ class Runner:
     async def _main(self):
         golem = self.golem
         db = self.db
-
-        await db.aexecute("INSERT INTO run (id) VALUES (%s) ON CONFLICT DO NOTHING", (golem.app_session_id,))
-
+        
         async with golem:
             task_executor = TaskExecutor(golem, db, get_tasks=self.get_tasks, max_concurrent=self.workers)
             activity_manager = ActivityManager(golem, db, payload=self.payload, max_activities=self.workers)
@@ -44,6 +40,7 @@ class Runner:
             await activity_manager.recover()
 
             save_results_cnt_task = asyncio.create_task(_save_results_cnt(golem, db, self.results_cnt))
+            await asyncio.sleep(5)
             execute_tasks_task = asyncio.create_task(task_executor.run())
             manage_activities_task = asyncio.create_task(activity_manager.run())
             manage_payments_task = asyncio.create_task(payment_manager.run())
@@ -70,7 +67,7 @@ class Runner:
 async def _save_results_cnt(golem, db, results_cnt):
     while True:
         cnt = results_cnt()
-        await db.aexecute("INSERT INTO results (run_id, cnt) VALUES (%s, %s)", (golem.app_session_id, cnt))
+        await db.aexecute("INSERT INTO results (run_id, cnt) VALUES (%(run_id)s, %(cnt)s)", {"cnt": cnt})
         await asyncio.sleep(1)
 
 

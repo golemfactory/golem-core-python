@@ -43,10 +43,12 @@ class TaskExecutor:
             await self.db.aexecute("""
                 UPDATE  activity
                 SET     (status, stop_reason) = ('STOPPING', 'task failed')
-                WHERE   id = %s
-            """, (activity.id,))
+                WHERE   id = %(activity_id)s
+            """, {"activity_id": activity.id})
             await activity.parent.close_all()
-            await self.db.aexecute("UPDATE activity SET status = 'STOPPED' WHERE id = %s", (activity.id,))
+            await self.db.aexecute(
+                "UPDATE activity SET status = 'STOPPED' WHERE id = %(activity_id)s",
+                {"activity_id": activity.id})
         finally:
             self.locked_activities.remove(activity.id)
 
@@ -55,13 +57,13 @@ class TaskExecutor:
 
         data = await self.db.select("""
             SELECT  activity_id
-            FROM    tasks.activities(%(app_session_id)s) run_act
+            FROM    tasks.activities(%(run_id)s) run_act
             JOIN    activity                             all_act
                 ON  run_act.activity_id = all_act.id
             WHERE   all_act.status = 'READY'
                 AND NOT activity_id = ANY(%(locked_activities)s)
             LIMIT   1
-        """, {"app_session_id": self.golem.app_session_id, "locked_activities": locked_activities})
+        """, {"locked_activities": locked_activities})
         if data:
             activity_id = data[0][0]
             if activity_id in locked_activities:

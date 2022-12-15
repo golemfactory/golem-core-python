@@ -91,12 +91,12 @@ def _default_run_id(conn):
 
 def _get_raw_data(conn, run_id):
     cursor = conn.cursor()
-    cursor.execute(SHOW_DATA_SQL, {"app_session_id": run_id})
+    cursor.execute(SHOW_DATA_SQL, {"run_id": run_id})
     return cursor.fetchall()
 
 def _get_raw_summary_data(conn, run_id):
     cursor = conn.cursor()
-    cursor.execute(SUMMARY_DATA_SQL, {"app_session_id": run_id})
+    cursor.execute(SUMMARY_DATA_SQL, {"run_id": run_id})
     return cursor.fetchall()
 
 
@@ -105,7 +105,7 @@ SHOW_DATA_SQL = """
     activities AS (
         SELECT  activity_id,
                 count(DISTINCT batch_id) AS batch_cnt
-        FROM    tasks.batches(%(app_session_id)s)
+        FROM    tasks.batches(%(run_id)s)
         GROUP BY 1
     )
     SELECT  row_number() OVER (ORDER BY all_act.created_ts),
@@ -124,13 +124,13 @@ SUMMARY_DATA_SQL = """
     results AS (
         SELECT  cnt AS results_cnt
         FROM    tasks.results
-        WHERE   run_id = %(app_session_id)s
+        WHERE   run_id = %(run_id)s
         ORDER BY created_ts DESC LIMIT 1
     ),
     activity_batch_cnt AS (
         SELECT  activity_id,
                 COUNT(DISTINCT batch_id)    AS batch_cnt
-        FROM    tasks.batches(%(app_session_id)s)
+        FROM    tasks.batches(%(run_id)s)
         GROUP BY 1
     ),
     activity_batch_cnt_status AS (
@@ -142,7 +142,7 @@ SUMMARY_DATA_SQL = """
         JOIN    activity_batch_cnt  b
             ON  a.id = b.activity_id
     )
-    SELECT  %(app_session_id)s AS run_id,
+    SELECT  %(run_id)s AS run_id,
             coalesce(a.ready_cnt, 0),
             coalesce(a.new_cnt, 0),
             coalesce(a.other_cnt, 0),

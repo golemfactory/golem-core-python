@@ -41,20 +41,20 @@ class ActivityManager:
         our_ready_activities = await self.db.select("""
             UPDATE  tasks.activity all_act
             SET     status = 'RECOVERING'
-            FROM    tasks.activities(%s) our_act
+            FROM    tasks.activities(%(run_id)s) our_act
             WHERE   all_act.id     = our_act.activity_id
                 AND all_act.status = 'READY'
             RETURNING all_act.id
-        """, (self.golem.app_session_id,))
+        """)
 
         #   Unrecoverable
         await self.db.aexecute("""
             UPDATE  tasks.activity all_act
             SET     (status, stop_reason) = ('STOPPED', 'could not recover from status ' || status)
-            FROM    tasks.activities(%s) our_act
+            FROM    tasks.activities(%(run_id)s) our_act
             WHERE   all_act.id     = our_act.activity_id
                 AND all_act.status NOT IN ('STOPPED', 'RECOVERING')
-        """, (self.golem.app_session_id,))
+        """)
 
         for activity_id in [row[0] for row in our_ready_activities]:
             asyncio.create_task(self._recover_activity(activity_id))
@@ -67,16 +67,16 @@ class ActivityManager:
         agreement_id = (await self.db.select("""
             SELECT  agreement_id
             FROM    tasks.activity
-            WHERE   id = %s
-        """, (activity_id,)))[0][0]
+            WHERE   id = %(activity_id)s
+        """, {"activity_id": activity_id}))[0][0]
 
         batch_id = (await self.db.select("""
             SELECT  id
             FROM    tasks.batch
-            WHERE   activity_id = %s
+            WHERE   activity_id = %(activity_id)s
             ORDER BY created_ts DESC
             LIMIT 1
-        """, (activity_id,)))[0][0]
+        """, {"activity_id": activity_id}))[0][0]
 
         agreement = self.golem.agreement(agreement_id)
         batch = self.golem.batch(batch_id, activity_id)
@@ -89,15 +89,15 @@ class ActivityManager:
             await self.db.aexecute("""
                 UPDATE  tasks.activity
                 SET     status = 'READY'
-                WHERE   id = %s
-            """, (activity_id,))
+                WHERE   id = %(activity_id)s
+            """, {"activity_id": activity_id})
         except (BatchError, BatchTimeoutError):
             await agreement.close_all()
             await self.db.aexecute("""
                 UPDATE  tasks.activity
                 SET     (status, stop_reason) = ('STOPPED', 'recovery failed')
-                WHERE   id = %s
-            """, (activity_id,))
+                WHERE   id = %(activity_id)s
+            """, {"activity_id": activity_id})
 
     async def _get_running_activity_cnt(self):
         #   Q: why don't we use golem.all_resources(Activity) here?
@@ -107,11 +107,11 @@ class ActivityManager:
         #       (e.g. we might have some other entity that changes the database only)
         data = await self.db.select("""
             SELECT  count(*)
-            FROM    activities(%s) run_act
+            FROM    activities(%(run_id)s) run_act
             JOIN    activity       all_act
                 ON  run_act.activity_id = all_act.id
             WHERE   all_act.status IN ('NEW', 'READY')
-        """, (self.golem.app_session_id,))
+        """)
         return data[0][0]
 
     async def _prepare_activity(self, activity):
@@ -121,11 +121,14 @@ class ActivityManager:
             await self.db.aexecute("""
                 UPDATE  activity
                 SET     (status, stop_reason) = ('STOPPED', 'deploy/start failed')
-                WHERE   id = %s
-            """, (activity.id,))
+                WHERE   id = %(activity_id)s
+            """, {"activity_id": activity.id})
             raise
 
-        await self.db.aexecute("UPDATE activity SET status = 'READY' WHERE id = %s", (activity.id,))
+        await self.db.aexecute(
+            "UPDATE activity SET status = 'READY' WHERE id = %(activity_id)s",
+            {"activity_id": activity.id}
+        )
         return activity
 
     async def _get_chain(self):
