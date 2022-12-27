@@ -4,7 +4,7 @@ from golem_core.low import DebitNote
 from golem_core.events import NewResource
 
 class CostManager:
-    def __init__(self, golem, db, *, result_max_price, init_seconds=10):
+    def __init__(self, golem, db, *, result_max_price, init_seconds=300):
         self.golem = golem
         self.db = db
         self.result_max_price = result_max_price
@@ -25,15 +25,18 @@ class CostManager:
 
         activity_id = (await debit_note.get_data()).activity_id
         try:
-            if await self._activity_too_expensive(activity_id):
-                await self._stop_activity(activity_id)
+            if await self._activity_old_enough(activity_id):
+                result_price = await self._activity_result_price(activity_id)
+                if result_price is not None and result_price > self.result_max_price:
+                    await self._stop_activity(activity_id)
         except Exception as e:
             print(e)
 
     async def _wait_for_debit_note_write(self, debit_note):
         #   Debit note might not yet be saved to the database, and cost aggregates
         #   work only on saved debit notes, so we wait here.
-        #   This is pretty ugly but harmless.
+        #   This is pretty ugly but harmless (debit note should be saved ~~ immediately,
+        #   so the query will be executed more than once only in extraordinary cases)
         while True:
             await asyncio.sleep(0.1)
             if await self.db.select(
@@ -42,40 +45,16 @@ class CostManager:
             ):
                 return
 
-    async def _activity_too_expensive(self, activity_id):
-        if await self.db.select("""
+    async def _activity_old_enough(self, activity_id):
+        return bool(await self.db.select("""
             SELECT  1
             FROM    tasks.activity
             WHERE   id = %(activity_id)s
-                AND created_ts + %(interval)s::interval > now()
-        """, {"activity_id": activity_id, "interval": f"{self.init_seconds} seconds"}):
-            #   Grace period
-            return False
-        return True
-        # cost = await self.db.select("""
-        #     WITH
-        #     batch_result_ratio AS (
-        #         WITH
-        #         batches AS (
-        #             SELECT  count(*) AS cnt
-        #             FROM    tasks.batches(%(run_id)s)
-        #         ),
-        #         results AS (
-        #             SELECT  cnt AS results_cnt
-        #             FROM    tasks.results
-        #             WHERE   run_id = %(run_id)s
-        #             ORDER BY created_ts DESC
-        #             LIMIT 1
-        #         )
-        #         SELECT  results.cnt / (batches.cnt + 0.00000001) AS batch_result_ratio
-        #         FROM    batches, results
-        #     ),
-        #     activity_cost_batches AS (
-        #         SELECT  
-        #     
+                AND created_ts + %(interval)s::interval < now()
+        """, {"activity_id": activity_id, "interval": f"{self.init_seconds} seconds"}))
 
-        #         
-        # return True
+    async def _activity_result_price(self, activity_id):
+        return 7
 
     async def _stop_activity(self, activity_id):
         await self.db.aexecute("""
