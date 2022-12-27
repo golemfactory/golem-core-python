@@ -24,7 +24,8 @@ def install(dsn) -> None:
 @click.option("--run-id", type=str, default=None)
 @click.option("--dsn", type=str, default="")
 @click.option("--workers", type=int, default=1)
-def run(module_name, run_id, dsn, workers) -> None:
+@click.option("--max-price", type=float)
+def run(module_name, run_id, dsn, workers, max_price) -> None:
     module = import_module(module_name)
     _tasks_run(
         payload=module.PAYLOAD,
@@ -33,6 +34,7 @@ def run(module_name, run_id, dsn, workers) -> None:
         run_id=run_id,
         dsn=dsn,
         workers=workers,
+        result_max_price=max_price,
     )
 
 @cli.command()
