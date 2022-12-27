@@ -111,7 +111,7 @@ SHOW_DATA_SQL = """
         ),
         activity_total_amount AS (
             SELECT  f.activity_id,
-                    sum(t.amount) AS total_amount
+                    max(t.amount) AS total_amount
             FROM    tasks.debit_notes(%(run_id)s) f
             JOIN    tasks.debit_note t
                 ON  f.debit_note_id = t.id
@@ -186,10 +186,16 @@ SUMMARY_DATA_SQL = """
             ON  a.id = b.activity_id
     ),
     total_amount AS (
-        SELECT  sum(t.amount)   AS amount
-        FROM    tasks.debit_notes(%(run_id)s) f
-        JOIN    tasks.debit_note              t
-            ON  t.id = f.debit_note_id
+        WITH activity_amount AS (
+            SELECT  f.activity_id,
+                    max(t.amount) AS amount
+            FROM    tasks.debit_notes(%(run_id)s) f
+            JOIN    tasks.debit_note              t
+                ON  f.debit_note_id = t.id
+            GROUP BY 1
+        )
+        SELECT  sum(amount)   AS amount
+        FROM    activity_amount
     )
     SELECT  %(run_id)s AS run_id,
             coalesce(a.ready_cnt, 0),
