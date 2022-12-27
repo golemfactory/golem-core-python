@@ -51,6 +51,7 @@ class TaskExecutor:
                 UPDATE  activity
                 SET     (status, stop_reason) = ('STOPPING', 'task failed')
                 WHERE   id = %(activity_id)s
+                    AND status IN ('NEW', 'READY')
             """, {"activity_id": activity.id})
             await activity.parent.close_all()
             await self.db.aexecute(
