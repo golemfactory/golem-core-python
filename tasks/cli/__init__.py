@@ -150,7 +150,7 @@ SHOW_DATA_SQL = """
             our_act.batch_cnt,
             round(our_act.total_amount, 6),
             CASE WHEN our_act.batch_cnt > 0 AND brr.batch_result_ratio > 0
-                THEN round(our_act.total_amount / (our_act.batch_cnt * brr.batch_result_ratio), 6)::text
+                THEN round(our_act.total_amount / (our_act.batch_cnt * brr.batch_result_ratio), 7)::text
                 ELSE ''::text
             END,
             round(our_act.batch_cnt * brr.batch_result_ratio, 2),
@@ -206,7 +206,7 @@ SUMMARY_DATA_SQL = """
             coalesce(a.batch_cnt, 0),
             round(coalesce(ta.amount, 0), 6),
             CASE WHEN r.results_cnt > 0
-                THEN round(coalesce(ta.amount, 0) / r.results_cnt, 6)::text
+                THEN round(coalesce(ta.amount, 0) / r.results_cnt, 7)::text
                 ELSE ''::text
             END,
             r.results_cnt
