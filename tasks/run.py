@@ -8,6 +8,7 @@ from tasks.task_executor import TaskExecutor
 from tasks.activity_manager import ActivityManager
 from tasks.payment_manager import PaymentManager
 from tasks.event_writer import EventWriter
+from tasks.cost_manager import CostManager
 
 class Runner:
     def __init__(self, *, payload, get_tasks, results_cnt, dsn, run_id, workers):
@@ -39,6 +40,9 @@ class Runner:
 
         payment_manager = PaymentManager(golem, db)
         payment_manager.start()
+
+        cost_manager = CostManager(golem, db, result_max_price=0.0001)
+        cost_manager.start()
 
         #   Never-ending tasks
         task_executor = TaskExecutor(golem, db, get_tasks=self.get_tasks, max_concurrent=self.workers)
