@@ -50,7 +50,7 @@ def show(run_id, dsn):
 
     table = PrettyTable()
     table.field_names = [
-        "ix", "activity_id", "status", "batches", "stop_reason"
+        "ix", "activity_id", "status", "batches", "amount", "stop_reason"
     ]
 
     for row in data:
@@ -72,7 +72,7 @@ def summary(run_id, dsn):
 
     table = PrettyTable()
     table.field_names = [
-        "run_id", "ready activities", "new activities", "other activities", "batches", "results"
+        "run_id", "ready activities", "new activities", "other activities", "batches", "amount", "results"
     ]
 
     for row in data:
@@ -103,15 +103,34 @@ def _get_raw_summary_data(conn, run_id):
 SHOW_DATA_SQL = """
     WITH
     activities AS (
-        SELECT  activity_id,
-                count(DISTINCT batch_id) AS batch_cnt
-        FROM    tasks.batches(%(run_id)s)
-        GROUP BY 1
+        WITH activity_batch AS (
+            SELECT  activity_id,
+                    count(DISTINCT batch_id) AS batch_cnt
+            FROM    tasks.batches(%(run_id)s)
+            GROUP BY 1
+        ),
+        activity_total_amount AS (
+            SELECT  f.activity_id,
+                    sum(t.amount) AS total_amount
+            FROM    tasks.debit_notes(%(run_id)s) f
+            JOIN    tasks.debit_note t
+                ON  f.debit_note_id = t.id
+            GROUP BY 1
+        )
+        SELECT  coalesce(b.activity_id, d.activity_id) AS activity_id,
+                coalesce(b.batch_cnt, 0)               AS batch_cnt,
+                coalesce(d.total_amount, 0)            AS total_amount
+        FROM    activity_batch          b
+        FULL
+        OUTER
+        JOIN    activity_total_amount   d
+            ON  b.activity_id = d.activity_id
     )
     SELECT  row_number() OVER (ORDER BY all_act.created_ts),
             our_act.activity_id,
             all_act.status,
             our_act.batch_cnt,
+            round(our_act.total_amount, 6),
             coalesce(all_act.stop_reason, '')
     FROM    activities      our_act
     JOIN    tasks.activity  all_act
@@ -141,15 +160,25 @@ SUMMARY_DATA_SQL = """
         FROM    tasks.activity      a
         JOIN    activity_batch_cnt  b
             ON  a.id = b.activity_id
+    ),
+    total_amount AS (
+        SELECT  sum(t.amount)   AS amount
+        FROM    tasks.debit_notes(%(run_id)s) f
+        JOIN    tasks.debit_note              t
+            ON  t.id = f.debit_note_id
     )
     SELECT  %(run_id)s AS run_id,
             coalesce(a.ready_cnt, 0),
             coalesce(a.new_cnt, 0),
             coalesce(a.other_cnt, 0),
             coalesce(a.batch_cnt, 0),
+            coalesce(ta.amount, 0),
             r.results_cnt
     FROM    results r
     LEFT
     JOIN    activity_batch_cnt_status a
         ON  TRUE
+    LEFT
+    JOIN    total_amount ta
+        ON TRUE
 """

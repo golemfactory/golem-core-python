@@ -106,4 +106,14 @@ AS $fff$
 $fff$
 ;
 
+CREATE FUNCTION tasks.debit_notes(run_id text) RETURNS TABLE (demand_id text, proposal_id text, agreement_id text, activity_id text, debit_note_id text)
+LANGUAGE SQL
+AS $fff$
+    SELECT  a.demand_id, a.proposal_id, a.agreement_id, a.activity_id, d.id
+    FROM    tasks.debit_note     d
+    NATURAL
+    JOIN    tasks.activities($1) a
+$fff$
+;
+
 COMMIT;
