@@ -50,7 +50,7 @@ def show(run_id, dsn):
 
     table = PrettyTable()
     table.field_names = [
-        "ix", "activity_id", "status", "batches", "amount", "stop_reason"
+        "ix", "activity_id", "status", "batches", "GLM", "GLM/result", "results", "stop_reason"
     ]
 
     for row in data:
@@ -72,7 +72,7 @@ def summary(run_id, dsn):
 
     table = PrettyTable()
     table.field_names = [
-        "run_id", "ready activities", "new activities", "other activities", "batches", "amount", "results"
+        "run_id", "ready activities", "new activities", "other activities", "batches", "GLM", "GLM/result", "results"
     ]
 
     for row in data:
@@ -125,16 +125,39 @@ SHOW_DATA_SQL = """
         OUTER
         JOIN    activity_total_amount   d
             ON  b.activity_id = d.activity_id
+    ),
+    batch_result_ratio AS (
+        WITH
+        results AS (
+            SELECT  cnt
+            FROM    tasks.results
+            WHERE   run_id = %(run_id)s
+            ORDER BY created_ts DESC
+            LIMIT 1
+        ),
+        batches AS (
+            SELECT  sum(batch_cnt) AS cnt
+            FROM    activities
+        )
+        SELECT  results.cnt / batches.cnt AS batch_result_ratio
+        FROM    batches, results
     )
     SELECT  row_number() OVER (ORDER BY all_act.created_ts),
             our_act.activity_id,
             all_act.status,
             our_act.batch_cnt,
             round(our_act.total_amount, 6),
+            CASE WHEN our_act.batch_cnt > 0 AND brr.batch_result_ratio > 0
+                THEN round(our_act.total_amount / (our_act.batch_cnt * brr.batch_result_ratio), 6)::text
+                ELSE ''::text
+            END,
+            round(our_act.batch_cnt * brr.batch_result_ratio, 2),
             coalesce(all_act.stop_reason, '')
     FROM    activities      our_act
     JOIN    tasks.activity  all_act
-       ON  all_act.id = our_act.activity_id
+       ON   all_act.id = our_act.activity_id
+    JOIN    batch_result_ratio brr
+        ON  TRUE
     ORDER BY all_act.created_ts
 """
 
@@ -144,7 +167,8 @@ SUMMARY_DATA_SQL = """
         SELECT  cnt AS results_cnt
         FROM    tasks.results
         WHERE   run_id = %(run_id)s
-        ORDER BY created_ts DESC LIMIT 1
+        ORDER BY created_ts DESC
+        LIMIT 1
     ),
     activity_batch_cnt AS (
         SELECT  activity_id,
@@ -172,7 +196,11 @@ SUMMARY_DATA_SQL = """
             coalesce(a.new_cnt, 0),
             coalesce(a.other_cnt, 0),
             coalesce(a.batch_cnt, 0),
-            coalesce(ta.amount, 0),
+            round(coalesce(ta.amount, 0), 6),
+            CASE WHEN r.results_cnt > 0
+                THEN round(coalesce(ta.amount, 0) / r.results_cnt, 6)::text
+                ELSE ''::text
+            END,
             r.results_cnt
     FROM    results r
     LEFT
