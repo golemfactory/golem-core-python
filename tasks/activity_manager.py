@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime, timezone, timedelta
 
 from golem_core.mid import (
-    Chain, Map,
+    Chain, Map, SimpleScorer,
     default_negotiate, default_create_agreement, default_create_activity, default_prepare_activity,
 )
 from golem_core.low.exceptions import BatchError, BatchTimeoutError
@@ -163,6 +163,7 @@ class ActivityManager:
 
         chain = Chain(
             demand.initial_proposals(),
+            SimpleScorer(self._score_proposal, min_proposals=10),
             Map(default_negotiate),
             Map(default_create_agreement),
             Map(default_create_activity),
@@ -177,3 +178,18 @@ class ActivityManager:
             await activity_awaitable
         finally:
             semaphore.release()
+
+    @staticmethod
+    async def _score_proposal(proposal):
+        MAX_LINEAR_COEFFS = [0.001, 0.001, 0]
+
+        properties = proposal.data.properties
+        if properties['golem.com.pricing.model'] != 'linear':
+            return None
+
+        coeffs = properties['golem.com.pricing.model.linear.coeffs']
+        for val, max_val in zip(coeffs, MAX_LINEAR_COEFFS):
+            if val > max_val:
+                return None
+        else:
+            return 1 - (coeffs[0] + coeffs[1])
