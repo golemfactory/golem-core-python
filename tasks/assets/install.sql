@@ -49,6 +49,13 @@ CREATE TABLE batch (
     activity_id text NOT NULL REFERENCES activity(id) ON DELETE CASCADE
 );
 
+CREATE TABLE debit_note (
+    id          text PRIMARY KEY,
+    created_ts  timestamp DEFAULT now(),
+    activity_id text NOT NULL REFERENCES activity(id) ON DELETE CASCADE,
+    amount      numeric
+);
+
 
 CREATE FUNCTION tasks.demands(run_id text) RETURNS TABLE (demand_id text)
 LANGUAGE SQL

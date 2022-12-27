@@ -1,6 +1,6 @@
 import psycopg2
 
-from golem_core.low import Demand, Agreement, Activity, PoolingBatch
+from golem_core.low import Demand, Agreement, Activity, PoolingBatch, DebitNote
 from golem_core.events import NewResource, ResourceClosed
 
 class EventWriter:
@@ -12,7 +12,7 @@ class EventWriter:
         self.golem.event_bus.resource_listen(
             self._save_new_resource,
             event_classes=[NewResource],
-            resource_classes=[Demand, Agreement, Activity, PoolingBatch],
+            resource_classes=[Demand, Agreement, Activity, PoolingBatch, DebitNote],
         )
         self.golem.event_bus.resource_listen(
             self._save_activity_closed,
@@ -48,6 +48,12 @@ class EventWriter:
                 await db.aexecute(
                     "INSERT INTO batch (id, activity_id) VALUES (%(batch_id)s, %(activity_id)s)",
                     {"batch_id": resource_id, "activity_id": resource.parent.id})
+            elif isinstance(event.resource, DebitNote):
+                data = await resource.get_data()
+                await db.aexecute("""
+                    INSERT INTO debit_note (id, activity_id, amount)
+                    VALUES (%(batch_id)s, %(activity_id)s, %(amount)s)
+                """, {"batch_id": resource_id, "activity_id": data.activity_id, "amount": data.total_amount_due})
         except psycopg2.errors.UniqueViolation:
             #   This is possible when recovering. We discover already existing objects and try to insert them again.
             #   This problem will disappear once we have ResourceCreated/ResourceFound distinction
