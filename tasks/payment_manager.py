@@ -1,22 +1,27 @@
 import asyncio
 from datetime import datetime, timedelta
 
+from ya_payment.exceptions import ApiException
+
 from golem_core.events import NewResource
-from golem_core.low import Agreement, Allocation, DebitNote, Invoice
+from golem_core.low import Agreement, DebitNote, Invoice
+
+class BudgetExhausted(Exception):
+    def __init__(self, allocation):
+        self.allocation = allocation
+        super().__init__("Couldn't accept a debit note - current allocation is exhausted")
 
 class PaymentManager:
     def __init__(self, golem, db):
         self.golem = golem
 
-        self._allocations = []
+        self._allocation = None
+        self._allocation_created_ts = None
+        self._budget_exahusted = False
+
         self._agreement_has_invoice = {}
 
-    def start(self):
-        self.golem.event_bus.resource_listen(
-            self._save_allocation,
-            event_classes=[NewResource],
-            resource_classes=[Allocation],
-        )
+    async def run(self):
         self.golem.event_bus.resource_listen(
             self._save_agreement,
             event_classes=[NewResource],
@@ -33,9 +38,24 @@ class PaymentManager:
             resource_classes=[Invoice],
         )
 
-    async def _save_allocation(self, event):
-        allocation = event.resource
-        self._allocations.append(allocation)
+        await self._create_allocation()
+
+        while True:
+            if self._budget_exahusted:
+                await self._allocation.get_data(force=True)
+                raise BudgetExhausted(self._allocation)
+            if self._allocation_too_old():
+                old_allocation = self._allocation
+                await self._create_allocation()
+                await old_allocation.release()
+            await asyncio.sleep(1)
+
+    async def _create_allocation(self):
+        self._allocation = await self.golem.create_allocation(amount=0.00001)
+        self._allocation_created_ts = datetime.now()
+
+    def _allocation_too_old(self):
+        return False
 
     async def _save_agreement(self, event):
         agreement_id = event.resource.id
@@ -44,13 +64,17 @@ class PaymentManager:
 
     async def _process_debit_note(self, event):
         debit_note = event.resource
-        allocation = self._get_allocation()
-        await debit_note.accept_full(allocation)
+        try:
+            await debit_note.accept_full(self._allocation)
+        except ApiException as e:
+            if e.status == 400 and "Not enough funds" in str(e):
+                self._budget_exahusted = True
+            else:
+                raise
 
     async def _process_invoice(self, event):
         invoice = event.resource
-        allocation = self._get_allocation()
-        await invoice.accept_full(allocation)
+        await invoice.accept_full(self._allocation)
 
         agreement_id = (await invoice.get_data()).agreement_id
         self._agreement_has_invoice[agreement_id] = True
@@ -69,11 +93,3 @@ class PaymentManager:
         while not all(self._agreement_has_invoice.values()) and datetime.now() < end:
             await asyncio.sleep(0.1)
         print("Waiting for invoices finished")
-
-    def _get_allocation(self):
-        try:
-            return self._allocations[-1]
-        except IndexError:
-            #   FIXME - this requires some thinking about whole allocation concept.
-            #           E.g. maybe we could just create a new allocation here?
-            print("No allocation - can't process debit note/invoice")

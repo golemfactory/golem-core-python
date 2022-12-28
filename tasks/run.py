@@ -39,20 +39,19 @@ class Runner:
         event_writer = EventWriter(golem, db)
         event_writer.start()
 
-        payment_manager = PaymentManager(golem, db)
-        payment_manager.start()
-
         if self.result_max_price is not None:
             cost_manager = CostManager(golem, db, result_max_price=self.result_max_price)
             cost_manager.start()
 
         #   Never-ending tasks
+        payment_manager = PaymentManager(golem, db)
         task_executor = TaskExecutor(golem, db, get_tasks=self.get_tasks, max_concurrent=self.workers)
         activity_manager = ActivityManager(golem, db, payload=self.payload, max_activities=self.workers)
 
         all_tasks = (
             asyncio.create_task(task_executor.run()),
             asyncio.create_task(activity_manager.run()),
+            asyncio.create_task(payment_manager.run()),
             asyncio.create_task(_save_results_cnt(golem, db, self.results_cnt)),
         )
 
