@@ -32,6 +32,15 @@ class ActivityManager:
     async def _run(self):
         semaphore = asyncio.BoundedSemaphore(self.max_concurrent)
         chain_lock = asyncio.Lock()
+
+        async def x():
+            while True:
+                await asyncio.sleep(1)
+                print("CNT", len([t for t in self._tasks if not t.done()]))
+                print(sorted(t.get_name() for t in self._tasks if not t.done()))
+
+        asyncio.create_task(x())
+
         while True:
             await semaphore.acquire()
 
@@ -128,9 +137,12 @@ class ActivityManager:
             batch = await activity.execute_commands(Deploy(), Start())
             await batch.wait(timeout=300)
             assert batch.success, batch.events[-1].message
+            await self.db.aexecute(
+                "UPDATE activity SET status = 'READY' WHERE id = %(activity_id)s",
+                {"activity_id": activity.id})
         except Exception:
+            print("DEPLOY/START FAILED")
             await self.db.close_activity(activity, 'deploy/start failed')
-            raise
 
     async def _get_chain(self):
         async with self._get_chain_lock:
@@ -154,12 +166,21 @@ class ActivityManager:
             self.payload, allocations=[allocation], expiration=self._demand_expiration
         )
 
+        async def negotiate(proposal):
+            return await asyncio.wait_for(default_negotiate(proposal), timeout=10)
+
+        async def create_agreement(proposal):
+            return await asyncio.wait_for(default_create_agreement(proposal), timeout=10)
+
+        async def create_activity(agreement):
+            return await asyncio.wait_for(default_create_activity(agreement), timeout=10)
+
         chain = Chain(
             demand.initial_proposals(),
             SimpleScorer(self._score_proposal, min_proposals=10),
-            Map(default_negotiate),
-            Map(default_create_agreement),
-            Map(default_create_activity),
+            Map(negotiate),
+            Map(create_agreement),
+            Map(create_activity),
             Map(self._prepare_activity),
         )
         return chain

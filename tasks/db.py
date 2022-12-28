@@ -27,7 +27,7 @@ class DB:
     ########################
     #   HIGH LEVEL INTERFACE
     async def close_activity(self, activity, reason):
-        await self.db.aexecute("""
+        await self.aexecute("""
             UPDATE  activity
             SET     (status, stop_reason) = ('STOPPING', %(reason)s)
             WHERE   id = %(activity_id)s
@@ -36,7 +36,7 @@ class DB:
 
         async def stop():
             await activity.parent.close_all()
-            await self.db.aexecute(
+            await self.aexecute(
                 "UPDATE activity SET status = 'STOPPED' WHERE id = %(activity_id)s",
                 {"activity_id": activity.id})
 

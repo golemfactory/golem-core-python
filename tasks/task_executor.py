@@ -43,11 +43,11 @@ class TaskExecutor:
 
     async def _process_task(self, activity, task):
         try:
-            print(f"Task start: {activity}")
+            # print(f"Task start: {activity}")
             result = await task(activity)
             return result
         except Exception:
-            await self.db.close_activity(activity)
+            await self.db.close_activity(activity, 'task failed')
         finally:
             self.locked_activities.remove(activity.id)
 
