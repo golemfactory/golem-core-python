@@ -1,9 +1,10 @@
 import asyncio
 from datetime import datetime, timezone, timedelta
 
+from golem_core.commands import Deploy, Start
 from golem_core.mid import (
     Chain, Map, SimpleScorer,
-    default_negotiate, default_create_agreement, default_create_activity, default_prepare_activity,
+    default_negotiate, default_create_agreement, default_create_activity,
 )
 from golem_core.low.exceptions import BatchError, BatchTimeoutError
 
@@ -124,20 +125,12 @@ class ActivityManager:
 
     async def _prepare_activity(self, activity):
         try:
-            await default_prepare_activity(activity)
+            batch = await activity.execute_commands(Deploy(), Start())
+            await batch.wait(timeout=300)
+            assert batch.success, batch.events[-1].message
         except Exception:
-            await self.db.aexecute("""
-                UPDATE  activity
-                SET     (status, stop_reason) = ('STOPPED', 'deploy/start failed')
-                WHERE   id = %(activity_id)s
-            """, {"activity_id": activity.id})
+            await self.db.close_activity(activity, 'deploy/start failed')
             raise
-
-        await self.db.aexecute(
-            "UPDATE activity SET status = 'READY' WHERE id = %(activity_id)s",
-            {"activity_id": activity.id}
-        )
-        return activity
 
     async def _get_chain(self):
         async with self._get_chain_lock:

@@ -47,16 +47,7 @@ class TaskExecutor:
             result = await task(activity)
             return result
         except Exception:
-            await self.db.aexecute("""
-                UPDATE  activity
-                SET     (status, stop_reason) = ('STOPPING', 'task failed')
-                WHERE   id = %(activity_id)s
-                    AND status IN ('NEW', 'READY')
-            """, {"activity_id": activity.id})
-            await activity.parent.close_all()
-            await self.db.aexecute(
-                "UPDATE activity SET status = 'STOPPED' WHERE id = %(activity_id)s",
-                {"activity_id": activity.id})
+            await self.db.close_activity(activity)
         finally:
             self.locked_activities.remove(activity.id)
 

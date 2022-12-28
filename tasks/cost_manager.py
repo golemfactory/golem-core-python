@@ -95,14 +95,5 @@ class CostManager:
         return result_price
 
     async def _stop_activity(self, activity_id):
-        await self.db.aexecute("""
-            UPDATE  activity
-            SET     (status, stop_reason) = ('STOPPING', 'too expensive')
-            WHERE   id = %(activity_id)s
-                AND status IN ('NEW', 'READY')
-        """, {"activity_id": activity_id})
         activity = self.golem.activity(activity_id)
-        await activity.parent.close_all()
-        await self.db.aexecute(
-            "UPDATE activity SET status = 'STOPPED' WHERE id = %(activity_id)s",
-            {"activity_id": activity_id})
+        await self.db.close_activity(activity, 'too expensive')

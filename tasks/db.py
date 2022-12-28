@@ -24,6 +24,24 @@ class DB:
             "INSERT INTO run (id, app_session_id) VALUES (%(run_id)s, %(app_session_id)s) ON CONFLICT DO NOTHING"
         )
 
+    ########################
+    #   HIGH LEVEL INTERFACE
+    async def close_activity(self, activity, reason):
+        await self.db.aexecute("""
+            UPDATE  activity
+            SET     (status, stop_reason) = ('STOPPING', %(reason)s)
+            WHERE   id = %(activity_id)s
+                AND status IN ('NEW', 'READY')
+        """, {"activity_id": activity.id, "reason": reason})
+
+        async def stop():
+            await activity.parent.close_all()
+            await self.db.aexecute(
+                "UPDATE activity SET status = 'STOPPED' WHERE id = %(activity_id)s",
+                {"activity_id": activity.id})
+
+        asyncio.create_task(stop())
+
     #######################
     #   LOW-LEVEL INTERFACE
     def execute(self, sql, kwargs={}):
