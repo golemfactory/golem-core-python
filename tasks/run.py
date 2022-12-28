@@ -11,13 +11,14 @@ from tasks.event_writer import EventWriter
 from tasks.cost_manager import CostManager
 
 class Runner:
-    def __init__(self, *, payload, get_tasks, results_cnt, dsn, run_id, workers, result_max_price):
+    def __init__(self, *, payload, get_tasks, results_cnt, dsn, run_id, workers, result_max_price, budget_str):
         self.payload = payload
         self.get_tasks = get_tasks
         self.results_cnt = results_cnt
         self.dsn = dsn
         self.workers = workers
         self.result_max_price = result_max_price
+        self.budget_str = budget_str
 
         self.db = DB(self.dsn, run_id)
         self.golem = GolemNode(app_session_id=self.db.app_session_id)
@@ -44,7 +45,7 @@ class Runner:
             cost_manager.start()
 
         #   Never-ending tasks
-        payment_manager = PaymentManager(golem, db)
+        payment_manager = PaymentManager(golem, db, self.budget_str)
         task_executor = TaskExecutor(golem, db, get_tasks=self.get_tasks, max_concurrent=self.workers)
         activity_manager = ActivityManager(golem, db, payload=self.payload, max_activities=self.workers)
 
@@ -82,7 +83,7 @@ async def _save_results_cnt(golem, db, results_cnt):
         await asyncio.sleep(1)
 
 
-def run(*, payload, get_tasks, results_cnt, dsn, run_id, workers, result_max_price):
+def run(*, payload, get_tasks, results_cnt, dsn, run_id, workers, result_max_price, budget_str):
     runner = Runner(
         payload=payload,
         get_tasks=get_tasks,
@@ -91,6 +92,7 @@ def run(*, payload, get_tasks, results_cnt, dsn, run_id, workers, result_max_pri
         run_id=run_id,
         workers=workers,
         result_max_price=result_max_price,
+        budget_str=budget_str,
     )
     loop = asyncio.get_event_loop()
     task = loop.create_task(runner.main())

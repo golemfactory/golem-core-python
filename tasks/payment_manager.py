@@ -9,11 +9,15 @@ from golem_core.low import Agreement, DebitNote, Invoice
 class BudgetExhausted(Exception):
     def __init__(self, allocation):
         self.allocation = allocation
-        super().__init__("Couldn't accept a debit note - current allocation is exhausted")
+        super().__init__(f"Couldn't accept a debit note - {allocation} is exhausted")
 
 class PaymentManager:
-    def __init__(self, golem, db):
+    def __init__(self, golem, db, budget_str):
         self.golem = golem
+
+        #   NOTE: Now we have a hardcoded logic "budget is specified hourly".
+        #         This might ofc change in the future, this logic is contained in PaymentManager fully.
+        self.hourly_budget = self._parse_budget_str(budget_str)
 
         self._allocation = None
         self._allocation_created_ts = None
@@ -44,14 +48,16 @@ class PaymentManager:
             if self._budget_exahusted:
                 await self._allocation.get_data(force=True)
                 raise BudgetExhausted(self._allocation)
-            if self._allocation_too_old():
+
+            #   Recreate allocation every hour
+            if (datetime.now() - self._allocation_created_ts).seconds > 3600:
                 old_allocation = self._allocation
                 await self._create_allocation()
                 await old_allocation.release()
             await asyncio.sleep(1)
 
     async def _create_allocation(self):
-        self._allocation = await self.golem.create_allocation(amount=0.00001)
+        self._allocation = await self.golem.create_allocation(amount=self.hourly_budget)
         self._allocation_created_ts = datetime.now()
 
     def _allocation_too_old(self):
@@ -93,3 +99,12 @@ class PaymentManager:
         while not all(self._agreement_has_invoice.values()) and datetime.now() < end:
             await asyncio.sleep(0.1)
         print("Waiting for invoices finished")
+
+    @staticmethod
+    def _parse_budget_str(budget_str):
+        try:
+            amount, period = budget_str.split("/")
+            assert period == "h"
+            return float(amount)
+        except Exception:
+            raise ValueError(f"Invalid budget: {budget_str}. Example accepted values: '7/h', '0.7/h', '.7/h'")
