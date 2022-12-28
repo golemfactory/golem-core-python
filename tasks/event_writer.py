@@ -1,6 +1,6 @@
 import psycopg2
 
-from golem_core.low import Demand, Agreement, Activity, PoolingBatch, DebitNote
+from golem_core.low import Allocation, Demand, Agreement, Activity, PoolingBatch, DebitNote
 from golem_core.events import NewResource, ResourceClosed
 
 class EventWriter:
@@ -12,7 +12,7 @@ class EventWriter:
         self.golem.event_bus.resource_listen(
             self._save_new_resource,
             event_classes=[NewResource],
-            resource_classes=[Demand, Agreement, Activity, PoolingBatch, DebitNote],
+            resource_classes=[Allocation, Demand, Agreement, Activity, PoolingBatch, DebitNote],
         )
         self.golem.event_bus.resource_listen(
             self._save_activity_closed,
@@ -33,6 +33,10 @@ class EventWriter:
             if isinstance(event.resource, Demand):
                 await db.aexecute(
                     "INSERT INTO demand (id, run_id) VALUES (%(demand_id)s, %(run_id)s)",
+                    {"demand_id": resource_id})
+            elif isinstance(event.resource, Allocation):
+                await db.aexecute(
+                    "INSERT INTO allocation (id, run_id) VALUES (%(demand_id)s, %(run_id)s)",
                     {"demand_id": resource_id})
             elif isinstance(event.resource, Agreement):
                 proposal = resource.parent

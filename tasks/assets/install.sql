@@ -16,6 +16,12 @@ CREATE TABLE results (
     cnt         int NOT NULL CHECK (cnt >= 0)
 );
 
+CREATE TABLE allocation (
+    id          text PRIMARY KEY,
+    created_ts  timestamp DEFAULT now(),              
+    run_id      text NOT NULL REFERENCES run(id) ON DELETE CASCADE
+);
+
 CREATE TABLE demand (
     id          text PRIMARY KEY,
     created_ts  timestamp DEFAULT now(),              
