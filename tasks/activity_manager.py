@@ -9,6 +9,22 @@ from golem_core.low.exceptions import BatchError, BatchTimeoutError
 from golem_core.events import NewResource
 from golem_core.low import Allocation
 
+
+async def score_proposal(proposal):
+    MAX_LINEAR_COEFFS = [0.001, 0.001, 0]
+
+    properties = proposal.data.properties
+    if properties['golem.com.pricing.model'] != 'linear':
+        return None
+
+    coeffs = properties['golem.com.pricing.model.linear.coeffs']
+    for val, max_val in zip(coeffs, MAX_LINEAR_COEFFS):
+        if val > max_val:
+            return None
+    else:
+        return 1 - (coeffs[0] + coeffs[1])
+
+
 class ActivityManager:
     def __init__(self, golem, db, *, payload, max_activities, max_concurrent=None):
         self.golem = golem
@@ -25,6 +41,8 @@ class ActivityManager:
         self._initial_proposals_lock = asyncio.Lock()
         self._tasks = []
 
+    ###################
+    #   run
     async def run(self):
         async def save_current_allocation(event):
             self._current_allocation = event.resource
@@ -49,40 +67,31 @@ class ActivityManager:
             running_activity_cnt = await self._get_running_activity_cnt()
             running_task_cnt = len([task for task in self._tasks if not task.done()])
 
-            import aiofiles
-            async with aiofiles.open("aaa_" + self.golem.app_session_id, mode='a+') as f:
-                await f.write(f"TASKS: {running_task_cnt} SEMAPHORE: {semaphore._value} ACT: {running_activity_cnt}\n")
-
             if running_activity_cnt + running_task_cnt < self.max_activities:
-                async with aiofiles.open("aaa_" + self.golem.app_session_id, mode='a+') as f:
-                    await f.write("NEW TASK\n")
                 self._tasks.append(asyncio.create_task(self._get_new_activity(semaphore)))
             else:
                 semaphore.release()
                 await asyncio.sleep(1)
 
+    async def _get_running_activity_cnt(self):
+        #   Q: why don't we use golem.all_resources(Activity) here?
+        #   A: because:
+        #   *   this works without changes after a restart
+        #   *   database contents are higher quality than temporary object states
+        #       (e.g. we might have some other entity that changes the database only)
+        data = await self.db.select("""
+            SELECT  count(*)
+            FROM    activities(%(run_id)s) run_act
+            JOIN    activity               all_act
+                ON  run_act.activity_id = all_act.id
+            WHERE   all_act.status = 'READY'
+        """)
+        return data[0][0]
+
+    ###################################
+    #   get_new_activity, demand etc
     async def _get_new_activity(self, semaphore):
         try:
-            import aiofiles
-            import uuid
-            x = uuid.uuid4()
-            start = datetime.now()
-
-            async def write_log():
-                try:
-                    while True:
-                        await asyncio.sleep(1)
-                        msg = f"{x} runs for {(datetime.now() - start).seconds} \n"
-                        async with aiofiles.open("aaa_" + self.golem.app_session_id, mode='a+') as f:
-                            await f.write(msg)
-                except asyncio.CancelledError:
-                    msg = f"{x} STOP \n"
-                    async with aiofiles.open("aaa_" + self.golem.app_session_id, mode='a+') as f:
-                        await f.write(msg)
-                    raise
-
-            task = asyncio.create_task(write_log())
-
             async def negotiate(proposal):
                 return await asyncio.wait_for(default_negotiate(proposal), timeout=30)
 
@@ -95,19 +104,16 @@ class ActivityManager:
             async def prepare_activity(activity):
                 return await asyncio.wait_for(self._prepare_activity(activity), timeout=300)
 
-            awaitable = self._get_new_proposal()
             chain_parts = (negotiate, create_agreement, create_activity, prepare_activity)
+
+            awaitable = self._get_new_proposal()
             for chain_part in chain_parts:
                 awaited = await awaitable
-                async with aiofiles.open("aaa_" + self.golem.app_session_id, mode='a+') as f:
-                    await f.write(str(x) + " " + str(awaited) + "\n")
                 awaitable = chain_part(awaited)
+
             awaited = await awaitable
-            async with aiofiles.open("aaa_" + self.golem.app_session_id, mode='a+') as f:
-                await f.write(str(x) + " " + str(awaited) + "\n")
             return awaited
         finally:
-            task.cancel()
             semaphore.release()
 
     async def _get_new_proposal(self):
@@ -123,7 +129,10 @@ class ActivityManager:
 
     def _demand_expires_soon(self):
         assert self._demand_expiration is not None
-        return (self._demand_expiration - datetime.now(timezone.utc)) < timedelta(seconds=300)
+        #   Q: Why 400 seconds before expiration?
+        #   A: No particular reason. Could be 600 could be 300 (but not less than 300,
+        #      as we'd got proposals that can't be negotiated then)
+        return (self._demand_expiration - datetime.now(timezone.utc)) < timedelta(seconds=400)
 
     async def _create_demand(self):
         allocation = await self._get_allocation()
@@ -133,6 +142,28 @@ class ActivityManager:
         )
         self._initial_proposals = self._demand.initial_proposals()
 
+    async def _prepare_activity(self, activity):
+        try:
+            batch = await activity.execute_commands(Deploy(), Start())
+            await batch.wait(timeout=300)
+            assert batch.success, batch.events[-1].message
+            await self.db.aexecute(
+                "UPDATE activity SET status = 'READY' WHERE id = %(activity_id)s",
+                {"activity_id": activity.id})
+            return activity
+        except Exception:
+            await self.db.close_activity(activity, 'deploy/start failed')
+
+    async def _get_allocation(self):
+        #   Startup - wait until PaymentManager created an allocation
+        while True:
+            if self._current_allocation is None:
+                await asyncio.sleep(0.1)
+            else:
+                return self._current_allocation
+
+    ###########################
+    #   recovery
     async def recover(self):
         #   Recoverable
         our_ready_activities = await self.db.select("""
@@ -195,53 +226,3 @@ class ActivityManager:
                 SET     (status, stop_reason) = ('STOPPED', 'recovery failed')
                 WHERE   id = %(activity_id)s
             """, {"activity_id": activity_id})
-
-    async def _get_running_activity_cnt(self):
-        #   Q: why don't we use golem.all_resources(Activity) here?
-        #   A: because:
-        #   *   this works without changes after a restart
-        #   *   database contents are higher quality than temporary object states
-        #       (e.g. we might have some other entity that changes the database only)
-        data = await self.db.select("""
-            SELECT  count(*)
-            FROM    activities(%(run_id)s) run_act
-            JOIN    activity       all_act
-                ON  run_act.activity_id = all_act.id
-            WHERE   all_act.status = 'READY'
-        """)
-        return data[0][0]
-
-    async def _prepare_activity(self, activity):
-        try:
-            batch = await activity.execute_commands(Deploy(), Start())
-            await batch.wait(timeout=300)
-            assert batch.success, batch.events[-1].message
-            await self.db.aexecute(
-                "UPDATE activity SET status = 'READY' WHERE id = %(activity_id)s",
-                {"activity_id": activity.id})
-            return activity
-        except Exception:
-            await self.db.close_activity(activity, 'deploy/start failed')
-
-    async def _get_allocation(self):
-        #   Startup - wait until PaymentManager created an allocation
-        while True:
-            if self._current_allocation is None:
-                await asyncio.sleep(0.1)
-            else:
-                return self._current_allocation
-
-    # @staticmethod
-    # async def _score_proposal(proposal):
-    #     MAX_LINEAR_COEFFS = [0.001, 0.001, 0]
-
-    #     properties = proposal.data.properties
-    #     if properties['golem.com.pricing.model'] != 'linear':
-    #         return None
-
-    #     coeffs = properties['golem.com.pricing.model.linear.coeffs']
-    #     for val, max_val in zip(coeffs, MAX_LINEAR_COEFFS):
-    #         if val > max_val:
-    #             return None
-    #     else:
-    #         return 1 - (coeffs[0] + coeffs[1])
