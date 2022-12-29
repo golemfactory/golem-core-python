@@ -7,6 +7,8 @@ from golem_core.mid import (
     default_negotiate, default_create_agreement, default_create_activity,
 )
 from golem_core.low.exceptions import BatchError, BatchTimeoutError
+from golem_core.events import NewResource
+from golem_core.low import Allocation
 
 class ActivityManager:
     def __init__(self, golem, db, *, payload, max_activities, max_concurrent=None):
@@ -16,11 +18,19 @@ class ActivityManager:
         self.max_activities = max_activities
         self.max_concurrent = max_concurrent if max_concurrent is not None else max_activities
 
+        self._current_allocation = None
         self._demand_expiration = None
         self._chain = None
         self._tasks = []
 
     async def run(self):
+        async def save_current_allocation(event):
+            self._current_allocation = event.resource
+
+        self.golem.event_bus.resource_listen(
+            save_current_allocation, event_classes=[NewResource], resource_classes=[Allocation]
+        )
+
         try:
             await self._run()
         except asyncio.CancelledError:
@@ -145,11 +155,7 @@ class ActivityManager:
         return (self._demand_expiration - datetime.now(timezone.utc)) < timedelta(seconds=300)
 
     async def _create_new_chain(self):
-        #   TODO
-        #   1.  We now create a new allocation for each chain
-        #   2.  We don't terminate old allocations (only when app exits)
-        #   both seems wrong, but we must first decide about whole budgeting thing.
-        allocation = await self.golem.create_allocation(amount=1)
+        allocation = await self._get_allocation()
 
         self._demand_expiration = datetime.now(timezone.utc) + timedelta(seconds=1800)
         demand = await self.golem.create_demand(
@@ -174,6 +180,14 @@ class ActivityManager:
             Map(self._prepare_activity),
         )
         return chain
+
+    async def _get_allocation(self):
+        #   Startup - wait until PaymentManager created an allocation
+        while True:
+            if self._current_allocation is None:
+                await asyncio.sleep(0.1)
+            else:
+                return self._current_allocation
 
     async def _get_new_activity(self, activity_awaitable, semaphore):
         try:
