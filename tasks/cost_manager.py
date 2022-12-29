@@ -4,7 +4,7 @@ from golem_core.low import DebitNote
 from golem_core.events import NewResource
 
 class CostManager:
-    def __init__(self, golem, db, *, result_max_price, init_seconds=100):
+    def __init__(self, golem, db, *, result_max_price, init_seconds=300):
         self.golem = golem
         self.db = db
         self.result_max_price = result_max_price
