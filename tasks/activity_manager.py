@@ -18,7 +18,6 @@ class ActivityManager:
 
         self._demand_expiration = None
         self._chain = None
-        self._get_chain_lock = asyncio.Lock()
         self._tasks = []
 
     async def run(self):
@@ -31,15 +30,6 @@ class ActivityManager:
 
     async def _run(self):
         semaphore = asyncio.BoundedSemaphore(self.max_concurrent)
-        chain_lock = asyncio.Lock()
-
-        async def x():
-            while True:
-                await asyncio.sleep(1)
-                print("CNT", len([t for t in self._tasks if not t.done()]))
-                print(sorted(t.get_name() for t in self._tasks if not t.done()))
-
-        asyncio.create_task(x())
 
         while True:
             await semaphore.acquire()
@@ -49,7 +39,8 @@ class ActivityManager:
 
             if running_activity_cnt + running_task_cnt < self.max_activities:
                 chain = await self._get_chain()
-                self._tasks.append(asyncio.create_task(self._get_new_activity(chain, chain_lock, semaphore)))
+                activity_awaitable = await chain.__anext__()
+                self._tasks.append(asyncio.create_task(self._get_new_activity(activity_awaitable, semaphore)))
             else:
                 semaphore.release()
                 await asyncio.sleep(1)
@@ -145,9 +136,8 @@ class ActivityManager:
             await self.db.close_activity(activity, 'deploy/start failed')
 
     async def _get_chain(self):
-        async with self._get_chain_lock:
-            if self._chain is None or (await self._demand_expires_soon()):
-                self._chain = await self._create_new_chain()
+        if self._chain is None or (await self._demand_expires_soon()):
+            self._chain = await self._create_new_chain()
         return self._chain
 
     async def _demand_expires_soon(self):
@@ -185,12 +175,30 @@ class ActivityManager:
         )
         return chain
 
-    async def _get_new_activity(self, chain, chain_lock, semaphore):
+    async def _get_new_activity(self, activity_awaitable, semaphore):
         try:
-            async with chain_lock:
-                activity_awaitable = await chain.__anext__()
+            start = datetime.now()
+
+            import aiofiles
+
+            async def write_log():
+                try:
+                    while True:
+                        await asyncio.sleep(1)
+                        msg = f"{id(activity_awaitable)} runs for {(datetime.now() - start).seconds} \n"
+                        async with aiofiles.open("aaa_" + self.golem.app_session_id, mode='a+') as f:
+                            await f.write(msg)
+                except asyncio.CancelledError:
+                    msg = f"{id(activity_awaitable)} STOP \n"
+                    async with aiofiles.open("aaa_" + self.golem.app_session_id, mode='a+') as f:
+                        await f.write(msg)
+                    raise
+
+            task = asyncio.create_task(write_log())
+
             await activity_awaitable
         finally:
+            task.cancel()
             semaphore.release()
 
     @staticmethod
