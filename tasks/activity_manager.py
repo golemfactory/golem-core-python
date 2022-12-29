@@ -146,11 +146,17 @@ class ActivityManager:
             await self.db.close_activity(activity, 'deploy/start failed')
 
     async def _get_chain(self):
-        if self._chain is None or (await self._demand_expires_soon()):
+        if self._chain is None or self._demand_expires_soon():
             self._chain = await self._create_new_chain()
+
+            #   Cancel all current tasks because we don't want to try to create activities using the old chain
+            #   TODO: this might leave some negotiations/preparations/etc in a unexpected state. Is this a problem?
+            for task in self._tasks:
+                task.cancel()
+
         return self._chain
 
-    async def _demand_expires_soon(self):
+    def _demand_expires_soon(self):
         assert self._demand_expiration is not None
         return (self._demand_expiration - datetime.now(timezone.utc)) < timedelta(seconds=300)
 
