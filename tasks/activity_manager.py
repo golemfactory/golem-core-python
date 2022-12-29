@@ -21,6 +21,7 @@ class ActivityManager:
         self._demand_expiration = None
         self._demand = None
         self._initial_proposals = None
+        self._create_demand_lock = asyncio.Lock()
         self._initial_proposals_lock = asyncio.Lock()
         self._tasks = []
 
@@ -48,7 +49,13 @@ class ActivityManager:
             running_activity_cnt = await self._get_running_activity_cnt()
             running_task_cnt = len([task for task in self._tasks if not task.done()])
 
+            import aiofiles
+            async with aiofiles.open("aaa_" + self.golem.app_session_id, mode='a+') as f:
+                await f.write(f"TASKS: {running_task_cnt} SEMAPHORE: {semaphore._value} ACT: {running_activity_cnt}\n")
+
             if running_activity_cnt + running_task_cnt < self.max_activities:
+                async with aiofiles.open("aaa_" + self.golem.app_session_id, mode='a+') as f:
+                    await f.write("NEW TASK\n")
                 self._tasks.append(asyncio.create_task(self._get_new_activity(semaphore)))
             else:
                 semaphore.release()
@@ -77,13 +84,13 @@ class ActivityManager:
             task = asyncio.create_task(write_log())
 
             async def negotiate(proposal):
-                return await asyncio.wait_for(default_negotiate(proposal), timeout=10)
+                return await asyncio.wait_for(default_negotiate(proposal), timeout=30)
 
             async def create_agreement(proposal):
-                return await asyncio.wait_for(default_create_agreement(proposal), timeout=10)
+                return await asyncio.wait_for(default_create_agreement(proposal), timeout=30)
 
             async def create_activity(agreement):
-                return await asyncio.wait_for(default_create_activity(agreement), timeout=10)
+                return await asyncio.wait_for(default_create_activity(agreement), timeout=30)
 
             async def prepare_activity(activity):
                 return await asyncio.wait_for(self._prepare_activity(activity), timeout=300)
@@ -104,8 +111,13 @@ class ActivityManager:
             semaphore.release()
 
     async def _get_new_proposal(self):
-        if self._demand is None or self._demand_expires_soon():
-            await self._create_demand()
+        async with self._create_demand_lock:
+            if self._demand is None or self._demand_expires_soon():
+                old_demand = self._demand
+                await self._create_demand()
+                if old_demand is not None:
+                    asyncio.create_task(old_demand.unsubscribe())
+
         async with self._initial_proposals_lock:
             return await self._initial_proposals.__anext__()
 
@@ -195,7 +207,7 @@ class ActivityManager:
             FROM    activities(%(run_id)s) run_act
             JOIN    activity       all_act
                 ON  run_act.activity_id = all_act.id
-            WHERE   all_act.status IN ('NEW', 'READY')
+            WHERE   all_act.status = 'READY'
         """)
         return data[0][0]
 
