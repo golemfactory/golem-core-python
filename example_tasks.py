@@ -24,7 +24,8 @@ def _get_task(task_data):
         await batch.wait(5)
 
         result = batch.events[-1].stdout
-        #   FIXME: result == None -> invalid result --> what now?
+        assert result is not None
+
         results[task_data] = result
 
         print(f"{task_data} -> {result}")

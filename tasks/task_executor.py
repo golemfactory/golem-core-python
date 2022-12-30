@@ -3,11 +3,13 @@ import asyncio
 from golem_core.mid import (
     Chain, Map, Zip, Buffer,
 )
+from golem_core.high.task_data_stream import TaskDataStream
 
 class TaskExecutor:
     def __init__(self, golem, db, *, get_tasks, max_concurrent):
         self.golem = golem
         self.db = db
+        self.task_stream = TaskDataStream(get_tasks(self.db.run_id))
         self.get_tasks = get_tasks
         self.max_concurrent = max_concurrent
 
@@ -19,7 +21,7 @@ class TaskExecutor:
         try:
             async for _ in Chain(
                 self._activity_stream(),
-                Zip(self._task_stream()),
+                Zip(self.task_stream),
                 Map(self._process_task),
                 Buffer(size=self.max_concurrent),
             ):
@@ -27,11 +29,6 @@ class TaskExecutor:
         except asyncio.CancelledError:
             self._stopping = True
             raise
-
-    async def _task_stream(self):
-        task_gen = self.get_tasks(self.db.run_id)
-        while not self._stopping:
-            yield next(task_gen)
 
     async def _activity_stream(self):
         while not self._stopping:
@@ -43,10 +40,10 @@ class TaskExecutor:
 
     async def _process_task(self, activity, task):
         try:
-            # print(f"Task start: {activity}")
             result = await task(activity)
             return result
         except Exception:
+            self.task_stream.put(task)
             await self.db.close_activity(activity, 'task failed')
         finally:
             self.locked_activities.remove(activity.id)
