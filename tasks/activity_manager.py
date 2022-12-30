@@ -5,7 +5,6 @@ from golem_core.commands import Deploy, Start
 from golem_core.mid import (
     default_negotiate, default_create_agreement, default_create_activity,
 )
-from golem_core.low.exceptions import BatchError, BatchTimeoutError
 from golem_core.events import NewResource
 from golem_core.low import Allocation
 
@@ -50,6 +49,8 @@ class ActivityManager:
         self.golem.event_bus.resource_listen(
             save_current_allocation, event_classes=[NewResource], resource_classes=[Allocation]
         )
+
+        await self.recover()
 
         try:
             await self._run()
@@ -165,64 +166,41 @@ class ActivityManager:
     ###########################
     #   recovery
     async def recover(self):
-        #   Recoverable
-        our_ready_activities = await self.db.select("""
-            UPDATE  tasks.activity all_act
+        #   This method is called once, when we start.
+        #   When it finishes:
+        #   *   we don't have any NEW or READY activities
+        #   *   we have as single task for each activity that was NEW or READY
+
+        data = await self.db.select("""
+            UPDATE  tasks.activity               all_act
             SET     status = 'RECOVERING'
             FROM    tasks.activities(%(run_id)s) our_act
-            WHERE   all_act.id     = our_act.activity_id
-                AND all_act.status = 'READY'
-            RETURNING all_act.id
+            --  The only pupose of this join is to return the old status
+            JOIN    tasks.activity               old_act
+                ON  old_act.id = our_act.activity_id
+            WHERE   all_act.id = our_act.activity_id
+                AND all_act.status IN ('READY', 'NEW')
+            RETURNING all_act.id, all_act.agreement_id, old_act.status
         """)
 
-        #   Unrecoverable
-        await self.db.aexecute("""
-            UPDATE  tasks.activity all_act
-            SET     (status, stop_reason) = ('STOPPED', 'could not recover from status ' || status)
-            FROM    tasks.activities(%(run_id)s) our_act
-            WHERE   all_act.id     = our_act.activity_id
-                AND all_act.status NOT IN ('STOPPED', 'RECOVERING')
-        """)
+        for activity_id, agreement_id, status in data:
+            activity = self.golem.activity(activity_id)
+            agreement = self.golem.agreement(agreement_id)
+            agreement.add_child(activity)
+            if status == "NEW":
+                task = asyncio.create_task(self._recreate_activity(activity))
+            else:
+                task = asyncio.create_task(self._recover_or_recreate_activity(activity))
+            self._tasks.append(task)
 
-        for activity_id in [row[0] for row in our_ready_activities]:
-            asyncio.create_task(self._recover_activity(activity_id))
+    async def _recreate_activity(self, activity):
+        await self.db.aexecute(
+            "UPDATE tasks.activity SET (status, stop_reason) = ('STOPPING', 'recreating')",
+            {"activity_id": activity.id},
+        )
+        await activity.destroy()
+        new_activity = await activity.parent.create_activity()
+        await asyncio.wait_for(self._prepare_activity(new_activity), timeout=300)
 
-    async def _recover_activity(self, activity_id):
-        #   Activity has now state "RECOVERING".
-        #   We're waiting for the last batch to finish at most 30s, if it finishes
-        #   (or is already finished) we set it to "READY", if not - we try to close the
-        #   activity.
-        agreement_id = (await self.db.select("""
-            SELECT  agreement_id
-            FROM    tasks.activity
-            WHERE   id = %(activity_id)s
-        """, {"activity_id": activity_id}))[0][0]
-
-        batch_id = (await self.db.select("""
-            SELECT  id
-            FROM    tasks.batch
-            WHERE   activity_id = %(activity_id)s
-            ORDER BY created_ts DESC
-            LIMIT 1
-        """, {"activity_id": activity_id}))[0][0]
-
-        agreement = self.golem.agreement(agreement_id)
-        batch = self.golem.batch(batch_id, activity_id)
-
-        try:
-            #   FIXME: This never succeeds. Why?
-            #          (Also: maybe we'd rather destroy & recreate activity?)
-            batch.start_collecting_events()
-            await batch.wait(30)
-            await self.db.aexecute("""
-                UPDATE  tasks.activity
-                SET     status = 'READY'
-                WHERE   id = %(activity_id)s
-            """, {"activity_id": activity_id})
-        except (BatchError, BatchTimeoutError):
-            await agreement.close_all()
-            await self.db.aexecute("""
-                UPDATE  tasks.activity
-                SET     (status, stop_reason) = ('STOPPED', 'recovery failed')
-                WHERE   id = %(activity_id)s
-            """, {"activity_id": activity_id})
+    async def _recover_or_recreate_activity(self, activity):
+        print("RECOVER READY", activity)
