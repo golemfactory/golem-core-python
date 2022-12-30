@@ -1,5 +1,6 @@
 import aiopg
 import asyncio
+import traceback
 from uuid import uuid4
 
 class DB:
@@ -59,7 +60,16 @@ class DB:
         kwargs["app_session_id"] = self.app_session_id
         pool = await self._get_pool()
         with (await pool.cursor()) as cur:
-            await cur.execute(sql, kwargs)
+            try:
+                await cur.execute(sql, kwargs)
+            except Exception:
+                #   Development mode
+                print("DB ERROR")
+                print("    ", sql)
+                print("    ", kwargs)
+                traceback.print_exc()
+                raise
+
             if return_result:
                 return await cur.fetchall()
 

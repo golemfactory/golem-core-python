@@ -195,7 +195,7 @@ class ActivityManager:
 
     async def _recreate_activity(self, activity):
         await self.db.aexecute(
-            "UPDATE tasks.activity SET (status, stop_reason) = ('STOPPING', 'recreating')",
+            "UPDATE  tasks.activity SET (status, stop_reason) = ('STOPPING', 'recreating') WHERE id = %(activity_id)s",
             {"activity_id": activity.id},
         )
         await activity.destroy()
@@ -203,4 +203,19 @@ class ActivityManager:
         await asyncio.wait_for(self._prepare_activity(new_activity), timeout=300)
 
     async def _recover_or_recreate_activity(self, activity):
-        print("RECOVER READY", activity)
+        data = await self.db.select(
+            "SELECT id FROM tasks.batch WHERE activity_id = %(activity_id)s ORDER BY created_ts DESC LIMIT 1",
+            {"activity_id": activity.id},
+        )
+        last_batch = self.golem.batch(data[0][0], activity.id)
+
+        #   TODO: fix this once https://github.com/golemfactory/golem-core-python/issues/49 is done
+        last_batch.start_collecting_events()
+        await asyncio.sleep(1)
+
+        if last_batch.done:
+            await self.db.aexecute(
+                "UPDATE activity SET status = 'READY' WHERE id = %(activity_id)s",
+                {"activity_id": activity.id})
+        else:
+            await self._recreate_activity(activity)
