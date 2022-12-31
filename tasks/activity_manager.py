@@ -154,6 +154,7 @@ class ActivityManager:
             return activity
         except Exception:
             await self.db.close_activity(activity, 'deploy/start failed')
+            raise
 
     async def _get_allocation(self):
         #   Startup - wait until PaymentManager created an allocation
