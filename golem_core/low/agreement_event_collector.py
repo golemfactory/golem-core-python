@@ -17,6 +17,10 @@ AgreementEvent = Union[
 ]
 
 class AgreementEventCollector(YagnaEventCollector):
+    """NOTE: this doesn't work now (because of https://github.com/golemfactory/yagna-sdk-team/issues/232)
+
+    (and might not work after the referenced issue is done, because was never properly tested)
+    """
     def __init__(self, node: "GolemNode"):
         self.node = node
         self.min_ts = datetime.now(timezone.utc)
@@ -25,6 +29,7 @@ class AgreementEventCollector(YagnaEventCollector):
         self.min_ts = max(event.event_date, self.min_ts)
         print("GOT AGREEMENT EVENT!")
         print(event)
+        #   FIXME: add event to agreement.events
 
     @property
     def _collect_events_func(self) -> Callable:

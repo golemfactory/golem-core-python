@@ -106,8 +106,9 @@ class GolemNode:
 
         #   Q: Why is there no _collect_agreement_events (as we have _collect_payment_events now?)
         #   A: 1. Because there's no usecase.
-        #      2. Because now ResourceClosed for Agreements is emitted in AgreementEventCollector
-        #         and we want this event to be emitted always.
+        #      2. Because ResourceClosed for Agreements should be emitted in AgreementEventCollector
+        #         and we want this event to be emitted always (it is not emitted there now, because of
+        #         a FIXME below, but probably should be then).
 
         # FIXME: waiting for https://github.com/golemfactory/yagna-sdk-team/issues/232
         # self._agreement_event_collector.start_collecting_events()
