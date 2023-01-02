@@ -93,6 +93,9 @@ class ActivityManager:
     #   get_new_activity, demand etc
     async def _get_new_activity(self, semaphore):
         try:
+            async def get_proposal():
+                return await asyncio.wait_for(self._get_new_proposal(), timeout=30)
+
             async def negotiate(proposal):
                 return await asyncio.wait_for(default_negotiate(proposal), timeout=30)
 
@@ -105,9 +108,11 @@ class ActivityManager:
             async def prepare_activity(activity):
                 return await asyncio.wait_for(self._prepare_activity(activity), timeout=300)
 
+            #   Q: Why don't we use golem_core.mid.Chain?
+            #   A: This is easier to debug, and there used to be a lot of debugging around here.
             chain_parts = (negotiate, create_agreement, create_activity, prepare_activity)
 
-            awaitable = self._get_new_proposal()
+            awaitable = get_proposal()
             for chain_part in chain_parts:
                 awaited = await awaitable
                 awaitable = chain_part(awaited)
