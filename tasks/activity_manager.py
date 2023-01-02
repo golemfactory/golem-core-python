@@ -3,6 +3,7 @@ from datetime import datetime, timezone, timedelta
 
 from golem_core.commands import Deploy, Start
 from golem_core.mid import (
+    SimpleScorer,
     default_negotiate, default_create_agreement, default_create_activity,
 )
 from golem_core.events import NewResource
@@ -146,7 +147,8 @@ class ActivityManager:
         self._demand = await self.golem.create_demand(
             self.payload, allocations=[allocation], expiration=self._demand_expiration
         )
-        self._initial_proposals = self._demand.initial_proposals()
+        scorer = SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=3))
+        self._initial_proposals = scorer(self._demand.initial_proposals())
 
     async def _prepare_activity(self, activity):
         try:
