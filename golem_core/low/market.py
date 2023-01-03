@@ -112,10 +112,6 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], Ya
         else:
             parent_proposal_id = proposal.data.prev_proposal_id
             parent = Proposal(self.node, parent_proposal_id)  # type: ignore
-
-            #   Sanity check - this should be true in all "expected" workflows,
-            #   and we really want to detect any situation when it's not
-            assert parent._parent is not None
         return parent
 
 
