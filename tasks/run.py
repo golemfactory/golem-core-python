@@ -9,6 +9,7 @@ from tasks.activity_manager import ActivityManager
 from tasks.payment_manager import PaymentManager
 from tasks.event_writer import EventWriter
 from tasks.cost_manager import CostManager
+from tasks.event_bus import ParallelEventBus
 
 class Runner:
     def __init__(self, *, payload, get_tasks, results_cnt, dsn, run_id, workers, result_max_price, budget_str):
@@ -22,6 +23,10 @@ class Runner:
 
         self.db = DB(self.dsn, run_id)
         self.golem = GolemNode(app_session_id=self.db.app_session_id)
+
+        #   TODO: this might be moved to `golem_core`, or at least event-bus-setting API will be added.
+        #         https://github.com/golemfactory/golem-core-python/issues/3
+        self.golem._event_bus = ParallelEventBus()
 
     async def main(self):
         try:
