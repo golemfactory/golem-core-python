@@ -19,10 +19,6 @@ class EventWriter:
         )
 
     async def _save_new_resource(self, event):
-        #   NOTE: We have only a single callback (instead of separate callbacks for separate resources)
-        #         because the order of the inserts **must** be preserved (because of the foreign keys).
-        #         This doesn't matter that much now, but might matter more after
-        #         https://github.com/golemfactory/golem-api-python/issues/3
         #   NOTE: When we are recovering, NewResource event is emitted for Agreements/Activities/Batches
         #         that already exist. This probably should be a different event.
         #         https://github.com/golemfactory/golem-api-python/issues/6

@@ -93,6 +93,7 @@ class ActivityManager:
     ###################################
     #   get_new_activity, demand etc
     async def _get_new_activity(self, semaphore):
+        activity = None
         try:
             async def get_proposal():
                 try:
@@ -108,7 +109,9 @@ class ActivityManager:
                 return await asyncio.wait_for(default_create_agreement(proposal), timeout=30)
 
             async def create_activity(agreement):
-                return await asyncio.wait_for(default_create_activity(agreement), timeout=30)
+                nonlocal activity
+                activity = await asyncio.wait_for(default_create_activity(agreement), timeout=30)
+                return activity
 
             async def prepare_activity(activity):
                 return await asyncio.wait_for(self._prepare_activity(activity), timeout=300)
@@ -124,6 +127,10 @@ class ActivityManager:
 
             awaited = await awaitable
             return awaited
+        except Exception:
+            if activity is not None:
+                #   NOTE: I'm not sure when and why this happens, but I'm sure it sometimes does
+                await self.db.close_activity(activity, 'deploy/start failed (?)')
         finally:
             semaphore.release()
 

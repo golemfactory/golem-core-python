@@ -58,6 +58,7 @@ class TaskExecutor:
                 ON  run_act.activity_id = all_act.id
             WHERE   all_act.status = 'READY'
                 AND NOT activity_id = ANY(%(locked_activities)s)
+            ORDER BY random()
             LIMIT   1
         """, {"locked_activities": locked_activities})
         if data:
