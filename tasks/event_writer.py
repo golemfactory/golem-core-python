@@ -78,11 +78,8 @@ class EventWriter:
     async def _save_activity_closed(self, event):
         activity_id = event.resource.id
 
-        try:
-            self.db.execute("""
-                UPDATE  activity
-                SET     (status, stop_reason) = ('STOPPED', COALESCE(stop_reason, 'app closing'))
-                WHERE   id = %(activity_id)s
-            """, {"activity_id": activity_id})
-        except Exception as e:
-            print(e)
+        self.db.execute("""
+            UPDATE  activity
+            SET     (status, stop_reason) = ('STOPPED', COALESCE(stop_reason, 'app closing'))
+            WHERE   id = %(activity_id)s
+        """, {"activity_id": activity_id})
