@@ -105,8 +105,8 @@ class PaymentManager:
                         d.created_ts,
                         d.activity_id,
                         d.amount
-                FROM    tasks.debit_note             d
-                JOIN    tasks.activities(%(run_id)s) a
+                FROM    debit_note             d
+                JOIN    activities(%(run_id)s) a
                     ON  d.activity_id = a.activity_id
             ),
             hour_ago_sum AS (

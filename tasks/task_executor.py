@@ -53,8 +53,8 @@ class TaskExecutor:
 
         data = await self.db.select("""
             SELECT  activity_id
-            FROM    tasks.activities(%(run_id)s) run_act
-            JOIN    activity                             all_act
+            FROM    activities(%(run_id)s) run_act
+            JOIN    activity               all_act
                 ON  run_act.activity_id = all_act.id
             WHERE   all_act.status = 'READY'
                 AND NOT activity_id = ANY(%(locked_activities)s)

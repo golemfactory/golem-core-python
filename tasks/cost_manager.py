@@ -37,7 +37,7 @@ class CostManager:
         while True:
             await asyncio.sleep(0.1)
             if await self.db.select(
-                "SELECT 1 FROM tasks.debit_note WHERE id = %(debit_note_id)s",
+                "SELECT 1 FROM debit_note WHERE id = %(debit_note_id)s",
                 {"debit_note_id": debit_note.id}
             ):
                 return
@@ -45,7 +45,7 @@ class CostManager:
     async def _activity_old_enough(self, activity_id):
         return bool(await self.db.select("""
             SELECT  1
-            FROM    tasks.activity
+            FROM    activity
             WHERE   id = %(activity_id)s
                 AND created_ts + %(interval)s::interval < now()
         """, {"activity_id": activity_id, "interval": f"{self.init_seconds} seconds"}))
@@ -53,7 +53,7 @@ class CostManager:
     async def _activity_result_price(self, activity_id):
         results_data = await self.db.select("""
             SELECT  cnt
-            FROM    tasks.results
+            FROM    results
             WHERE   run_id = %(run_id)s
             ORDER BY created_ts DESC
             LIMIT 1
@@ -70,19 +70,19 @@ class CostManager:
             WITH
             activity_cost AS (
                 SELECT  max(amount) AS amount
-                FROM    tasks.debit_note
+                FROM    debit_note
                 WHERE   activity_id = %(activity_id)s
             ),
             activity_results AS (
                 WITH
                 activity_batches AS (
                     SELECT  count(*)    AS cnt
-                    FROM    tasks.batch
+                    FROM    batch
                     WHERE   activity_id = %(activity_id)s
                 ),
                 all_batches AS (
                     SELECT  count(*) AS cnt
-                    FROM    tasks.batches(%(run_id)s)
+                    FROM    batches(%(run_id)s)
                 )
                 SELECT  %(results)s * (activity_batches.cnt / all_batches.cnt::numeric) AS results
                 FROM    activity_batches, all_batches

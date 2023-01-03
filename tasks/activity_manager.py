@@ -187,11 +187,11 @@ class ActivityManager:
         #   *   we have as single task for each activity that was NEW or READY
 
         data = await self.db.select("""
-            UPDATE  tasks.activity               all_act
+            UPDATE  activity               all_act
             SET     status = 'RECOVERING'
-            FROM    tasks.activities(%(run_id)s) our_act
+            FROM    activities(%(run_id)s) our_act
             --  The only pupose of this join is to return the old status
-            JOIN    tasks.activity               old_act
+            JOIN    activity               old_act
                 ON  old_act.id = our_act.activity_id
             WHERE   all_act.id = our_act.activity_id
                 AND all_act.status IN ('READY', 'NEW')
@@ -210,7 +210,7 @@ class ActivityManager:
 
     async def _recreate_activity(self, activity):
         await self.db.aexecute(
-            "UPDATE  tasks.activity SET (status, stop_reason) = ('STOPPING', 'recreating') WHERE id = %(activity_id)s",
+            "UPDATE  activity SET (status, stop_reason) = ('STOPPING', 'recreating') WHERE id = %(activity_id)s",
             {"activity_id": activity.id},
         )
         await activity.destroy()
@@ -219,7 +219,7 @@ class ActivityManager:
 
     async def _recover_or_recreate_activity(self, activity):
         data = await self.db.select(
-            "SELECT id FROM tasks.batch WHERE activity_id = %(activity_id)s ORDER BY created_ts DESC LIMIT 1",
+            "SELECT id FROM batch WHERE activity_id = %(activity_id)s ORDER BY created_ts DESC LIMIT 1",
             {"activity_id": activity.id},
         )
         last_batch = self.golem.batch(data[0][0], activity.id)
