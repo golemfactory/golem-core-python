@@ -95,7 +95,11 @@ class ActivityManager:
     async def _get_new_activity(self, semaphore):
         try:
             async def get_proposal():
-                return await asyncio.wait_for(self._get_new_proposal(), timeout=30)
+                try:
+                    return await asyncio.wait_for(self._get_new_proposal(), timeout=30)
+                except asyncio.TimeoutError:
+                    print("Couldn't find a proposal in 30 seconds")
+                    raise
 
             async def negotiate(proposal):
                 return await asyncio.wait_for(default_negotiate(proposal), timeout=30)
@@ -155,9 +159,12 @@ class ActivityManager:
             batch = await activity.execute_commands(Deploy(), Start())
             await batch.wait(timeout=300)
             assert batch.success, batch.events[-1].message if batch.events else "no events collected"
-            await self.db.aexecute(
-                "UPDATE activity SET status = 'READY' WHERE id = %(activity_id)s",
-                {"activity_id": activity.id})
+            await self.db.aexecute("""
+                UPDATE  activity
+                SET     status = 'READY'
+                WHERE   id = %(activity_id)s
+                    AND status = 'NEW'
+            """, {"activity_id": activity.id})
             return activity
         except Exception:
             await self.db.close_activity(activity, 'deploy/start failed')

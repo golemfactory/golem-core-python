@@ -28,12 +28,17 @@ class DB:
     ########################
     #   HIGH LEVEL INTERFACE
     async def close_activity(self, activity, reason):
+        #   Q: Why upsert instead of a simple update?
+        #   A: Because we can't be certain this activity was already inserted to the database.
+        #     (although with efficient event bus it almost always is)
         await self.aexecute("""
-            UPDATE  activity
+            INSERT INTO activity (id, agreement_id, status, stop_reason)
+            VALUES (%(activity_id)s, %(agreement_id)s, 'STOPPING', %(reason)s)
+            ON CONFLICT (id) DO UPDATE
             SET     (status, stop_reason) = ('STOPPING', %(reason)s)
-            WHERE   id = %(activity_id)s
-                AND status IN ('NEW', 'READY')
-        """, {"activity_id": activity.id, "reason": reason})
+            WHERE   activity.id = %(activity_id)s
+                AND activity.status IN ('NEW', 'READY')
+        """, {"activity_id": activity.id, "agreement_id": activity.parent.id, "reason": reason})
 
         async def stop():
             await activity.parent.close_all()
