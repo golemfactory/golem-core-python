@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 import asyncio
 #   TODO: replace Any here
 from typing import Any, Callable, Dict, List, Optional
-import traceback
 
 from yapapi.rest.common import is_intermittent_error
 from yapapi.rest.activity import _is_gsb_endpoint_not_found_error
@@ -41,11 +40,6 @@ class YagnaEventCollector(ABC):
                         await asyncio.sleep(3)
                         continue
 
-                print(f"COLLECTING EVENTS FOR {self} FAILED")
-                if _is_gsb_endpoint_not_found_error(e):
-                    print(f"Error repeated {gsb_endpoint_not_found_cnt} times")
-
-                traceback.print_exc()
                 raise
 
             gsb_endpoint_not_found_cnt = 0
