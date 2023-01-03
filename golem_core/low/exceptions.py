@@ -79,8 +79,11 @@ class BatchError(Exception):
         self._batch = batch
 
         if msg is None:
-            event = batch.events[-1]
-            msg = f"{batch} failed on command {event.index}: {event.message}"
+            if batch.events:
+                event = batch.events[-1]
+                msg = f"{batch} failed on command {event.index}: {event.message}"
+            else:
+                msg = f"{batch} failed to collect any events"
 
         super().__init__(msg)
 
