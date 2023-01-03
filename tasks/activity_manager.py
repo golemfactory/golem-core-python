@@ -154,7 +154,7 @@ class ActivityManager:
         try:
             batch = await activity.execute_commands(Deploy(), Start())
             await batch.wait(timeout=300)
-            assert batch.success, batch.events[-1].message
+            assert batch.success, batch.events[-1].message if batch.events else "no events collected"
             await self.db.aexecute(
                 "UPDATE activity SET status = 'READY' WHERE id = %(activity_id)s",
                 {"activity_id": activity.id})

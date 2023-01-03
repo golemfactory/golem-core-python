@@ -74,13 +74,20 @@ class Runner:
 
 async def _save_results_cnt(golem, db, results_cnt):
     while True:
+        await asyncio.sleep(1)
         cnt = await results_cnt(db.run_id)
         prev_cnt_data = await db.select("SELECT cnt FROM results WHERE run_id = %(run_id)s ORDER BY id DESC LIMIT 1")
-        if prev_cnt_data and prev_cnt_data[0][0] > cnt:
-            raise RuntimeError(f"Recent result_cnt {cnt} is lower than previous one {prev_cnt_data[0][0]}")
+        if prev_cnt_data:
+            prev_cnt = prev_cnt_data[0][0]
+            if prev_cnt > cnt:
+                raise RuntimeError(f"Recent result_cnt {cnt} is lower than previous one {prev_cnt}")
+            elif prev_cnt == cnt:
+                continue
 
+        #   Q: Why do we INSERT instead of UPDATE? Do we need that many rows here?
+        #   A: This allows tracking the app-efficiency-in-time and might be useful for debugging/testing.
+        #      E.g. "We're not geting results now, when did we get the last one?".
         await db.aexecute("INSERT INTO results (run_id, cnt) VALUES (%(run_id)s, %(cnt)s)", {"cnt": cnt})
-        await asyncio.sleep(1)
 
 
 def run(*, payload, get_tasks, results_cnt, dsn, run_id, workers, result_max_price, budget_str):
