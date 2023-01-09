@@ -1,3 +1,4 @@
+import asyncio
 from typing import AsyncIterator, Callable, Dict, List, Optional, TYPE_CHECKING, Union
 from datetime import datetime, timedelta, timezone
 
@@ -105,15 +106,13 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], Ya
         return cls(node, demand_id)
 
     def _get_proposal_parent(self, proposal: "Proposal") -> Union["Demand", "Proposal"]:
-        if proposal.initial:
+        assert proposal.data is not None
+
+        if proposal.data.state == 'Initial':
             parent = self
         else:
             parent_proposal_id = proposal.data.prev_proposal_id
             parent = Proposal(self.node, parent_proposal_id)  # type: ignore
-
-            #   Sanity check - this should be true in all "expected" workflows,
-            #   and we really want to detect any situation when it's not
-            assert parent._parent is not None
         return parent
 
 
@@ -148,8 +147,7 @@ class Proposal(
     @property
     def initial(self) -> bool:
         """True for proposals matched directly to the demand."""
-        assert self.data is not None
-        return self.data.state == 'Initial'
+        return self.parent == self.demand
 
     @property
     def draft(self) -> bool:
@@ -366,26 +364,34 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity",
         this agreement and we want to make sure it is really terminated (even if e.g. in some other
         separate task we're waiting for the provider to approve it).
         """
-        #   TODO: This method is not pretty, also similar method could be useful for acivity only.
+        #   TODO: This method is very ugly, also similar method could be useful for acivity only.
         #   BUT this probably should be a yagna-side change. Agreement.terminate() should
         #   just always succeed, as well as Activity.destroy() - yagna should repeat if necessary etc.
         #   We should only repeat in rare cases when we can't connect to our local `yagna`.
         #   Related issue: https://github.com/golemfactory/golem-core-python/issues/19
-        while True:
+
+        #   Q: Why limit on repeats?
+        #   A: So that we don't flood `yagna` with requests that will never succeed.
+        #   Q: Why repeating 4 times?
+        #   A: No particular reason.
+
+        for i in range(1, 5):
             try:
                 await self.terminate()
                 break
             except ApiException as e:
                 if self._is_permanent_410(e):
                     break
+            await asyncio.sleep(2 ** i)
 
         for activity in self.activities:
-            while True:
+            for i in range(1, 5):
                 try:
                     await activity.destroy()
                     break
                 except Exception:
                     pass
+                await asyncio.sleep(2 ** i)
 
     @staticmethod
     def _is_permanent_410(e: ApiException) -> bool:
