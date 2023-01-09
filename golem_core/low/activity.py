@@ -279,7 +279,7 @@ class PoolingBatch(
         if event.is_batch_finished:
             self._set_finished()
 
-    def _set_finished(self):
+    def _set_finished(self) -> None:
         self.node.event_bus.emit(BatchFinished(self))
         self.finished_event.set()
         self.parent.running_batch_counter -= 1

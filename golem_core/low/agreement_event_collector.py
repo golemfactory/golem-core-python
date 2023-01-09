@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from golem_core import GolemNode
 
 AgreementEvent = Union[
-    models.AgreementApprovedEvent,
+    models.AgreementApprovedEvent,  # type: ignore  # mypy, why? this class exists
     models.AgreementRejectedEvent,
     models.AgreementCancelledEvent,
     models.AgreementTerminatedEvent,
@@ -26,6 +26,8 @@ class AgreementEventCollector(YagnaEventCollector):
         self.min_ts = datetime.now(timezone.utc)
 
     async def _process_event(self, event: AgreementEvent) -> None:
+        #   TODO: mypy complains about this, **but** this is correct e.g. for
+        #         payment events --> it seems this is yet another ya_client problem
         self.min_ts = max(event.event_date, self.min_ts)
         print("GOT AGREEMENT EVENT!")
         print(event)
