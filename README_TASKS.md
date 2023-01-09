@@ -81,7 +81,7 @@ while true; do sleep 1; DATA=$(python3 -m tasks show); SUMMARY=$(python3 -m task
 Module should specify:
 
 *   `PAYLOAD`
-*   `get_tasks` - iterable yielding callables with arguments `(run_id, activity)`
+*   `get_tasks` - iterable yielding callables that accept an activity object (`golem_core.low.Activity`) as the only argument
 *   `results_cnt` - function returning the number of computed results. This should be optional, but now is not.
 
 In the future some optional things will be added (e.g. activity-preparing function, offer-scoring function).
@@ -104,7 +104,8 @@ Second run will try to:
 * reuse all agreements for non-reusable activities (i.e. will create new activities for the same agreements)
 
 This will not work after Ctrl+C stop, because Ctrl+C terminates all agreements.
-This is not super-useful now (as creating new activities is cheap), but might be more useful in the future.
+This should be useful if starting activity is expensive, or if we have a very restrictive provider selection so we really care about
+preserving the "good" agreements.
 
 ### Budget
 
