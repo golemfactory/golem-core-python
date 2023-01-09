@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timezone, timedelta
+import traceback
 
 from golem_core.commands import Deploy, Start
 from golem_core.mid import (
@@ -93,20 +94,19 @@ class ActivityManager:
     ###################################
     #   get_new_activity, demand etc
     async def _get_new_activity(self, semaphore):
+        agreement = None
         activity = None
         try:
             async def get_proposal():
-                try:
-                    return await asyncio.wait_for(self._get_new_proposal(), timeout=30)
-                except asyncio.TimeoutError:
-                    print("Couldn't find a proposal in 30 seconds")
-                    raise
+                return await asyncio.wait_for(self._get_new_proposal(), timeout=30)
 
             async def negotiate(proposal):
                 return await asyncio.wait_for(default_negotiate(proposal), timeout=30)
 
             async def create_agreement(proposal):
-                return await asyncio.wait_for(default_create_agreement(proposal), timeout=30)
+                nonlocal agreement
+                agreement = await asyncio.wait_for(default_create_agreement(proposal), timeout=30)
+                return agreement
 
             async def create_activity(agreement):
                 nonlocal activity
@@ -127,10 +127,26 @@ class ActivityManager:
 
             awaited = await awaitable
             return awaited
-        except Exception:
+        except Exception as e:
+            error_data = {
+                "agreement_id": agreement.id if agreement is not None else None,
+                "activity_id": activity.id if activity is not None else None,
+                "error_type": type(e).__name__,
+                "error_str": str(e),
+                "traceback": traceback.format_exc(),
+            }
+            self.db.execute("""
+                INSERT INTO get_activity_errors (run_id, agreement_id, activity_id, error_type, error_str, traceback)
+                VALUES (%(run_id)s, %(agreement_id)s, %(activity_id)s, %(error_type)s, %(error_str)s, %(traceback)s)
+            """, error_data)
+
             if activity is not None:
-                #   NOTE: I'm not sure when and why this happens, but I'm sure it sometimes does
-                await self.db.close_activity(activity, 'deploy/start failed (?)')
+                if isinstance(e, asyncio.TimeoutError):
+                    msg = 'deploy/start timed out'
+                else:
+                    #   NOTE: this might not be possible at all
+                    msg = 'deploy/start failed (?)'
+                await self.db.close_activity(activity, msg)
         finally:
             semaphore.release()
 

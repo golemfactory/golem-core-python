@@ -62,6 +62,16 @@ CREATE TABLE debit_note (
     amount      numeric
 );
 
+CREATE TABLE get_activity_errors (
+    id              SERIAL PRIMARY KEY,
+    run_id          text NOT NULL REFERENCES run(id) ON DELETE CASCADE,
+    agreement_id    text,
+    activity_id     text,
+    error_type      text NOT NULL,
+    error_str       text NOT NULL,
+    traceback       text NOT NULL
+);
+
 
 CREATE FUNCTION tasks.demands(run_id text) RETURNS TABLE (demand_id text)
 LANGUAGE SQL
