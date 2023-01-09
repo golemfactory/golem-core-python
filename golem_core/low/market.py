@@ -1,3 +1,4 @@
+import asyncio
 from typing import AsyncIterator, Callable, Dict, List, Optional, TYPE_CHECKING, Union
 from datetime import datetime, timedelta, timezone
 
@@ -363,26 +364,34 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", "Activity",
         this agreement and we want to make sure it is really terminated (even if e.g. in some other
         separate task we're waiting for the provider to approve it).
         """
-        #   TODO: This method is not pretty, also similar method could be useful for acivity only.
+        #   TODO: This method is very ugly, also similar method could be useful for acivity only.
         #   BUT this probably should be a yagna-side change. Agreement.terminate() should
         #   just always succeed, as well as Activity.destroy() - yagna should repeat if necessary etc.
         #   We should only repeat in rare cases when we can't connect to our local `yagna`.
         #   Related issue: https://github.com/golemfactory/golem-core-python/issues/19
-        while True:
+
+        #   Q: Why limit on repeats?
+        #   A: So that we don't flood `yagna` with requests that will never succeed.
+        #   Q: Why repeating 4 times?
+        #   A: No particular reason.
+
+        for i in range(1, 5):
             try:
                 await self.terminate()
                 break
             except ApiException as e:
                 if self._is_permanent_410(e):
                     break
+            await asyncio.sleep(2 ** i)
 
         for activity in self.activities:
-            while True:
+            for i in range(1, 5):
                 try:
                     await activity.destroy()
                     break
                 except Exception:
                     pass
+                await asyncio.sleep(2 ** i)
 
     @staticmethod
     def _is_permanent_410(e: ApiException) -> bool:
