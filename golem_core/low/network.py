@@ -65,7 +65,7 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
         created_data = await api.create_network(in_data)
         return cls(golem_node, created_data.id, created_data)
 
-    @api_call_wrapper()
+    @api_call_wrapper(ignore=[404])
     async def remove(self) -> None:
         """Remove the network."""
         await self.api.remove_network(self.id)
