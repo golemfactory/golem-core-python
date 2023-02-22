@@ -2,24 +2,25 @@ import asyncio
 import logging
 import os
 from datetime import timedelta
-from typing import Never, Callable
+from typing import Never, Callable, Optional
 
 from asciimatics.effects import Print, Effect
 from asciimatics.event import KeyboardEvent
-from asciimatics.exceptions import NextScene
+from asciimatics.exceptions import NextScene, InvalidFields
 from asciimatics.renderers import FigletText, SpeechBubble
 from asciimatics.scene import Scene
 from asciimatics.screen import Screen
-from asciimatics.widgets import Frame, Layout, Label, Text, Button
+from asciimatics.widgets import Frame, Layout, Label, Text, Button, PopUpDialog, Divider
+from yarl import URL
 
 from golem_core import GolemNode
 
 ASCIIMATICS_SCREEN_UPDATE_INTERVAL = timedelta(seconds=1/20)
 
 
-class CallbackOnTaskDoneEffect(Effect):
-    def __init__(self, screen, task: asyncio.Task, callback: Callable):
-        super().__init__(screen)
+class BusyPopUpDialog(PopUpDialog):
+    def __init__(self, screen, text, task: asyncio.Task, callback: Callable, theme="green"):
+        super().__init__(screen, text, buttons=[], on_close=None, has_shadow=False, theme=theme)
 
         self._task = task
         self._callback = callback
@@ -28,14 +29,23 @@ class CallbackOnTaskDoneEffect(Effect):
         if self._task.done():
             self._callback(self._task.result())
             self.scene.remove_effect(self)
+            return
+
+        super(BusyPopUpDialog, self)._update(frame_no)
+
+    def process_event(self, event):
+        return None
+
+    @property
+    def frame_update_count(self):
+        # As we need to constantly fetch for self._task updates
+        return 1
 
     def reset(self):
         self._task.cancel()
         self.scene.remove_effect(self)
 
-    @property
-    def stop_frame(self):
-        return 0
+
 
 
 class Step0Scene(Scene):
@@ -79,8 +89,8 @@ class Step1Scene(Scene):
 
         self._frame = frame = Frame(
             screen=screen,
-            height=screen.height,
-            width=screen.width,
+            height=10,
+            width=(screen.width * 2) // 3,
             can_scroll=False,
             title=f"[1/{step_count}] Creation of Golem Node context",
             reduce_cpu=True,
@@ -95,24 +105,55 @@ class Step1Scene(Scene):
         frame.add_layout(layout)
 
         layout.add_widget(Label('Provide basic information for YAGNA daemon connection.'))
-        layout.add_widget(Text('YAGNA_API_URL:', 'yagna_api_url'))
-        layout.add_widget(Text('YAGNA_APPKEY:', 'yagna_app_key'))
+        layout.add_widget(Divider(draw_line=False))
+        layout.add_widget(Label('Note: UPPERCASE values makes environment variables lookup.'))
+        layout.add_widget(Divider(draw_line=False))
+        layout.add_widget(Text('YAGNA_API_URL:', 'yagna_api_url', validator=self._validate_yagna_api_url))
+        layout.add_widget(Text('YAGNA_APPKEY:', 'yagna_app_key', validator=self._validate_yagna_appkey))
+        layout.add_widget(Divider(draw_line=False))
         layout.add_widget(Button('Connect', self._on_connect_button_click))
 
         frame.fix()
 
         super().__init__([frame], name="step1")
 
+    @staticmethod
+    def _validate_yagna_api_url(value: str) -> bool:
+        try:
+            URL(value)
+        except Exception:
+            return False
+
+        return True
+
+    @staticmethod
+    def _validate_yagna_appkey(value: str) -> bool:
+        return bool(value)
+
     def _on_connect_button_click(self):
+        try:
+            self._frame.save(validate=True)
+        except InvalidFields as e:
+            self.add_effect(PopUpDialog(
+                self._frame.screen,
+                "The following fields are invalid:\n\n{}".format(
+                    '\n'.join(f"- {self._frame.find_widget(field).label[:-1]}" for field in e.fields)
+                ),
+                ["OK"]
+            ))
+
+            return
+
         loop = asyncio.get_event_loop()
 
         connection_task = loop.create_task(self._create_golem_node())
+
         self.add_effect(
-            CallbackOnTaskDoneEffect(self._frame.screen, connection_task, self._on_connect_result),
+            BusyPopUpDialog(self._frame.screen, "Connecting...", connection_task, self._on_connect_result),
             reset=False,
         )
 
-    async def _create_golem_node(self):
+    async def _create_golem_node(self) -> Optional[Exception]:
         self._frame.screen._golem_node = golem_node = GolemNode(
             base_url=self._frame.data['yagna_api_url'],
             app_key=self._frame.data['yagna_app_key'],
@@ -120,10 +161,22 @@ class Step1Scene(Scene):
 
         await golem_node.start()
 
-        return True
+        try:
+            # FIXME: Use more suitable way to check if connection is possible
+            await golem_node.invoices()
+        except Exception as e:
+            return e
 
-    def _on_connect_result(self, dupa):
-        print(dupa)
+
+    def _on_connect_result(self, result_exception: Optional[Exception]):
+        if result_exception:
+            self.add_effect(PopUpDialog(
+                self._frame.screen,
+                f"Can't connect to yagna:\n\n{result_exception}",
+                ["OK"]
+            ))
+            return
+
         raise NextScene('step2')
 
 
@@ -272,7 +325,6 @@ async def amain(screen: Screen) -> Never:
 def prepare_scenes(screen: Screen) -> None:
     scenes = [
         Step0Scene,
-        Step0Scene,
         Step1Scene, Step2Scene, Step3Scene, Step4Scene, Step5Scene,
         Step6Scene, Step7Scene, Step8Scene, Step9Scene, Step10Scene,
     ]
@@ -292,6 +344,8 @@ def main():
         prepare_scenes(screen)
 
         asyncio.run(amain(screen), debug=True)
+    except KeyboardInterrupt:
+        pass
     except Exception as e:
         logging.exception('Fatal error!')
         exception = e
