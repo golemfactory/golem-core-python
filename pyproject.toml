@@ -53,7 +53,7 @@ implicit_reexport = true
 allow_untyped_calls = true
 
 [tool.poe.tasks]
-test = "pytest"
+test = { cmd = "pytest", env = { YAGNA_SUBNET = "public" } }
 typecheck = "mypy ."
 check = ["test", "typecheck"]
 

@@ -16,11 +16,15 @@ class ScoredProposal:
 
 class SimpleScorer:
     """Re-orders proposals using a provided scoring function."""
+
+    _no_more_proposals: bool = False
+
     def __init__(
         self,
         score_proposal: Callable[[Proposal], Awaitable[Optional[float]]],
         min_proposals: Optional[int] = None,
         max_wait: Optional[timedelta] = None,
+        min_wait: Optional[timedelta] = None,
     ):
         """
         :param score_proposal: Proposal-scoring function. Higher score -> better :any:`Proposal`.
@@ -28,10 +32,12 @@ class SimpleScorer:
         :param min_proposals: If not None, :func:`__call__` will not yield anything until
             SimpleScorer gathers at least that many proposals with a non-None score (but `max_wait` overrides this).
         :param max_wait: If not None, we'll not wait for `min_proposals` longer than that.
+        :param min_wait: If not None, we'll wait for at least that.
         """
         self._score_proposal = score_proposal
         self._min_proposals = min_proposals
         self._max_wait = max_wait
+        self._min_wait = min_wait
 
         self._scored_proposals: List[ScoredProposal] = []
 
@@ -81,8 +87,11 @@ class SimpleScorer:
         start = datetime.now()
 
         while True:
+            await asyncio.sleep(0.1)
+            if self._min_wait is not None and  datetime.now() - start < self._min_wait:
+                # force wait until time exceeds `min_wait`
+                continue
             if self._min_proposals is None or len(self._scored_proposals) >= self._min_proposals:
                 break
             if self._max_wait is not None and datetime.now() - start >= self._max_wait:
                 break
-            await asyncio.sleep(0.1)
