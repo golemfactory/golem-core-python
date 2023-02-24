@@ -88,10 +88,11 @@ class SimpleScorer:
 
         while True:
             await asyncio.sleep(0.1)
-            if self._min_wait is not None and  datetime.now() - start < self._min_wait:
+            now =  datetime.now()
+            if self._min_wait is not None and now - start < self._min_wait:
                 # force wait until time exceeds `min_wait`
                 continue
             if self._min_proposals is None or len(self._scored_proposals) >= self._min_proposals:
                 break
-            if self._max_wait is not None and datetime.now() - start >= self._max_wait:
+            if self._max_wait is not None and now - start >= self._max_wait:
                 break
