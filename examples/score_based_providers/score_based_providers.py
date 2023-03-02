@@ -1,6 +1,6 @@
 import asyncio
 from datetime import timedelta
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Tuple
 
 from golem_core import GolemNode, commands, Payload
 from golem_core.low import Activity, Proposal
@@ -93,7 +93,8 @@ async def run_hello(activity: Activity) -> str:
     return result
 
 
-async def on_exception(func: Callable, activity: Activity, e: Exception) -> None:
+async def on_exception(func: Callable, args: Tuple, e: Exception) -> None:
+    activity = args[0]
     print(f"Activity {activity} failed because of {e}")
     await activity.parent.close_all()
 
@@ -120,7 +121,7 @@ async def main() -> None:
             Map(default_negotiate),
             Map(default_create_agreement),
             Map(default_create_activity),
-            Map(run_hello, on_exception=on_exception),  # type: ignore[arg-type]
+            Map(run_hello, on_exception=on_exception),
             Limit(1),
             Buffer(),
         )
@@ -134,4 +135,13 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    loop = asyncio.get_event_loop()
+    task = loop.create_task(main())
+    try:
+        loop.run_until_complete(task)
+    except KeyboardInterrupt:
+        task.cancel()
+        try:
+            loop.run_until_complete(task)
+        except asyncio.CancelledError:
+            pass
