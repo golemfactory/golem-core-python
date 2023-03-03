@@ -1,22 +1,24 @@
+# TODO: Finish this example
+
 import asyncio
 import logging
 import os
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import partial
-from typing import Never, Callable, Optional, Coroutine, cast
+from typing import Never, Callable, Optional, Coroutine, cast, List, AsyncGenerator
 
-from asciimatics.effects import Print
+from asciimatics.effects import Print, Effect
 from asciimatics.event import KeyboardEvent
 from asciimatics.exceptions import NextScene, InvalidFields
 from asciimatics.renderers import FigletText, SpeechBubble
 from asciimatics.scene import Scene
 from asciimatics.screen import Screen
-from asciimatics.widgets import Frame, Layout, Label, Text, Button, PopUpDialog, Divider, DropdownList
+from asciimatics.widgets import Frame, Layout, Label, Text, Button, PopUpDialog, Divider, DropdownList, TextBox
 from yarl import URL
 
 from golem_core import GolemNode, Payload
-from golem_core.low import Allocation, Demand
+from golem_core.low import Allocation, Demand, Proposal
 from yapapi.payload import vm
 
 ASCIIMATICS_SCREEN_UPDATE_INTERVAL = timedelta(seconds=1/20)
@@ -27,6 +29,82 @@ class DemoModel:
     golem_node: Optional[GolemNode] = None
     allocation: Optional[Allocation] = None
     demand: Optional[Demand] = None
+    proposals: Optional[List[Proposal]] = None
+
+
+class AsyncFunctionBridge(Effect):
+    def __init__(self, screen, async_function, on_done: Callable):
+        super().__init__(
+            screen=screen,
+            start_frame=0,
+            stop_frame=0,
+            delete_count=None,
+        )
+
+        self._async_function = async_function
+        self._on_done = on_done
+        self._task: Optional[asyncio.Task] = None
+
+    def reset(self):
+        if self._task is not None:
+            self._task.cancel()
+
+        loop = asyncio.get_event_loop()
+        self._task = loop.create_task(self._async_function())
+
+    def _update(self, frame_no):
+        assert self._task is not None, "Call .reset() first to be able to update AsyncFunctionBridge!"
+
+        if not self._task.done():
+            return
+
+        self.scene.remove_effect(self)
+        self._on_done(self._task.result())
+
+    @property
+    def stop_frame(self):
+        return 0
+
+class AsyncGeneratorBridge(Effect):
+    def __init__(self, screen, async_function, on_yield: Callable):
+        super().__init__(
+            screen=screen,
+            start_frame=0,
+            stop_frame=0,
+            delete_count=None,
+        )
+
+        self._async_function = async_function
+        self._on_yield = on_yield
+        self._task: Optional[asyncio.Task] = None
+        self._generator: Optional[AsyncGenerator] = None
+
+    def reset(self):
+        if self._task is not None:
+            self._task.cancel()
+
+        self._generator = self._async_function()
+
+        loop = asyncio.get_event_loop()
+        self._task = loop.create_task(anext(self._generator))
+
+    def _update(self, frame_no):
+        assert self._task is not None, "Call .reset() first to be able to update AsyncGeneratorBridge!"
+
+        if not self._task.done():
+            return
+
+        try:
+            self._on_yield(self._task.result())
+        except StopAsyncIteration:
+            self.scene.remove_effect(self)
+        else:
+            loop = asyncio.get_event_loop()
+            self._task = loop.create_task(anext(self._generator))
+
+    @property
+    def stop_frame(self):
+        return 0
 
 
 class BusyPopUpDialog(PopUpDialog):
@@ -341,28 +419,104 @@ class Step3Scene(Scene):
 class Step4Scene(Scene):
     def __init__(self, screen: Screen, step_count: int, model: DemoModel):
         self._model = model
+        self._async_generator_bridge_effect = None
 
-        effects = [
-            Frame(
-                screen=screen,
-                height=screen.height,
-                width=screen.width,
-                title=f"[4/{step_count}] Gathering proposals",
-                reduce_cpu = True,
-            ),
-        ]
+        self._frame = frame = Frame(
+            screen=screen,
+            height=screen.height,
+            width=(screen.width * 2) // 3,
+            title=f"[4/{step_count}] Gathering proposals",
+            reduce_cpu = True,
+            on_load=self._on_frame_load,
+        )
 
-        super().__init__(effects, name="scene4")
+        layout = Layout([100])
+        frame.add_layout(layout)
 
+        layout.add_widget(Label(
+            'Great! Your demand was just posted to Golem Network. Now let\'s wait for proposals. They will be displayed realtime on the list below. Go to the next step if you\'ll be satisfied with proposal amount.',
+            height=3,
+        ))
+        layout.add_widget(Divider(draw_line=False))
+
+        self._proposals_summary_label = layout.add_widget(Text(disabled=True))
+        self._proposals_summary_label.value = self._get_proposals_summary_label_text()
+        self._proposals_summary_label.custom_colour = "label"
+
+        self._proposals_list_label = layout.add_widget(TextBox(
+            height=5,
+            disabled=True,
+        ))
+        self._proposals_list_label.custom_colour = "label"
+
+        layout.add_widget(Divider(draw_line=False))
+        layout.add_widget(Button('Next', on_click=self._on_next_button_click))
+
+        frame.fix()
+
+        super().__init__([frame], name="scene4")
+
+    def _on_frame_load(self):
+        if self._async_generator_bridge_effect is not None:
+            return
+
+        self._async_generator_bridge_effect = AsyncGeneratorBridge(self._frame.screen, self._collect_proposals, on_yield=self._on_proposal_yield)
+        self.add_effect(self._async_generator_bridge_effect)
+
+    def reset(self, old_scene=None, screen=None):
+        if old_scene is not None:
+            self._async_generator_bridge_effect = old_scene._async_generator_bridge_effect
+
+        super().reset(old_scene, screen)
+
+    def _get_proposals_summary_label_text(self):
+        return 'Proposals collected: {}'.format(
+            0 if self._model.proposals is None else len(self._model.proposals)
+        )
+
+    def _get_proposals_list_label_text(self):
+        if self._model.proposals is None or len(self._model.proposals) == 0:
+            return ['No proposals so far...']
+
+        return list(f'#{number:2} {proposal.id:.20}' for number, proposal in enumerate(self._model.proposals, start=1))
+
+    async def _collect_proposals(self):
+        count = 0
+        async for proposal in self._model.demand.initial_proposals():
+            count += 1
+            yield proposal
+
+            if 20 <= count:
+                break
+
+    def _on_proposal_yield(self, proposal) -> None:
+        if self._model.proposals is None:
+            self._model.proposals = []
+
+        self._model.proposals.append(proposal)
+
+        self._proposals_summary_label.value = self._get_proposals_summary_label_text()
+        self._proposals_list_label.value = self._get_proposals_list_label_text()
+
+    def _on_next_button_click(self):
+        if not self._model.proposals:
+            return
+
+        self._model.demand.set_no_more_children()
+        # TODO: Check if async generator is closed properly
+
+        raise NextScene('step5')
 
 class Step5Scene(Scene):
-    def __init__(self, screen: Screen, step_count: int):
+    def __init__(self, screen: Screen, step_count: int, model: DemoModel):
+        self._model = model
+
         effects = [
             Frame(
                 screen=screen,
                 height=screen.height,
                 width=screen.width,
-                title=f"[5/{step_count}] Negotiating proposals",
+                title=f"[5/{step_count}] Negotiating proposals [TODO]",
                 reduce_cpu = True,
             ),
         ]
@@ -455,8 +609,7 @@ async def amain(screen: Screen) -> Never:
 def prepare_scenes(screen: Screen, model: DemoModel) -> None:
     scenes = [
         Step0Scene,
-        Step1Scene, Step2Scene, Step3Scene, Step4Scene,
-        # Step1Scene, Step2Scene, Step3Scene, Step4Scene, Step5Scene,
+        Step1Scene, Step2Scene, Step3Scene, Step4Scene, Step5Scene,
         # Step6Scene, Step7Scene, Step8Scene, Step9Scene, Step10Scene,
     ]
     scenes_count = len(scenes) - 1
@@ -465,7 +618,7 @@ def prepare_scenes(screen: Screen, model: DemoModel) -> None:
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG, filename='dupa.log', filemode='w')
+    logging.basicConfig(level=logging.DEBUG, filename='cli.log', filemode='w')
 
     exception = None
     screen = Screen.open()
