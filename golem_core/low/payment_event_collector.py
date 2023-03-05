@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 
 from ya_payment import models
 
+from .api_call_wrapper import api_call_wrapper
+
 if TYPE_CHECKING:
     from golem_core import GolemNode
 
@@ -55,6 +57,7 @@ class PaymentEventCollector(YagnaEventCollector):
 
 class DebitNoteEventCollector(PaymentEventCollector):
     @property
+    @api_call_wrapper()
     def _collect_events_func(self) -> Callable:
         return DebitNote._get_api(self.node).get_debit_note_events
 
@@ -68,6 +71,7 @@ class DebitNoteEventCollector(PaymentEventCollector):
 
 class InvoiceEventCollector(PaymentEventCollector):
     @property
+    @api_call_wrapper()
     def _collect_events_func(self) -> Callable:
         return Invoice._get_api(self.node).get_invoice_events
 

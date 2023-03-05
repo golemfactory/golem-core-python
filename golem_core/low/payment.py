@@ -32,6 +32,7 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
         self.node.event_bus.emit(ResourceClosed(self))
 
     @classmethod
+    @api_call_wrapper()
     async def create_any_account(
         cls, node: "GolemNode", amount: Decimal, network: str, driver: str,
     ) -> "Allocation":
@@ -75,6 +76,7 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
         return await cls.create(node, data)
 
     @classmethod
+    @api_call_wrapper()
     async def create(cls, node: "GolemNode", data: models.Allocation) -> "Allocation":
         api = cls._get_api(node)
         created = await api.create_allocation(data)

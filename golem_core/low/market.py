@@ -61,6 +61,7 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], Ya
         return [self.id]
 
     @property
+    @api_call_wrapper()
     def _collect_events_func(self) -> Callable:
         return self.api.collect_offers
 
@@ -100,6 +101,7 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], Ya
         return await cls.create(node, data)
 
     @classmethod
+    @api_call_wrapper()
     async def create(cls, node: "GolemNode", data: models.DemandOfferBase) -> "Demand":
         api = cls._get_api(node)
         demand_id = await api.subscribe_demand(data)
