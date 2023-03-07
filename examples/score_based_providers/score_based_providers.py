@@ -66,6 +66,9 @@ PROVIDER_SCORES: Dict[str, float] = {
 
 async def select_proposal(proposal: Proposal) -> Optional[float]:
     data = await proposal.get_data()
+    if data.issuer_id is None:
+        return None
+    
     score = PROVIDER_SCORES.get(data.issuer_id, None)
     print(
         f"Scoring {score} proposal from {data.properties.get('golem.node.id.name')} - {data.issuer_id}"
