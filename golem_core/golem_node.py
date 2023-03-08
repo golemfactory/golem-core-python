@@ -5,7 +5,6 @@ from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
-from yapapi import rest
 from yapapi.engine import DEFAULT_DRIVER, DEFAULT_NETWORK, DEFAULT_SUBNET
 from yapapi.props.builder import DemandBuilder
 from yapapi import props
@@ -13,6 +12,7 @@ from yapapi import props
 from .event_bus import EventBus
 from .events import SessionStarted, ShutdownStarted, ShutdownFinished
 from .payload import Payload
+from .low.api_factory import ApiConfig, ApiFactory
 from .low.activity import Activity, PoolingBatch
 from .low.market import Demand, Proposal, Agreement
 from .low.payment import Allocation, DebitNote, Invoice
@@ -62,7 +62,12 @@ class GolemNode:
                                Defaults to a random sting. If set to `None`, this GolemNode will receive all events
                                regardless of their corresponding session ids.
         """
-        self._api_config = rest.Configuration(app_key, url=base_url)
+        config_kwargs = {
+            param: value
+            for param, value in {"app_key": app_key, "base_url": base_url}.items()
+            if value is not None
+        }
+        self._api_config = ApiConfig(**config_kwargs)
         self._collect_payment_events = collect_payment_events
         self.app_session_id = uuid4().hex if app_session_id is _RandomSessionId else app_session_id
 
@@ -93,10 +98,11 @@ class GolemNode:
     async def start(self) -> None:
         self._event_bus.start()
 
-        self._ya_market_api = self._api_config.market()
-        self._ya_activity_api = self._api_config.activity()
-        self._ya_payment_api = self._api_config.payment()
-        self._ya_net_api = self._api_config.net()
+        api_factory = ApiFactory(self._api_config)
+        self._ya_market_api = api_factory.create_market_api_client()
+        self._ya_activity_api = api_factory.create_activity_api_client()
+        self._ya_payment_api = api_factory.create_payment_api_client()
+        self._ya_net_api = api_factory.create_net_api_client()
 
         if self._collect_payment_events:
             self._invoice_event_collector.start_collecting_events()
