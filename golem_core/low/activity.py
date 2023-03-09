@@ -259,7 +259,6 @@ class PoolingBatch(
         return [self.parent.id, self.id]
 
     @property
-    @api_call_wrapper()
     def _collect_events_func(self) -> Callable:
         return self.api.get_exec_batch_results  # type: ignore
 

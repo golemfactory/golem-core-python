@@ -61,7 +61,6 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], Ya
         return [self.id]
 
     @property
-    @api_call_wrapper()
     def _collect_events_func(self) -> Callable:
         return self.api.collect_offers
 
