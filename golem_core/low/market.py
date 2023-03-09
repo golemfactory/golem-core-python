@@ -258,6 +258,7 @@ class Proposal(
 
     ##########################
     #   Other
+    @api_call_wrapper
     async def _get_data(self) -> models.Proposal:
         assert self.demand is not None
         data: models.Proposal = await self.api.get_proposal_offer(self.demand.id, self.id)
