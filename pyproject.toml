@@ -52,7 +52,7 @@ allow_untyped_calls = true
 
 [tool.poe.tasks]
 checks = {sequence = ["checks_typing"], help = "Run all available code checks"}
-checks_typing = "mypy ."
+checks_typing = "mypy --show-error-codes ."
 tests = {sequence = ["tests_unit", "tests_integration"], help = "Run all available tests"}
 tests_unit = {cmd = "pytest -sv tests/unit", env = { YAGNA_APPKEY = "test" }, help = "Run only unit tests"}
 # `tests_integration` require yagna requestor with `YAGNA_APPKEY` in environement
