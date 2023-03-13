@@ -26,10 +26,15 @@ GOTH_PID=$!
 echo $GOTH_PID
 
 echo WAITING FOR NETWORK
+STARTED_WAITING_AT=$((SECONDS + 600))
 while [ ! -f /tmp/goth_interactive.env ]; do
-  sleep 1
+  sleep 5
   if ! ps -p $GOTH_PID >/dev/null; then
     echo GOTH NETWORK FAILED TO START SUCESFULLY
+    break
+  fi
+  if [ $SECONDS -gt $STARTED_WAITING_AT ]; then
+    echo GOTH NETWORK FAILED TO START IN 10 MINUTES
     break
   fi
 done
