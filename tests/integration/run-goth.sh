@@ -26,15 +26,13 @@ GOTH_PID=$!
 echo $GOTH_PID
 
 echo WAITING FOR NETWORK
-while [ ! -f /tmp/goth_interactive.env ]
-    do sleep 1
-    if ! ps -p $GOTH_PID > /dev/null
-    then
-        echo GOTH NETWORK FAILED TO START SUCESFULLY
-        break
-    fi
+while [ ! -f /tmp/goth_interactive.env ]; do
+  sleep 1
+  if ! ps -p $GOTH_PID >/dev/null; then
+    echo GOTH NETWORK FAILED TO START SUCESFULLY
+    break
+  fi
 done
 
 echo STARTUP COMPLETED
 cat /tmp/goth_interactive.env
-
