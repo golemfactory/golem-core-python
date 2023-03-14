@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 class ResourceMeta(ABCMeta):
     """Resources metaclass. Ensures a single instance per resource id. Emits the NewResource event."""
 
-    def __call__(cls, node: "GolemNode", id_: str, *args, **kwargs):  # type: ignore
+    def __call__(cls, node: "GolemNode", id_: str, *args, **kwargs):
         assert isinstance(cls, type(Resource))  # mypy
         if args:
             #   Sanity check: when data is passed, it must be a new resource
@@ -201,7 +201,7 @@ class Resource(
     #   OTHER
     @classmethod
     def _get_api(cls, node: "GolemNode") -> RequestorApiType:
-        return get_requestor_api(cls, node)  # type: ignore
+        return get_requestor_api(cls, node)
 
     @property
     def _get_method_name(self) -> str:

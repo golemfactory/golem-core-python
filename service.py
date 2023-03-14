@@ -5,9 +5,7 @@ from typing import Awaitable, Callable, Tuple
 from uuid import uuid4
 from urllib.parse import urlparse
 
-from yapapi.payload import vm
-
-from golem_core import GolemNode, Payload, commands
+from golem_core import GolemNode, commands, RepositoryVmPayload
 from golem_core.mid import (
     Buffer, Chain, Limit, Map,
     default_negotiate, default_create_agreement, default_create_activity
@@ -16,9 +14,9 @@ from golem_core.default_logger import DefaultLogger
 
 from golem_core.low import Activity, Network
 
-PAYLOAD = Payload.from_image_hash(
+PAYLOAD = RepositoryVmPayload(
     "1e06505997e8bd1b9e1a00bd10d255fc6a390905e4d6840a22a79902",
-    capabilities=[vm.VM_CAPS_VPN],
+    capabilities=["vpn"],
 )
 
 def create_ssh_connection(network: Network) -> Callable[[Activity], Awaitable[Tuple[str, str]]]:

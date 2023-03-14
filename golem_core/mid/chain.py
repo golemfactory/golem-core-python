@@ -20,15 +20,14 @@ class Chain():
 
     A more Golem-specific usage::
 
-        from golem_core import Payload, GolemNode
+        from golem_core import GolemNode, RepositoryVmPayload
         from golem_core.mid import (
             Buffer, Chain, Map,
             default_negotiate, default_create_agreement, default_create_activity
         )
 
         BUDGET = 1
-        PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
-
+        PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
         async def main():
             async with GolemNode() as golem:

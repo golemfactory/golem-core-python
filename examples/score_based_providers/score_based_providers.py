@@ -2,7 +2,7 @@ import asyncio
 from datetime import timedelta
 from typing import Callable, Dict, Optional, Tuple
 
-from golem_core import GolemNode, commands, Payload
+from golem_core import GolemNode, commands, RepositoryVmPayload
 from golem_core.low import Activity, Proposal
 
 from golem_core.mid import (
@@ -18,9 +18,7 @@ from golem_core.mid import (
 from golem_core.default_logger import DefaultLogger
 from golem_core.default_payment_manager import DefaultPaymentManager
 
-PAYLOAD = Payload.from_image_hash(
-    "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
-)
+PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 SELECT_MIN_PROPOSALS = 2
 SELECT_MIN_TIME = timedelta(seconds=10)

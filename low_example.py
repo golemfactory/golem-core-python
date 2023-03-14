@@ -4,12 +4,12 @@ from tempfile import TemporaryDirectory
 from os import path
 from typing import AsyncGenerator, Optional
 
-from golem_core import GolemNode, commands, Script, Payload
+from golem_core import GolemNode, commands, Script, RepositoryVmPayload
 from golem_core.events import ResourceEvent
 from golem_core.low import Activity
 from golem_core.low.exceptions import BatchError, CommandFailed, CommandCancelled
 
-PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
+PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 
 async def example_1(allocation_id: str, demand_id: str, proposal_id: str) -> None:
@@ -53,6 +53,7 @@ async def example_2() -> None:
 async def example_3() -> None:
     """Create new allocation, demand, fetch a single proposal, cleanup"""
     golem = GolemNode()
+
     async with golem:
         allocation = await golem.create_allocation(1)
         print(allocation)
@@ -73,6 +74,7 @@ async def example_3() -> None:
 async def example_4() -> None:
     """Respond to a proposal. Receive a conuterproposal. Reject it."""
     golem = GolemNode()
+
     async with golem:
         allocation = await golem.create_allocation(1)
         demand = await golem.create_demand(PAYLOAD, allocations=[allocation])

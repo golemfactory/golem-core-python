@@ -11,7 +11,8 @@ from prettytable import PrettyTable
 from yapapi.props.base import constraint
 from yapapi.props import inf
 
-from golem_core import GolemNode, Payload
+from golem_core import GolemNode
+from golem_core.payload import BasePayload
 from golem_core.low import Allocation, Demand, Proposal
 
 
@@ -79,7 +80,7 @@ def format_proposals(proposals: List[Proposal], first: bool) -> str:
 
 
 @dataclass
-class CliPayload(Payload):
+class CliPayload(BasePayload):
     runtime: str = constraint(inf.INF_RUNTIME_NAME, default=MISSING)
 
 

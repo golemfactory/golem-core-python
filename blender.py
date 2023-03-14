@@ -2,12 +2,12 @@ import asyncio
 import json
 from pathlib import Path
 
-from golem_core import commands, execute_tasks, Payload
+from golem_core import commands, execute_tasks, RepositoryVmPayload
 from golem_core.low import Activity
 
 FRAME_CONFIG_TEMPLATE = json.loads(Path("frame_params.json").read_text())
 FRAMES = list(range(0, 60, 10))
-PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
+PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 
 async def prepare_activity(activity: Activity) -> Activity:

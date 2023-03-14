@@ -1,9 +1,9 @@
 import asyncio
-from golem_core import GolemNode, Payload, commands
+from golem_core import GolemNode, RepositoryVmPayload, commands
 from golem_core.mid import Chain, Map, default_negotiate
 from golem_core.low import Activity, Agreement, Proposal
 
-PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
+PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 
 async def create_agreement(proposal: Proposal) -> Agreement:

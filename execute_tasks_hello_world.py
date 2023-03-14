@@ -1,10 +1,10 @@
 import asyncio
-from golem_core import commands, execute_tasks, Payload
+from golem_core import commands, execute_tasks, RepositoryVmPayload
 from golem_core.low import Activity
 
 TASK_DATA = list(range(7))
 BUDGET = 1
-PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
+PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 
 async def execute_task(activity: Activity, in_data: int) -> str:
