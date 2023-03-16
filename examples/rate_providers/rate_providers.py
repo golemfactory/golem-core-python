@@ -23,7 +23,6 @@ FRAME_CONFIG_TEMPLATE = json.loads(Path("frame_params.json").read_text())
 PAYLOAD = Payload.from_image_hash(
     "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
 )
-SUBNET = "public"
 
 # scores will contain time of profiling execution
 scores: Dict[str, Optional[timedelta]] = {}
@@ -90,9 +89,7 @@ async def main() -> None:
     async with golem:
         allocation = await golem.create_allocation(1.0)
         payment_manager = DefaultPaymentManager(golem, allocation)
-        demand = await golem.create_demand(
-            PAYLOAD, allocations=[allocation], subnet=SUBNET
-        )
+        demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
         # `set_no_more_children` has to be called so `initial_proposals` will eventually stop yielding
         asyncio.create_task(delay(timedelta(seconds=5), demand.set_no_more_children))

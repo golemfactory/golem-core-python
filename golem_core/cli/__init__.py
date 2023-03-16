@@ -3,9 +3,10 @@ from typing import Optional
 
 import click
 
-from yapapi.engine import DEFAULT_NETWORK, DEFAULT_DRIVER, DEFAULT_SUBNET
+
 
 from golem_core import GolemNode
+from golem_core.golem_node import DEFAULT_DRIVER, DEFAULT_NETWORK, DEFAULT_SUBNET
 from .utils import (
     format_allocations, format_demands, format_proposals,
     CliPayload, async_golem_wrapper, parse_timedelta_str

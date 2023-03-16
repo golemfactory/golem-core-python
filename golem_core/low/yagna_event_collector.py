@@ -1,21 +1,11 @@
-from abc import ABC, abstractmethod
 import asyncio
+from abc import ABC, abstractmethod
+
 #   TODO: replace Any here
 from typing import Any, Callable, Dict, List, Optional
 
-from yapapi.rest.common import is_intermittent_error
-from yapapi.rest.activity import _is_gsb_endpoint_not_found_error
+from golem_core.low.utils import is_gsb_endpoint_not_found_error, is_intermittent_error
 
-def _is_gsb_endpoint_not_found_error_wrapper(e: Exception) -> bool:
-    #   Q: why this?
-    #   A: original `yapapi` function accepts only ya_activity.ApiException, we
-    #      use this for all exceptions.
-    #
-    #   This is (ofc) an ugly fix, check TODO in _collect_yagna_events.
-    try:
-        return _is_gsb_endpoint_not_found_error(e)  # type: ignore
-    except Exception:
-        return False
 
 class YagnaEventCollector(ABC):
     _event_collecting_task: Optional[asyncio.Task] = None
@@ -45,7 +35,7 @@ class YagnaEventCollector(ABC):
             except Exception as e:
                 if is_intermittent_error(e):
                     continue
-                elif _is_gsb_endpoint_not_found_error_wrapper(e):
+                elif is_gsb_endpoint_not_found_error(e):  # type: ignore[arg-type]
                     gsb_endpoint_not_found_cnt += 1
                     if gsb_endpoint_not_found_cnt <= MAX_GSB_ENDPOINT_NOT_FOUND_ERRORS:
                         await asyncio.sleep(3)

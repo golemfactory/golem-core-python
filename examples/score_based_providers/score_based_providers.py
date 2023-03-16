@@ -21,7 +21,6 @@ from golem_core.default_payment_manager import DefaultPaymentManager
 PAYLOAD = Payload.from_image_hash(
     "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
 )
-SUBNET = "public"
 
 SELECT_MIN_PROPOSALS = 2
 SELECT_MIN_TIME = timedelta(seconds=10)
@@ -106,9 +105,7 @@ async def main() -> None:
     async with golem:
         allocation = await golem.create_allocation(1)
         payment_manager = DefaultPaymentManager(golem, allocation)
-        demand = await golem.create_demand(
-            PAYLOAD, allocations=[allocation], subnet=SUBNET
-        )
+        demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
         chain = Chain(
             demand.initial_proposals(),

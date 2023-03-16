@@ -56,7 +56,7 @@ checks_typing = "mypy --show-error-codes ."
 tests = {sequence = ["tests_unit", "tests_integration"], help = "Run all available tests"}
 tests_unit = {cmd = "pytest -sv tests/unit", env = { YAGNA_APPKEY = "test" }, help = "Run only unit tests"}
 # `tests_integration` require yagna requestor with `YAGNA_APPKEY` in environement
-tests_integration = {cmd = "pytest -sv tests/integration", env = { YAGNA_SUBNET = "public" }, help = "Run only integration tests"}
+tests_integration = {cmd = "pytest -sv tests/integration", help = "Run only integration tests"}
 
 sphinx = "sphinx-build docs/sphinx/ build -E"
 

@@ -1,11 +1,11 @@
 import asyncio
 from collections import defaultdict
+import os
 from typing import Any, DefaultDict, Dict, Iterable, Optional, List, Set, Type, TypeVar, Union
 from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
-from yapapi.engine import DEFAULT_DRIVER, DEFAULT_NETWORK, DEFAULT_SUBNET
 from yapapi.props.builder import DemandBuilder
 from yapapi import props
 
@@ -20,6 +20,10 @@ from .low.network import Network
 from .low.resource import Resource
 from .low.payment_event_collector import DebitNoteEventCollector, InvoiceEventCollector
 
+
+DEFAULT_DRIVER: str = os.getenv("YAGNA_PAYMENT_DRIVER", "erc20").lower()
+DEFAULT_NETWORK: str = os.getenv("YAGNA_PAYMENT_NETWORK", "rinkeby").lower()
+DEFAULT_SUBNET: Optional[str] = os.getenv("YAGNA_SUBNET", "public")
 
 DEFAULT_EXPIRATION_TIMEOUT = timedelta(seconds=1800)
 ResourceType = TypeVar("ResourceType", bound=Resource)
