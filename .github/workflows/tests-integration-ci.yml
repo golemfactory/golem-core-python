@@ -1,0 +1,22 @@
+name: Integration tests CI
+on:
+  push:
+    branches:
+      - main
+      - b0.*
+  pull_request:
+    branches:
+      - main
+      - b0.*
+
+jobs:
+  tests-integration:
+    name: Run checks
+    runs-on: [goth, ubuntu-22.04]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests action
+        uses: './.github/actions/integration-tests-goth'
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
