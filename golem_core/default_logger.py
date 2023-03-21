@@ -1,8 +1,22 @@
 import logging
-
-from yapapi.log import _YagnaDatetimeFormatter
+from datetime import datetime, timezone
+from typing import Optional
 
 from golem_core.events import Event
+
+
+class _YagnaDatetimeFormatter(logging.Formatter):
+    """Custom log Formatter that formats datetime using the same convention yagna uses."""
+
+    LOCAL_TZ = datetime.now(timezone.utc).astimezone().tzinfo
+
+    def formatTime(
+        self, record: logging.LogRecord, datefmt: Optional[str] = None
+    ) -> str:
+        """Format datetime; example: `2021-06-11T14:55:43.156.123+0200`."""
+        dt = datetime.fromtimestamp(record.created, tz=self.LOCAL_TZ)
+        millis = f"{(dt.microsecond // 1000):03d}"
+        return dt.strftime(f"%Y-%m-%dT%H:%M:%S.{millis}%z")
 
 
 class DefaultLogger:
@@ -41,7 +55,9 @@ class DefaultLogger:
         format_ = "[%(asctime)s %(levelname)s %(name)s] %(message)s"
         formatter = _YagnaDatetimeFormatter(fmt=format_)
 
-        file_handler = logging.FileHandler(filename=self._file_name, mode="w", encoding="utf-8")
+        file_handler = logging.FileHandler(
+            filename=self._file_name, mode="w", encoding="utf-8"
+        )
         file_handler.setFormatter(formatter)
         file_handler.setLevel(logging.DEBUG)
         logger.addHandler(file_handler)

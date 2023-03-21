@@ -19,7 +19,6 @@ from golem_core.mid import (
 PAYLOAD = Payload.from_image_hash(
     "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
 )
-SUBNET = "public"
 
 
 async def trigger_exception(activity: Activity) -> None:
@@ -52,9 +51,7 @@ async def main() -> None:
     async with golem:
         allocation = await golem.create_allocation(1.0)
         payment_manager = DefaultPaymentManager(golem, allocation)
-        demand = await golem.create_demand(
-            PAYLOAD, allocations=[allocation], subnet=SUBNET
-        )
+        demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
         chain = Chain(
             demand.initial_proposals(),

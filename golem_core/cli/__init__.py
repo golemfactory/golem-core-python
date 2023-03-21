@@ -3,9 +3,10 @@ from typing import Optional
 
 import click
 
-from yapapi.engine import DEFAULT_NETWORK, DEFAULT_DRIVER, DEFAULT_SUBNET
+
 
 from golem_core import GolemNode
+from golem_core.golem_node import PAYMENT_DRIVER, PAYMENT_NETWORK, SUBNET
 from .utils import (
     format_allocations, format_demands, format_proposals,
     CliPayload, async_golem_wrapper, parse_timedelta_str
@@ -31,8 +32,8 @@ async def allocation_list(golem: GolemNode) -> None:
 
 @allocation.command("new")
 @click.argument("amount", type=float)
-@click.option("--network", type=str, default=DEFAULT_NETWORK)
-@click.option("--driver", type=str, default=DEFAULT_DRIVER)
+@click.option("--network", type=str, default=PAYMENT_NETWORK)
+@click.option("--driver", type=str, default=PAYMENT_DRIVER)
 @async_golem_wrapper
 async def allocation_new(
     golem: GolemNode,
@@ -74,7 +75,7 @@ async def status(golem: GolemNode) -> None:
 
 @cli.command()
 @click.option("--runtime", type=str, required=True)
-@click.option("--subnet", type=str, default=DEFAULT_SUBNET)
+@click.option("--subnet", type=str, default=SUBNET)
 @click.option("--timeout", "timeout_str", type=str, required=False)
 @async_golem_wrapper
 async def find_node(golem: GolemNode, runtime: str, subnet: str, timeout_str: Optional[str]) -> None:
