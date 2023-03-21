@@ -50,6 +50,14 @@ check_untyped_defs = true
 show_error_codes = true
 warn_unused_ignores = true
 
+[[tool.mypy.overrides]]
+module = [
+    "jsonrpc_base.*",
+    "semantic_version.*",
+    "async_exit_stack.*"
+]
+ignore_missing_imports = true
+
 [tool.poe.tasks]
 checks = {sequence = ["checks_typing"], help = "Run all available code checks"}
 checks_typing = "mypy ."

@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 from pathlib import Path
 import shlex
 
-from yapapi.storage import Destination, Source
-from yapapi.storage.gftp import GftpProvider
+from .storage.common import Destination, Source
+from .storage.gftp import GftpProvider
 
 ArgsDict = Mapping[str, Union[str, List, Dict[str, Any]]]
 
