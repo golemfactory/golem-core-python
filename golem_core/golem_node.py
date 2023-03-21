@@ -21,9 +21,9 @@ from .low.resource import Resource
 from .low.payment_event_collector import DebitNoteEventCollector, InvoiceEventCollector
 
 
-DEFAULT_DRIVER: str = os.getenv("YAGNA_PAYMENT_DRIVER", "erc20").lower()
-DEFAULT_NETWORK: str = os.getenv("YAGNA_PAYMENT_NETWORK", "rinkeby").lower()
-DEFAULT_SUBNET: Optional[str] = os.getenv("YAGNA_SUBNET", "public")
+PAYMENT_DRIVER: str = os.getenv("YAGNA_PAYMENT_DRIVER", "erc20").lower()
+PAYMENT_NETWORK: str = os.getenv("YAGNA_PAYMENT_NETWORK", "rinkeby").lower()
+SUBNET: Optional[str] = os.getenv("YAGNA_SUBNET", "public")
 
 DEFAULT_EXPIRATION_TIMEOUT = timedelta(seconds=1800)
 ResourceType = TypeVar("ResourceType", bound=Resource)
@@ -167,8 +167,8 @@ class GolemNode:
     async def create_allocation(
         self,
         amount: Union[Decimal, float],
-        network: str = DEFAULT_NETWORK,
-        driver: str = DEFAULT_DRIVER,
+        network: str = PAYMENT_NETWORK,
+        driver: str = PAYMENT_DRIVER,
         autoclose: bool = True,
     ) -> Allocation:
         """Create a new allocation.
@@ -189,7 +189,7 @@ class GolemNode:
     async def create_demand(
         self,
         payload: Payload,
-        subnet: Optional[str] = DEFAULT_SUBNET,
+        subnet: Optional[str] = SUBNET,
         expiration: Optional[datetime] = None,
         allocations: Iterable[Allocation] = (),
         autoclose: bool = True,
