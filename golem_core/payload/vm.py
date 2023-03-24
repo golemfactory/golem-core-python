@@ -105,7 +105,8 @@ class RepositoryVmPayload(BaseVmPayload, _RepositoryVmPayload):
         self.package_url = get_package_url(self.image_hash, image_url)
 
     async def decorate_demand(self, demand: DemandBuilder):
-        await self._resolve_package_url()
+        if self.package_url is None:
+            await self._resolve_package_url()
 
         return await super().decorate_demand(demand)
 
