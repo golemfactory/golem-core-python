@@ -16,7 +16,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Send Discord notification on failure
         uses: Ilshidur/action-discord@0.3.2
-        if: failure()
+        if: ${{ failure() }} || ${{ cancelled() }}
         env:
           BRANCH_NAME: main
           DISCORD_AVATAR: https://i.imgur.com/EOX16Mx.jpg
