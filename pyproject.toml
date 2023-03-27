@@ -43,16 +43,16 @@ sphinx-rtd-theme = "^1.0.0"
 poethepoet = "^0.8.0"
 
 [tool.mypy]
-namespace_packages = true
-
-strict = true
-allow_any_generics = true
-implicit_reexport = true
-allow_untyped_calls = true
+install_types = true
+non_interactive = true
+ignore_missing_imports = true
+check_untyped_defs = true
+show_error_codes = true
+warn_unused_ignores = true
 
 [tool.poe.tasks]
 checks = {sequence = ["checks_typing"], help = "Run all available code checks"}
-checks_typing = "mypy --show-error-codes ."
+checks_typing = "mypy ."
 tests = {sequence = ["tests_unit", "tests_integration"], help = "Run all available tests"}
 tests_unit = {cmd = "pytest -sv tests/unit", env = { YAGNA_APPKEY = "test" }, help = "Run only unit tests"}
 # `tests_integration` require yagna requestor with `YAGNA_APPKEY` in environement

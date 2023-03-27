@@ -1,7 +1,7 @@
 import asyncio
 from typing import Callable, Tuple
 
-from golem_core import GolemNode, Payload, commands
+from golem_core import GolemNode, commands, RepositoryVmPayload
 from golem_core.default_logger import DefaultLogger
 from golem_core.default_payment_manager import DefaultPaymentManager
 from golem_core.low.activity import Activity
@@ -16,9 +16,7 @@ from golem_core.mid import (
     default_negotiate,
 )
 
-PAYLOAD = Payload.from_image_hash(
-    "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
-)
+PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 
 async def trigger_exception(activity: Activity) -> None:

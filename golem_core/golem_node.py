@@ -11,7 +11,7 @@ from yapapi import props
 
 from .event_bus import EventBus
 from .events import SessionStarted, ShutdownStarted, ShutdownFinished
-from .payload import Payload
+from .payload import BasePayload
 from .low.api_factory import ApiConfig, ApiFactory
 from .low.activity import Activity, PoolingBatch
 from .low.market import Demand, Proposal, Agreement
@@ -188,7 +188,7 @@ class GolemNode:
 
     async def create_demand(
         self,
-        payload: Payload,
+        payload: BasePayload,
         subnet: Optional[str] = SUBNET,
         expiration: Optional[datetime] = None,
         allocations: Iterable[Allocation] = (),

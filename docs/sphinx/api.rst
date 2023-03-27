@@ -169,6 +169,5 @@ Logging
 Other
 =====
 
-.. autofunction:: golem_core.payload.Payload.from_image_hash
 .. autoclass:: golem_core.default_payment_manager.DefaultPaymentManager
     :members: __init__, terminate_agreements, wait_for_invoices

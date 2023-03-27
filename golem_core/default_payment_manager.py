@@ -50,14 +50,14 @@ class DefaultPaymentManager:
     async def on_invoice(self, event: NewResource) -> None:
         invoice = event.resource
         assert isinstance(invoice, Invoice)
-        if (await invoice.get_data(force=True)).status == 'RECEIVED':  # type: ignore
+        if (await invoice.get_data(force=True)).status == 'RECEIVED':
             await invoice.accept_full(self.allocation)
             await invoice.get_data(force=True)
 
     async def on_debit_note(self, event: NewResource) -> None:
         debit_note = event.resource
         assert isinstance(debit_note, DebitNote)
-        if (await debit_note.get_data(force=True)).status == 'RECEIVED':  # type: ignore
+        if (await debit_note.get_data(force=True)).status == 'RECEIVED':
             await debit_note.accept_full(self.allocation)
             await debit_note.get_data(force=True)
 
@@ -72,7 +72,7 @@ class DefaultPaymentManager:
         """
         stop = datetime.now() + timedelta(seconds=timeout)
         while datetime.now() < stop and any(
-            agreement.invoice is None or agreement.invoice.data.status == 'RECEIVED'  # type: ignore
+            agreement.invoice is None or agreement.invoice.data.status == 'RECEIVED'
             for agreement in self._agreements
         ):
             await asyncio.sleep(0.1)

@@ -112,7 +112,7 @@ async def score_proposal(proposal: Proposal) -> Optional[float]:
         if val > max_val:
             return None
     else:
-        return 1 - (coeffs[0] + coeffs[1])  # type: ignore
+        return 1 - (coeffs[0] + coeffs[1])
 
 
 async def manage_activities() -> None:

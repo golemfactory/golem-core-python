@@ -259,7 +259,7 @@ class PoolingBatch(
 
     @property
     def _collect_events_func(self) -> Callable:
-        return self.api.get_exec_batch_results  # type: ignore
+        return self.api.get_exec_batch_results
 
     async def _process_event(self, event: models.ExeScriptCommandResult) -> None:
         if event.index < len(self.events):

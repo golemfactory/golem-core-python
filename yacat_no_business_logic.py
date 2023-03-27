@@ -4,11 +4,11 @@ from typing import List, Union
 import random
 import string
 
-from golem_core import execute_tasks, Payload
+from golem_core import execute_tasks, RepositoryVmPayload
 from golem_core.commands import Run
 from golem_core.low import Activity
 
-PAYLOAD = Payload.from_image_hash("055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db")
+PAYLOAD = RepositoryVmPayload("055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db")
 PASSWORD_LENGTH = 3
 CHUNK_SIZE = 2 ** 12
 MAX_WORKERS = 3
@@ -97,7 +97,7 @@ async def main() -> None:
     await asyncio.sleep(0.1)
     async for result in execute_tasks(
         budget=1,
-        execute_task=lambda activity, task: task.execute(activity),  # type: ignore
+        execute_task=lambda activity, task: task.execute(activity),
         task_data=iter(tasks_queue.get_nowait, None),
         payload=PAYLOAD,
         max_workers=MAX_WORKERS,

@@ -4,10 +4,10 @@ import pytest
 import pytest_asyncio
 from random import random
 
-from golem_core import GolemNode, Payload
+from golem_core import GolemNode, RepositoryVmPayload
 from golem_core.low.exceptions import NoMatchingAccount, ResourceNotFound
 
-PAYLOAD = Payload.from_image_hash("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
+PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 
 @pytest_asyncio.fixture

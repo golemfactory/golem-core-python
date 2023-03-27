@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Dict, Optional, Tuple
 
-from golem_core import GolemNode, Payload, commands
+from golem_core import GolemNode, commands, RepositoryVmPayload
 from golem_core.default_logger import DefaultLogger
 from golem_core.default_payment_manager import DefaultPaymentManager
 from golem_core.low.activity import Activity
@@ -20,9 +20,7 @@ from golem_core.mid import (
 )
 
 FRAME_CONFIG_TEMPLATE = json.loads(Path("frame_params.json").read_text())
-PAYLOAD = Payload.from_image_hash(
-    "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
-)
+PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 # scores will contain time of profiling execution
 scores: Dict[str, Optional[timedelta]] = {}

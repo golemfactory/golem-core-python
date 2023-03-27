@@ -2,7 +2,8 @@ from typing import AsyncIterator, Awaitable, Callable, Iterable, Optional, Tuple
 from random import random
 from datetime import timedelta
 
-from golem_core import GolemNode, Payload
+from golem_core import GolemNode
+from golem_core.payload import BasePayload
 from golem_core.low import Activity, Demand, Proposal
 from golem_core.mid import default_prepare_activity
 
@@ -84,7 +85,7 @@ def get_chain(
 async def execute_tasks(
     *,
     budget: float,
-    payload: Payload,
+    payload: BasePayload,
     task_data: Iterable[TaskData],
     execute_task: Callable[[Activity, TaskData], Awaitable[TaskResult]],
 
