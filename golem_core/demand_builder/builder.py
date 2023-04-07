@@ -5,7 +5,7 @@ from golem_core.demand_builder.model import Model, join_str_constraints
 from golem_core.low import Demand
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from golem_core import GolemNode
 
 
