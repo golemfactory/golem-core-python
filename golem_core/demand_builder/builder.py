@@ -1,7 +1,9 @@
 import abc
-from typing import List, Dict, Any, Iterable
+from typing import List, Dict, Any
 
+from golem_core import GolemNode
 from golem_core.demand_builder.model import Model, constraint_model_serialize, join_str_constraints
+from golem_core.low import Demand
 
 
 class DemandBuilder:
@@ -14,14 +16,12 @@ class DemandBuilder:
     example usage:
 
     ```python
-    >>> import yapapi
     >>> from yapapi import props as yp
     >>> from yapapi.props.builder import DemandBuilder
     >>> from datetime import datetime, timezone
     >>> builder = DemandBuilder()
-    >>> builder.add(yp.NodeInfo(name="a node", subnet_tag="testnet"))
-    >>> builder.add(yp.Activity(expiration=datetime.now(timezone.utc)))
-    >>> builder.__repr__
+    >>> await builder.add(yp.NodeInfo(name="a node", subnet_tag="testnet"))
+    >>> await builder.add(yp.Activity(expiration=datetime.now(timezone.utc)))
     >>> print(builder)
     {'properties':
         {'golem.node.id.name': 'a node',
@@ -36,7 +36,10 @@ class DemandBuilder:
         self._constraints: List[str] = []
 
     def __repr__(self):
-        return repr({"properties": self._properties, "constraints": self._constraints})
+        return repr({
+            "properties": self._properties,
+            "constraints": self._constraints
+        })
 
     @property
     def properties(self) -> Dict:
@@ -48,27 +51,32 @@ class DemandBuilder:
         """Constraints definition for this demand."""
         return join_str_constraints(self._constraints)
 
-    def add(self, model: Model):
+    async def add(self, model: Model):
         """Add properties and constraints from the given model to this demand definition."""
 
-        self.add_properties(model.serialize_properties())
-        self.add_constraint(model.serialize_constraints())
+        properties, constraints = await model.serialize()
+
+        self.add_properties(properties)
+        self.add_constraints(constraints)
 
     def add_properties(self, props: Dict):
         """Add properties from the given dictionary to this demand definition."""
         self._properties.update(props)
 
-    def add_constraint(self, constraint: str):
-        """Add a constraint to the demand definition."""
-        self._constraints.append(constraint)
-
-    def add_constraints(self, constraints: Iterable[str]):
+    def add_constraints(self, *constraints: str):
         """Add a constraint to the demand definition."""
         self._constraints.extend(constraints)
 
     async def decorate(self, *decorators: "DemandDecorator"):
         for decorator in decorators:
             await decorator.decorate_demand(self)
+
+    async def create_demand(self, node: GolemNode) -> Demand:
+        return await Demand.create_from_properties_constraints(
+            node,
+            self.properties,
+            self.constraints
+        )
 
 
 class DemandDecorator(abc.ABC):
@@ -78,35 +86,3 @@ class DemandDecorator(abc.ABC):
     @abc.abstractmethod
     async def decorate_demand(self, demand: DemandBuilder) -> None:
         """Add appropriate properties and constraints to a Demand."""
-
-
-class AutodecoratingModel(Model, DemandDecorator):
-    """Base class, implementing the DemandDecorator interface to automatically decorate a demand \
-    using the model's properties and constraints.
-
-    example:
-    ```python
-    >>> import asyncio
-    >>> from dataclasses import dataclass
-    >>> from yapapi.props import prop, constraint
-    >>> from yapapi.props.builder import AutodecoratingModel, DemandBuilder
-    >>>
-    >>> @dataclass
-    ... class Foo(AutodecoratingModel):
-    ...     bar: str = prop("some.bar")
-    ...     max_baz: int = constraint("baz", "<=", 100)
-    ...
-    >>> async def main():
-    ...     foo = Foo(bar="a nice one", max_baz=50)
-    ...     demand = DemandBuilder()
-    ...     await foo.decorate_demand(demand)
-    ...     print(demand)
-    ...
-    >>> asyncio.run(main())
-    {'properties': {'some.bar': 'a nice one'}, 'constraints': ['((baz<=50))']}
-    ```
-    """
-
-    async def decorate_demand(self, demand: DemandBuilder):
-        demand.add(self)
-        demand.ensure(join_str_constraints(constraint_model_serialize(self)))

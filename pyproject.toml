@@ -34,6 +34,7 @@ types-prettytable = "^3.4.1"
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.3"
 pytest-asyncio = "^0.19"
+pytest-cov = "^4.0.0"
 mypy = "^0.982"
 
 sphinx = "^5.3.0"
@@ -69,3 +70,9 @@ tests_integration = {cmd = "pytest -sv tests/integration", help = "Run only inte
 sphinx = "sphinx-build docs/sphinx/ build -E"
 
 #   TODO check licence? Maybe just copy from yapapi?
+
+[tool.pytest.ini_options]
+addopts = "--cov --cov-report html --cov-report term-missing -sv"
+testspaths = [
+    "tests"
+]
