@@ -11,6 +11,7 @@ class BasePayload(Model, ABC):
         import asyncio
 
         from dataclasses import dataclass
+        from golem_core.demand_builder import props
         from golem_core.demand_builder.builder import DemandBuilder
         from golem_core.demand_builder.model import prop, constraint
         from golem_core.payload import BasePayload
@@ -22,9 +23,9 @@ class BasePayload(Model, ABC):
         @dataclass
         class MyPayload(BasePayload):
             myprop: str = prop(CUSTOM_PROPERTY, default="myvalue")
-            runtime: str = constraint("golem.runtime.name", default=CUSTOM_RUNTIME_NAME)
-            min_mem_gib: float = constraint("golem.inf.mem.gib", ">=", default=16)
-            min_storage_gib: float = constraint("golem.inf.storage.gib", ">=", default=1024)
+            runtime: str = constraint(props.RUNTIME_NAME, default=CUSTOM_RUNTIME_NAME)
+            min_mem_gib: float = constraint(props.INF_MEM, ">=", default=16)
+            min_storage_gib: float = constraint(props.INF_STORAGE, ">=", default=1024)
 
 
         async def main():

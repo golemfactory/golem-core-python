@@ -7,6 +7,13 @@ from dataclasses import dataclass
 from golem_core.demand_builder.model import Model, prop
 
 
+RUNTIME_NAME = 'golem.runtime.name'
+RUNTIME_CAPABILITIES = 'golem.runtime.capabilities'
+INF_CPU_THREADS = 'golem.inf.cpu.threads'
+INF_MEM = 'golem.inf.mem.gib'
+INF_STORAGE = 'golem.inf.storage.gib'
+
+
 @dataclass
 class NodeInfo(Model):
     """Properties describing the information regarding the node."""

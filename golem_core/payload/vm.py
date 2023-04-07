@@ -9,6 +9,7 @@ from dns.exception import DNSException
 from srvresolver.srv_record import SRVRecord
 from srvresolver.srv_resolver import SRVResolver
 
+from golem_core.demand_builder import props
 from golem_core.demand_builder.model import constraint, prop
 from golem_core.payload import BasePayload
 from golem_core.http_utils import make_http_get_request, make_http_head_request
@@ -37,17 +38,17 @@ class VmPackageFormat(Enum):
 class BaseVmPayload(BasePayload, ABC):
     """Declarative description of common payload parameters for "vm" runtime."""
 
-    runtime: str = constraint("golem.runtime.name", "=", default="vm")
-    package_format: VmPackageFormat = prop(
-        "golem.srv.comp.vm.package_format", default=VmPackageFormat.GVMKIT_SQUASH
+    runtime: str = constraint(props.RUNTIME_NAME, "=", default="vm")
+    capabilities: List[VmCaps] = constraint(
+        props.RUNTIME_CAPABILITIES, "=", default_factory=list
     )
 
-    min_mem_gib: float = constraint("golem.inf.mem.gib", ">=", default=0.5)
-    min_storage_gib: float = constraint("golem.inf.storage.gib", ">=", default=2.0)
-    min_cpu_threads: int = constraint("golem.inf.cpu.threads", ">=", default=1)
+    min_mem_gib: float = constraint(props.INF_MEM, ">=", default=0.5)
+    min_storage_gib: float = constraint(props.INF_STORAGE, ">=", default=2.0)
+    min_cpu_threads: int = constraint(props.INF_CPU_THREADS, ">=", default=1)
 
-    capabilities: List[VmCaps] = constraint(
-        "golem.runtime.capabilities", "=", default_factory=list
+    package_format: VmPackageFormat = prop(
+        "golem.srv.comp.vm.package_format", default=VmPackageFormat.GVMKIT_SQUASH
     )
 
 

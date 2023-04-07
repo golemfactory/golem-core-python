@@ -17,7 +17,6 @@ from typing import (
 )
 
 TModel = TypeVar("TModel", bound="Model")
-Props = Dict[str, str]
 
 PROP_KEY: Final[str] = "key"
 PROP_OPERATOR: Final[str] = "operator"
@@ -143,7 +142,7 @@ class Model(abc.ABC):
         ]
 
     @classmethod
-    def from_properties(cls: Type[TModel], props: Props) -> TModel:
+    def from_properties(cls: Type[TModel], props: Dict[str, Any]) -> TModel:
         """
         Initialize the model from a dictionary representation.
 
@@ -195,7 +194,7 @@ def prop(key: str, *, default: Any = dataclasses.MISSING, default_factory: Any =
     {'bar': 42}
     ```
     """
-    return dataclasses.field(  # type: ignore
+    return dataclasses.field(  # type: ignore[call-overload]
         default=default,
         default_factory=default_factory,
         metadata={
@@ -237,7 +236,7 @@ def constraint(
     ```
     """
     # the default / default_factory exception is resolved by the `field` function
-    return dataclasses.field(  # type: ignore
+    return dataclasses.field(  # type: ignore[call-overload]
         default=default,
         default_factory=default_factory,
         metadata={
@@ -296,7 +295,6 @@ def join_str_constraints(
 
 __all__ = (
     "Model",
-    "Props",
     "prop",
     "constraint",
     "join_str_constraints",
