@@ -8,8 +8,7 @@ import re
 
 from prettytable import PrettyTable
 
-from yapapi.props.base import constraint
-from yapapi.props import inf
+from golem_core.demand_builder.model import constraint
 
 from golem_core import GolemNode
 from golem_core.payload import BasePayload
@@ -81,7 +80,7 @@ def format_proposals(proposals: List[Proposal], first: bool) -> str:
 
 @dataclass
 class CliPayload(BasePayload):
-    runtime: str = constraint(inf.INF_RUNTIME_NAME, default=MISSING)
+    runtime: str = constraint("golem.runtime.name", default=MISSING)
 
 
 def parse_timedelta_str(timedelta_str: str) -> float:

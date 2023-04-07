@@ -3,16 +3,15 @@ from abc import ABC
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import List, Literal, Optional, Final
+from typing import List, Literal, Optional, Final, Tuple, Dict, Any
 
 from dns.exception import DNSException
 from srvresolver.srv_record import SRVRecord
 from srvresolver.srv_resolver import SRVResolver
-from yapapi.props import constraint, inf, prop
 
+from golem_core.demand_builder.model import constraint, prop
 from golem_core.payload import BasePayload
 from golem_core.http_utils import make_http_get_request, make_http_head_request
-from yapapi.props.builder import DemandBuilder
 
 DEFAULT_REPO_URL_SRV: Final[str] = "_girepo._tcp.dev.golem.network"
 DEFAULT_REPO_URL_FALLBACK: Final[str] = "http://girepo.dev.golem.network:8000"
@@ -38,17 +37,17 @@ class VmPackageFormat(Enum):
 class BaseVmPayload(BasePayload, ABC):
     """Declarative description of common payload parameters for "vm" runtime."""
 
-    runtime: str = constraint(inf.INF_RUNTIME_NAME, operator="=", default=inf.RUNTIME_VM)
+    runtime: str = constraint("golem.runtime.name", "=", default="vm")
     package_format: VmPackageFormat = prop(
         "golem.srv.comp.vm.package_format", default=VmPackageFormat.GVMKIT_SQUASH
     )
 
-    min_mem_gib: float = constraint(inf.INF_MEM, operator=">=", default=0.5)
-    min_storage_gib: float = constraint(inf.INF_STORAGE, operator=">=", default=2.0)
-    min_cpu_threads: int = constraint(inf.INF_THREADS, operator=">=", default=1)
+    min_mem_gib: float = constraint("golem.inf.mem.gib", ">=", default=0.5)
+    min_storage_gib: float = constraint("golem.inf.storage.gib", ">=", default=2.0)
+    min_cpu_threads: int = constraint("golem.inf.cpu.threads", ">=", default=1)
 
     capabilities: List[VmCaps] = constraint(
-        "golem.runtime.capabilities", operator="=", default_factory=list
+        "golem.runtime.capabilities", "=", default_factory=list
     )
 
 
@@ -104,11 +103,11 @@ class RepositoryVmPayload(BaseVmPayload, _RepositoryVmPayload):
 
         self.package_url = get_package_url(self.image_hash, image_url)
 
-    async def decorate_demand(self, demand: DemandBuilder):
+    async def serialize(self) -> Tuple[Dict[str, Any], str]:
         if self.package_url is None:
             await self._resolve_package_url()
 
-        return await super().decorate_demand(demand)
+        return await super(RepositoryVmPayload, self).serialize()
 
 
 async def resolve_repository_url(

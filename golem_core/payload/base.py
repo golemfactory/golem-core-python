@@ -1,9 +1,9 @@
 from abc import ABC
 
-from yapapi.props.builder import AutodecoratingModel
+from golem_core.demand_builder.model import Model
 
 
-class BasePayload(AutodecoratingModel, ABC):
+class BasePayload(Model, ABC):
     r"""Base class for descriptions of the payload required by the requestor.
 
     example usage::
@@ -11,11 +11,9 @@ class BasePayload(AutodecoratingModel, ABC):
         import asyncio
 
         from dataclasses import dataclass
-        from yapapi.props.builder import DemandBuilder
-        from yapapi.props.base import prop, constraint
-        from yapapi.props import inf
-
-        from yapapi.payload import BasePayload
+        from golem_core.demand_builder.builder import DemandBuilder
+        from golem_core.demand_builder.model import prop, constraint
+        from golem_core.payload import BasePayload
 
         CUSTOM_RUNTIME_NAME = "my-runtime"
         CUSTOM_PROPERTY = "golem.srv.app.myprop"
@@ -24,15 +22,15 @@ class BasePayload(AutodecoratingModel, ABC):
         @dataclass
         class MyPayload(BasePayload):
             myprop: str = prop(CUSTOM_PROPERTY, default="myvalue")
-            runtime: str = constraint(inf.INF_RUNTIME_NAME, default=CUSTOM_RUNTIME_NAME)
-            min_mem_gib: float = constraint(inf.INF_MEM, operator=">=", default=16)
-            min_storage_gib: float = constraint(inf.INF_STORAGE, operator=">=", default=1024)
+            runtime: str = constraint("golem.runtime.name", default=CUSTOM_RUNTIME_NAME)
+            min_mem_gib: float = constraint("golem.inf.mem.gib", ">=", default=16)
+            min_storage_gib: float = constraint("golem.inf.storage.gib", ">=", default=1024)
 
 
         async def main():
             builder = DemandBuilder()
             payload = MyPayload(myprop="othervalue", min_mem_gib=32)
-            await builder.decorate(payload)
+            await builder.add(payload)
             print(builder)
 
         asyncio.run(main())

@@ -10,10 +10,7 @@ from typing import (
     List,
     Type,
     TypeVar,
-    Union,
     Final,
-    get_origin,
-    get_args,
     Literal,
     Tuple,
     Iterable,
@@ -174,7 +171,7 @@ class Model(abc.ABC):
             raise InvalidPropertiesError(str(e)) from e
 
 
-def prop(key: str, default: Any = dataclasses.MISSING, default_factory: Any = dataclasses.MISSING):
+def prop(key: str, *, default: Any = dataclasses.MISSING, default_factory: Any = dataclasses.MISSING):
     """
     Return a property-type dataclass field for a Model.
 
@@ -185,8 +182,8 @@ def prop(key: str, default: Any = dataclasses.MISSING, default_factory: Any = da
     example:
     ```python
     >>> from dataclasses import dataclass
-    >>> from yapapi.props.base import Model, prop
-    >>> from yapapi.props.builder import DemandBuilder
+    >>> from golem_core.demand_builder.model import Model, prop
+    >>> from golem_core.demand_builder.builder import DemandBuilder
     >>>
     >>> @dataclass
     ... class Foo(Model):
@@ -211,6 +208,7 @@ def prop(key: str, default: Any = dataclasses.MISSING, default_factory: Any = da
 def constraint(
     key: str,
     operator: ConstraintOperator = "=",
+    *,
     default: Any = dataclasses.MISSING,
     default_factory: Any = dataclasses.MISSING,
 ):
@@ -230,7 +228,7 @@ def constraint(
     >>>
     >>> @dataclass
     ... class Foo(Model):
-    ...     max_baz: int = constraint("baz", "<=", 100)
+    ...     max_baz: int = constraint("baz", "<=", default=100)
     ...
     >>> builder = DemandBuilder()
     >>> await builder.add(Foo(max_baz=42))
@@ -269,7 +267,7 @@ def join_str_constraints(
     example:
     ```python
     >>> from dataclasses import dataclass
-    >>> from yapapi.props.base import join_str_constraints
+    >>> from golem_core.demand_builder.model import join_str_constraints
     >>>
     >>> min_bar = '(bar>=42)'
     >>> max_bar = '(bar<=128)'

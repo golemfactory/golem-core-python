@@ -6,9 +6,8 @@ from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
-from yapapi.props.builder import DemandBuilder
-from yapapi import props
-
+from .demand_builder import props
+from .demand_builder.builder import DemandBuilder
 from .event_bus import EventBus
 from .events import SessionStarted, ShutdownStarted, ShutdownFinished
 from .payload import BasePayload
@@ -210,10 +209,10 @@ class GolemNode:
             expiration = datetime.now(timezone.utc) + DEFAULT_EXPIRATION_TIMEOUT
 
         builder = DemandBuilder()
-        builder.add(props.Activity(expiration=expiration, multi_activity=True))
-        builder.add(props.NodeInfo(subnet_tag=subnet))
+        await builder.add(props.Activity(expiration=expiration, multi_activity=True))
+        await builder.add(props.NodeInfo(subnet_tag=subnet))
 
-        await builder.decorate(payload)
+        await builder.add(payload)
         await self._add_builder_allocations(builder, allocations)
 
         demand = await Demand.create_from_properties_constraints(self, builder.properties, builder.constraints)

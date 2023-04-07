@@ -1,9 +1,12 @@
 import abc
-from typing import List, Dict, Any
+from typing import List, Dict, Any, TYPE_CHECKING
 
-from golem_core import GolemNode
-from golem_core.demand_builder.model import Model, constraint_model_serialize, join_str_constraints
+from golem_core.demand_builder.model import Model, join_str_constraints
 from golem_core.low import Demand
+
+
+if TYPE_CHECKING:
+    from golem_core import GolemNode
 
 
 class DemandBuilder:
@@ -16,12 +19,12 @@ class DemandBuilder:
     example usage:
 
     ```python
-    >>> from yapapi import props as yp
-    >>> from yapapi.props.builder import DemandBuilder
+    >>> from golem_core.demand_builder import props
+    >>> from golem_core.demand_builder.builder import DemandBuilder
     >>> from datetime import datetime, timezone
     >>> builder = DemandBuilder()
-    >>> await builder.add(yp.NodeInfo(name="a node", subnet_tag="testnet"))
-    >>> await builder.add(yp.Activity(expiration=datetime.now(timezone.utc)))
+    >>> await builder.add(props.NodeInfo(name="a node", subnet_tag="testnet"))
+    >>> await builder.add(props.Activity(expiration=datetime.now(timezone.utc)))
     >>> print(builder)
     {'properties':
         {'golem.node.id.name': 'a node',
@@ -71,7 +74,7 @@ class DemandBuilder:
         for decorator in decorators:
             await decorator.decorate_demand(self)
 
-    async def create_demand(self, node: GolemNode) -> Demand:
+    async def create_demand(self, node: "GolemNode") -> Demand:
         return await Demand.create_from_properties_constraints(
             node,
             self.properties,
