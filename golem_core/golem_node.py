@@ -254,11 +254,10 @@ class GolemNode:
     async def _add_builder_allocations(self, builder: DemandBuilder, allocations: Iterable[Allocation]) -> None:
         for allocation in allocations:
             properties, constraints = await allocation.demand_properties_constraints()
-            for constraint in constraints:
-                builder.ensure(constraint)
+            builder.add_constraints(*constraints)
 
             #   TODO (?): https://github.com/golemfactory/golem-core-python/issues/35
-            builder.properties.update({p.key: p.value for p in properties})
+            builder.add_properties({p.key: p.value for p in properties})
 
     ###########################
     #   Single-resource factories for already existing resources
