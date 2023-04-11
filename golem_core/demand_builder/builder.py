@@ -1,7 +1,7 @@
 import abc
 from typing import List, Dict, Any, TYPE_CHECKING
 
-from golem_core.demand_builder.model import Model, join_str_constraints
+from golem_core.demand_builder.model import ComputingResourceModel, join_str_constraints
 from golem_core.low import Demand
 
 
@@ -10,11 +10,8 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class DemandBuilder:
-    """Builds a dictionary of properties and constraints from high-level models.
-
-    The dictionary represents a Demand object, which is later matched by the new Golem's
-    market implementation against Offers coming from providers to find those providers
-    who can satisfy the requestor's demand.
+    """Builder that gives ability to collect Demand's properties and constraints in multiple \
+    separate steps, prior its creation.
 
     example usage:
 
@@ -54,7 +51,7 @@ class DemandBuilder:
         """Constraints definition for this demand."""
         return join_str_constraints(self._constraints)
 
-    async def add(self, model: Model):
+    async def add(self, model: ComputingResourceModel):
         """Add properties and constraints from the given model to this demand definition."""
 
         properties, constraints = await model.serialize()
@@ -67,14 +64,17 @@ class DemandBuilder:
         self._properties.update(props)
 
     def add_constraints(self, *constraints: str):
-        """Add a constraint to the demand definition."""
+        """Add a constraint from given args to the demand definition."""
         self._constraints.extend(constraints)
 
-    async def decorate(self, *decorators: "DemandDecorator"):
+    async def decorate(self, *decorators: "DemandBuilderDecorator"):
+        """Decorate demand definition with given demand decorators."""
+
         for decorator in decorators:
-            await decorator.decorate_demand(self)
+            await decorator.decorate_demand_builder(self)
 
     async def create_demand(self, node: "GolemNode") -> "Demand":
+        """Create demand and subscribe to its events."""
         return await Demand.create_from_properties_constraints(
             node,
             self.properties,
@@ -82,10 +82,13 @@ class DemandBuilder:
         )
 
 
-class DemandDecorator(abc.ABC):
+class DemandBuilderDecorator(abc.ABC):
     """An interface that specifies classes that can add properties and constraints through a \
     DemandBuilder."""
 
     @abc.abstractmethod
-    async def decorate_demand(self, demand: DemandBuilder) -> None:
-        """Add appropriate properties and constraints to a Demand."""
+    async def decorate_demand_builder(self, demand_builder: DemandBuilder) -> None:
+        """Decorate given DemandBuilder.
+
+        Intended to be overriden to customize given DemandBuilder decoration.
+        """

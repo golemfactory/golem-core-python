@@ -4,7 +4,7 @@ from typing import Optional
 
 from dataclasses import dataclass
 
-from golem_core.demand_builder.model import Model, prop
+from golem_core.demand_builder.model import ComputingResourceModel, prop
 
 
 RUNTIME_NAME = 'golem.runtime.name'
@@ -15,7 +15,7 @@ INF_STORAGE = 'golem.inf.storage.gib'
 
 
 @dataclass
-class NodeInfo(Model):
+class NodeInfo(ComputingResourceModel):
     """Properties describing the information regarding the node."""
 
     name: Optional[str] = prop("golem.node.id.name", default=None)
@@ -26,7 +26,7 @@ class NodeInfo(Model):
 
 
 @dataclass
-class Activity(Model):
+class Activity(ComputingResourceModel):
     """Activity-related Properties."""
 
     cost_cap: Optional[Decimal] = prop("golem.activity.cost_cap", default=None)

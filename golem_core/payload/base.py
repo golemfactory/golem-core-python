@@ -1,9 +1,9 @@
 from abc import ABC
 
-from golem_core.demand_builder.model import Model
+from golem_core.demand_builder.model import ComputingResourceModel
 
 
-class BasePayload(Model, ABC):
+class Payload(ComputingResourceModel, ABC):
     r"""Base class for descriptions of the payload required by the requestor.
 
     example usage::
@@ -14,14 +14,14 @@ class BasePayload(Model, ABC):
         from golem_core.demand_builder import props
         from golem_core.demand_builder.builder import DemandBuilder
         from golem_core.demand_builder.model import prop, constraint
-        from golem_core.payload import BasePayload
+        from golem_core.payload import Payload
 
         CUSTOM_RUNTIME_NAME = "my-runtime"
         CUSTOM_PROPERTY = "golem.srv.app.myprop"
 
 
         @dataclass
-        class MyPayload(BasePayload):
+        class MyPayload(Payload):
             myprop: str = prop(CUSTOM_PROPERTY, default="myvalue")
             runtime: str = constraint(props.RUNTIME_NAME, default=CUSTOM_RUNTIME_NAME)
             min_mem_gib: float = constraint(props.INF_MEM, ">=", default=16)

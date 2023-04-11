@@ -11,7 +11,7 @@ from srvresolver.srv_resolver import SRVResolver
 
 from golem_core.demand_builder import props
 from golem_core.demand_builder.model import constraint, prop
-from golem_core.payload import BasePayload
+from golem_core.payload import Payload
 from golem_core.http_utils import make_http_get_request, make_http_head_request
 
 DEFAULT_REPO_URL_SRV: Final[str] = "_girepo._tcp.dev.golem.network"
@@ -35,7 +35,7 @@ class VmPackageFormat(Enum):
 
 
 @dataclass
-class BaseVmPayload(BasePayload, ABC):
+class BaseVmPayload(Payload, ABC):
     """Declarative description of common payload parameters for "vm" runtime."""
 
     runtime: str = constraint(props.RUNTIME_NAME, "=", default="vm")
@@ -53,7 +53,7 @@ class BaseVmPayload(BasePayload, ABC):
 
 
 @dataclass
-class _VmPayload(BasePayload, ABC):
+class _VmPayload(Payload, ABC):
     package_url: str = prop("golem.srv.comp.task_package")
 
 
@@ -65,7 +65,7 @@ class VmPayload(BaseVmPayload, _VmPayload):
 
 
 @dataclass
-class _ManifestVmPayload(BasePayload, ABC):
+class _ManifestVmPayload(Payload, ABC):
     manifest: str = prop("golem.srv.comp.payload")
     manifest_sig: Optional[str] = prop("golem.srv.comp.payload.sig", default=None)
     manifest_sig_algorithm: Optional[str] = prop(

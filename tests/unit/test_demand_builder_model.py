@@ -6,7 +6,7 @@ import pytest
 from dataclasses import dataclass, fields, Field
 
 from golem_core.demand_builder.model import (
-    Model,
+    ComputingResourceModel,
     prop,
     constraint,
     InvalidPropertiesError,
@@ -20,7 +20,7 @@ class ExampleEnum(Enum):
     TWO = 'two'
 
 @dataclass
-class Foo(Model):
+class Foo(ComputingResourceModel):
     bar: str = prop("bar.dotted.path", default="cafebiba")
     max_baz: int = constraint("baz", "<=", default=100)
     min_baz: int = constraint("baz", ">=", default=1)
@@ -28,7 +28,7 @@ class Foo(Model):
 
 
 @dataclass
-class FooToo(Model):
+class FooToo(ComputingResourceModel):
     text: str = prop("some.path")
     baz: int = constraint("baz", "=", default=21)
     en: ExampleEnum = prop("some_enum", default=ExampleEnum.TWO)
@@ -42,7 +42,7 @@ class FooToo(Model):
 FooTooFields: Dict[str, Field] = {f.name: f for f in fields(FooToo)}
 
 @dataclass
-class FooZero(Model):
+class FooZero(ComputingResourceModel):
     pass
 
 
@@ -99,7 +99,7 @@ async def test_serialize(model, expected_properties, expected_constraints):
     )
 )
 def test_serialize_value(value, expected):
-    assert Model.serialize_value(value) == expected
+    assert ComputingResourceModel.serialize_value(value) == expected
 
 @pytest.mark.parametrize(
     'value, field, expected',
@@ -122,7 +122,7 @@ def test_serialize_value(value, expected):
     )
 )
 def test_deserialize_value(value, field, expected):
-    assert Model.deserialize_value(value, field) == expected
+    assert ComputingResourceModel.deserialize_value(value, field) == expected
 
 
 def test_from_properties():

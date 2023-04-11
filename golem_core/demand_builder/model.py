@@ -16,7 +16,7 @@ from typing import (
     Iterable,
 )
 
-TModel = TypeVar("TModel", bound="Model")
+TComputingResourceModel = TypeVar("TComputingResourceModel", bound="ComputingResourceModel")
 
 PROP_KEY: Final[str] = "key"
 PROP_OPERATOR: Final[str] = "operator"
@@ -31,28 +31,27 @@ class ConstraintException(Exception):
 
 
 class InvalidPropertiesError(Exception):
-    """Raised by `Model.from_properties(cls, properties)` when given invalid `properties`."""
+    """Raised by `ComputingResourceModel.from_properties(cls, properties)` when given invalid `properties`."""
 
 
-class ModelFieldType(enum.Enum):
+class ComputingResourceModelFieldType(enum.Enum):
     constraint = "constraint"
     property = "property"
 
 
 @dataclasses.dataclass
-class Model(abc.ABC):
-    """
-    Base class from which all property models inherit.
+class ComputingResourceModel(abc.ABC):
+    """Base class for convenient declaration of Golem's property and constraints syntax.
 
-    Provides helper methods to load the property model data from a dictionary and
-    to get a mapping of all the keys available in the given model.
+    Provides helper methods to translate fields between python class and Golem's property and
+    constraints syntax.
     """
 
     def __init__(self, **kwargs):  # pragma: no cover
         pass
 
     async def serialize(self) -> Tuple[Dict[str, Any], str]:
-        """Return a tuple of serialized model properties and constraints.
+        """Return a tuple of serialized properties and constraints.
 
         Intended to be overriden with additional logic that requires async context.
         """
@@ -62,7 +61,7 @@ class Model(abc.ABC):
         """Return a serialized collection of property values."""
         return {
             field.metadata[PROP_KEY]: self._serialize_property(getattr(self, field.name), field)
-            for field in self._get_fields(ModelFieldType.property)
+            for field in self._get_fields(ComputingResourceModelFieldType.property)
             if getattr(self, field.name) is not None
         }
 
@@ -70,7 +69,7 @@ class Model(abc.ABC):
         """Return a serialized collection of constraint values."""
         return join_str_constraints(
             self._serialize_constraint(getattr(self, field.name), field)
-            for field in self._get_fields(ModelFieldType.constraint)
+            for field in self._get_fields(ComputingResourceModelFieldType.constraint)
             if getattr(self, field.name) is not None
         )
 
@@ -98,7 +97,7 @@ class Model(abc.ABC):
 
     @classmethod
     def serialize_value(cls, value: Any) -> Any:
-        """Return value in primitive format compatible with Demand.
+        """Return value in primitive format compatible with Golem's property and constraint syntax.
 
         Intended to be overriden with additional type serialisation methods.
         """
@@ -132,8 +131,8 @@ class Model(abc.ABC):
         return value
 
     @classmethod
-    def _get_fields(cls, field_type: ModelFieldType) -> List[dataclasses.Field]:
-        """Return a list of Demand fields based on given type."""
+    def _get_fields(cls, field_type: ComputingResourceModelFieldType) -> List[dataclasses.Field]:
+        """Return a list of fields based on given type."""
         return [
             f
             for f in dataclasses.fields(cls)
@@ -142,20 +141,16 @@ class Model(abc.ABC):
         ]
 
     @classmethod
-    def from_properties(cls: Type[TModel], props: Dict[str, Any]) -> TModel:
-        """
-        Initialize the model from a dictionary representation.
+    def from_properties(cls: Type[TComputingResourceModel], props: Dict[str, Any]) -> TComputingResourceModel:
+        """Initialize the model with properties from given dictionary.
 
-        When provided with a dictionary of properties, it will find the matching keys
-        within it and fill the model fields with the values from the dictionary.
-
-        It ignores non-matching keys - i.e. doesn't require filtering of the properties'
-        dictionary before the model is fed with the data. Thus, several models can be
-        initialized from the same dictionary and all models will only load their own data.
+        Only properties defined in model will be picked up from given dictionary, ignoring other
+        keys. In this way several models can be initialized from the same dictionary and all models
+        will only load their own data.
         """
         field_map = {
             field.metadata[PROP_KEY]: field
-            for field in cls._get_fields(ModelFieldType.property)
+            for field in cls._get_fields(ComputingResourceModelFieldType.property)
         }
         data = {
             field_map[key].name: cls.deserialize_value(val, field_map[key])
@@ -172,7 +167,7 @@ class Model(abc.ABC):
 
 def prop(key: str, *, default: Any = dataclasses.MISSING, default_factory: Any = dataclasses.MISSING):
     """
-    Return a property-type dataclass field for a Model.
+    Return a property-type dataclass field for a ComputingResourceModel.
 
     :param key: the key of the property, e.g. "golem.runtime.name"
     :param default: the default value of the property
@@ -181,11 +176,11 @@ def prop(key: str, *, default: Any = dataclasses.MISSING, default_factory: Any =
     example:
     ```python
     >>> from dataclasses import dataclass
-    >>> from golem_core.demand_builder.model import Model, prop
+    >>> from golem_core.demand_builder.model import ComputingResourceModel, prop
     >>> from golem_core.demand_builder.builder import DemandBuilder
     >>>
     >>> @dataclass
-    ... class Foo(Model):
+    ... class Foo(ComputingResourceModel):
     ...     bar: int = prop("bar", default=100)
     ...
     >>> builder = DemandBuilder()
@@ -199,7 +194,7 @@ def prop(key: str, *, default: Any = dataclasses.MISSING, default_factory: Any =
         default_factory=default_factory,
         metadata={
             PROP_KEY: key,
-            PROP_MODEL_FIELD_TYPE: ModelFieldType.property
+            PROP_MODEL_FIELD_TYPE: ComputingResourceModelFieldType.property
         },
     )
 
@@ -211,7 +206,7 @@ def constraint(
     default: Any = dataclasses.MISSING,
     default_factory: Any = dataclasses.MISSING,
 ):
-    """Return a constraint-type dataclass field for a Model.
+    """Return a constraint-type dataclass field for a ComputingResourceModel.
 
     :param key: the key of the property on which the constraint is made - e.g.
         "golem.srv.comp.task_package"
@@ -222,11 +217,11 @@ def constraint(
     example:
     ```python
     >>> from dataclasses import dataclass
-    >>> from golem_core.demand_builder.model import Model, constraint
+    >>> from golem_core.demand_builder.model import ComputingResourceModel, constraint
     >>> from golem_core.demand_builder.builder import DemandBuilder
     >>>
     >>> @dataclass
-    ... class Foo(Model):
+    ... class Foo(ComputingResourceModel):
     ...     max_baz: int = constraint("baz", "<=", default=100)
     ...
     >>> builder = DemandBuilder()
@@ -235,14 +230,13 @@ def constraint(
     '(baz<=42)'
     ```
     """
-    # the default / default_factory exception is resolved by the `field` function
     return dataclasses.field(  # type: ignore[call-overload]
         default=default,
         default_factory=default_factory,
         metadata={
             PROP_KEY: key,
             PROP_OPERATOR: operator,
-            PROP_MODEL_FIELD_TYPE: ModelFieldType.constraint,
+            PROP_MODEL_FIELD_TYPE: ComputingResourceModelFieldType.constraint,
         },
     )
 
@@ -294,7 +288,7 @@ def join_str_constraints(
 
 
 __all__ = (
-    "Model",
+    "ComputingResourceModel",
     "prop",
     "constraint",
     "join_str_constraints",

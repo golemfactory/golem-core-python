@@ -8,10 +8,11 @@ import re
 
 from prettytable import PrettyTable
 
+from golem_core.demand_builder import props
 from golem_core.demand_builder.model import constraint
 
 from golem_core import GolemNode
-from golem_core.payload import BasePayload
+from golem_core.payload import Payload
 from golem_core.low import Allocation, Demand, Proposal
 
 
@@ -79,8 +80,8 @@ def format_proposals(proposals: List[Proposal], first: bool) -> str:
 
 
 @dataclass
-class CliPayload(BasePayload):
-    runtime: str = constraint("golem.runtime.name", default=MISSING)
+class CliPayload(Payload):
+    runtime: str = constraint(props.RUNTIME_NAME, default=MISSING)
 
 
 def parse_timedelta_str(timedelta_str: str) -> float:

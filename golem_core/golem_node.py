@@ -10,7 +10,7 @@ from .demand_builder import props
 from .demand_builder.builder import DemandBuilder
 from .event_bus import EventBus
 from .events import SessionStarted, ShutdownStarted, ShutdownFinished
-from .payload import BasePayload
+from .payload import Payload
 from .low.api_factory import ApiConfig, ApiFactory
 from .low.activity import Activity, PoolingBatch
 from .low.market import Demand, Proposal, Agreement
@@ -187,7 +187,7 @@ class GolemNode:
 
     async def create_demand(
         self,
-        payload: BasePayload,
+        payload: Payload,
         subnet: Optional[str] = SUBNET,
         expiration: Optional[datetime] = None,
         allocations: Iterable[Allocation] = (),

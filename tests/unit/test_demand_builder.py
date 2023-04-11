@@ -2,27 +2,27 @@ from dataclasses import dataclass
 
 import pytest
 
-from golem_core.demand_builder.builder import DemandBuilder, DemandDecorator
-from golem_core.demand_builder.model import Model, prop, constraint
+from golem_core.demand_builder.builder import DemandBuilder, DemandBuilderDecorator
+from golem_core.demand_builder.model import ComputingResourceModel, prop, constraint
 
 
 @dataclass
-class ExampleModel(Model):
+class ExampleModel(ComputingResourceModel):
     prop1: int = prop("some.prop1.path")
     prop2: int = prop("some.prop2.path")
     con1: int = constraint("some.con1.path", "=")
     con2: int = constraint("some.con2.path", "<=")
 
 
-class ExampleDecorator(DemandDecorator):
-    async def decorate_demand(self, demand: DemandBuilder) -> None:
-        demand.add_properties({
+class ExampleBuilderDecorator(DemandBuilderDecorator):
+    async def decorate_demand_builder(self, demand_builder: DemandBuilder) -> None:
+        demand_builder.add_properties({
             'some.fancy.field': 'was just added by demand decorator'
         })
 
-class AnotherExampleDecorator(DemandDecorator):
-    async def decorate_demand(self, demand: DemandBuilder) -> None:
-        demand.add_constraints('field=added')
+class AnotherExampleBuilderDecorator(DemandBuilderDecorator):
+    async def decorate_demand_builder(self, demand_builder: DemandBuilder) -> None:
+        demand_builder.add_constraints('field=added')
 
 
 @pytest.mark.asyncio
@@ -70,7 +70,7 @@ async def test_decorate():
     assert demand_builder.properties == {}
     assert demand_builder.constraints == '(&)'
 
-    await demand_builder.decorate(ExampleDecorator(), AnotherExampleDecorator())
+    await demand_builder.decorate(ExampleBuilderDecorator(), AnotherExampleBuilderDecorator())
 
     assert demand_builder.properties == {
         'some.fancy.field': 'was just added by demand decorator',
