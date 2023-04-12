@@ -161,6 +161,7 @@ class Resource(
 
     ####################
     #   DATA LOADING
+    @api_call_wrapper()
     async def get_data(self, force: bool = False) -> ModelType:
         """Returns details of this resource.
 

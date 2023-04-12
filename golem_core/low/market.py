@@ -100,6 +100,7 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, "Proposal", _NULL], Ya
         return await cls.create(node, data)
 
     @classmethod
+    @api_call_wrapper()
     async def create(cls, node: "GolemNode", data: models.DemandOfferBase) -> "Demand":
         api = cls._get_api(node)
         demand_id = await api.subscribe_demand(data)
@@ -257,6 +258,7 @@ class Proposal(
 
     ##########################
     #   Other
+    @api_call_wrapper
     async def _get_data(self) -> models.Proposal:
         assert self.demand is not None
         data: models.Proposal = await self.api.get_proposal_offer(self.demand.id, self.id)

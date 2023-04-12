@@ -77,6 +77,7 @@ class Activity(Resource[ActivityApi, _NULL, Agreement, "PoolingBatch", _NULL]):
     ####################
     #   API
     @classmethod
+    @api_call_wrapper()
     async def create(cls, node: "GolemNode", agreement_id: str, timeout: timedelta) -> "Activity":
         api = cls._get_api(node)
         activity_id = await api.create_activity(agreement_id, timeout=timeout.total_seconds())
