@@ -19,21 +19,22 @@ repository = "https://github.com/golemfactory/golem-core-python"
 [tool.poetry.dependencies]
 python = "^3.8.0"
 
-#   TODO: We use quite a lot of yapapi dependencies that are not implicitly imported,
-#         this should be fixed - but not now. First we must be sure what is the future of
-#         golem_core, yapapi and how they are related.
-yapapi = "^0.9.3"
-
 #   CLI
 prettytable = "^3.4.1"
 click = "^8.1.3"
 
 #   TODO: why isn't this auto-installed by mypy?
 types-prettytable = "^3.4.1"
+ya-aioclient = "^0.6.4"
+jsonrpc-base = "^1.0.3"
+srvresolver = "^0.3.5"
+semantic-version = "^2.8"
+async-exit-stack = "1.0.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.3"
 pytest-asyncio = "^0.19"
+pytest-cov = "^4.0.0"
 mypy = "^0.982"
 
 sphinx = "^5.3.0"
@@ -41,6 +42,9 @@ sphinx-autodoc-typehints = "^1.19.2"
 sphinx-rtd-theme = "^1.0.0"
 
 poethepoet = "^0.8.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest-mock = "^3.10.0"
 
 [tool.mypy]
 install_types = true
@@ -69,3 +73,9 @@ tests_integration = {cmd = "pytest -sv tests/integration", help = "Run only inte
 sphinx = "sphinx-build docs/sphinx/ build -E"
 
 #   TODO check licence? Maybe just copy from yapapi?
+
+[tool.pytest.ini_options]
+addopts = "--cov --cov-report html --cov-report term-missing -sv"
+testspaths = [
+    "tests"
+]

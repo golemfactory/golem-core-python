@@ -3,16 +3,16 @@ from abc import ABC
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import List, Literal, Optional, Final
+from typing import List, Literal, Optional, Final, Tuple, Dict, Any
 
 from dns.exception import DNSException
 from srvresolver.srv_record import SRVRecord
 from srvresolver.srv_resolver import SRVResolver
-from yapapi.props import constraint, inf, prop
 
-from golem_core.payload import BasePayload
+from golem_core.demand_builder import props
+from golem_core.demand_builder.model import constraint, prop
+from golem_core.payload import Payload
 from golem_core.http_utils import make_http_get_request, make_http_head_request
-from yapapi.props.builder import DemandBuilder
 
 DEFAULT_REPO_URL_SRV: Final[str] = "_girepo._tcp.dev.golem.network"
 DEFAULT_REPO_URL_FALLBACK: Final[str] = "http://girepo.dev.golem.network:8000"
@@ -35,25 +35,25 @@ class VmPackageFormat(Enum):
 
 
 @dataclass
-class BaseVmPayload(BasePayload, ABC):
+class BaseVmPayload(Payload, ABC):
     """Declarative description of common payload parameters for "vm" runtime."""
 
-    runtime: str = constraint(inf.INF_RUNTIME_NAME, operator="=", default=inf.RUNTIME_VM)
+    runtime: str = constraint(props.RUNTIME_NAME, "=", default="vm")
+    capabilities: List[VmCaps] = constraint(
+        props.RUNTIME_CAPABILITIES, "=", default_factory=list
+    )
+
+    min_mem_gib: float = constraint(props.INF_MEM, ">=", default=0.5)
+    min_storage_gib: float = constraint(props.INF_STORAGE, ">=", default=2.0)
+    min_cpu_threads: int = constraint(props.INF_CPU_THREADS, ">=", default=1)
+
     package_format: VmPackageFormat = prop(
         "golem.srv.comp.vm.package_format", default=VmPackageFormat.GVMKIT_SQUASH
     )
 
-    min_mem_gib: float = constraint(inf.INF_MEM, operator=">=", default=0.5)
-    min_storage_gib: float = constraint(inf.INF_STORAGE, operator=">=", default=2.0)
-    min_cpu_threads: int = constraint(inf.INF_THREADS, operator=">=", default=1)
-
-    capabilities: List[VmCaps] = constraint(
-        "golem.runtime.capabilities", operator="=", default_factory=list
-    )
-
 
 @dataclass
-class _VmPayload(BasePayload, ABC):
+class _VmPayload(Payload, ABC):
     package_url: str = prop("golem.srv.comp.task_package")
 
 
@@ -65,7 +65,7 @@ class VmPayload(BaseVmPayload, _VmPayload):
 
 
 @dataclass
-class _ManifestVmPayload(BasePayload, ABC):
+class _ManifestVmPayload(Payload, ABC):
     manifest: str = prop("golem.srv.comp.payload")
     manifest_sig: Optional[str] = prop("golem.srv.comp.payload.sig", default=None)
     manifest_sig_algorithm: Optional[str] = prop(
@@ -104,11 +104,11 @@ class RepositoryVmPayload(BaseVmPayload, _RepositoryVmPayload):
 
         self.package_url = get_package_url(self.image_hash, image_url)
 
-    async def decorate_demand(self, demand: DemandBuilder):
+    async def serialize(self) -> Tuple[Dict[str, Any], str]:
         if self.package_url is None:
             await self._resolve_package_url()
 
-        return await super().decorate_demand(demand)
+        return await super(RepositoryVmPayload, self).serialize()
 
 
 async def resolve_repository_url(
