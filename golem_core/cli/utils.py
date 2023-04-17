@@ -8,17 +8,16 @@ import re
 
 from prettytable import PrettyTable
 
-from golem_core.demand_builder import props
-from golem_core.demand_builder.model import constraint
+from golem_core.core.market_api.demand_builder import constraint
 
 from golem_core import GolemNode
-from golem_core.payload import Payload
-from golem_core.low import Allocation, Demand, Proposal
+from golem_core.core.market_api.resources.demand.demand_offer_base.payload import Payload
+from ..core.resources import Allocation, Demand, Proposal
 
 
 def format_allocations(allocations: List[Allocation]) -> str:
     x = PrettyTable()
-    x.field_names = ["id", "address", "driver", "network", "total", "remaining", "timeout"]
+    x.field_names = ["id", "address", "driver", "network_api", "total", "remaining", "timeout"]
     for allocation in allocations:
         data = allocation.data
         assert data.payment_platform is not None  # mypy

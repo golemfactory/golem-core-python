@@ -5,8 +5,8 @@ from typing import Dict
 import pytest
 from dataclasses import dataclass, fields, Field
 
-from golem_core.demand_builder.model import (
-    ComputingResourceModel,
+from golem_core.core.market_api import (
+    DemandOfferBaseModel,
     prop,
     constraint,
     InvalidPropertiesError,
@@ -19,8 +19,9 @@ class ExampleEnum(Enum):
     ONE = 'one'
     TWO = 'two'
 
+
 @dataclass
-class Foo(ComputingResourceModel):
+class Foo(DemandOfferBaseModel):
     bar: str = prop("bar.dotted.path", default="cafebiba")
     max_baz: int = constraint("baz", "<=", default=100)
     min_baz: int = constraint("baz", ">=", default=1)
@@ -28,7 +29,7 @@ class Foo(ComputingResourceModel):
 
 
 @dataclass
-class FooToo(ComputingResourceModel):
+class FooToo(DemandOfferBaseModel):
     text: str = prop("some.path")
     baz: int = constraint("baz", "=", default=21)
     en: ExampleEnum = prop("some_enum", default=ExampleEnum.TWO)
@@ -42,7 +43,7 @@ class FooToo(ComputingResourceModel):
 FooTooFields: Dict[str, Field] = {f.name: f for f in fields(FooToo)}
 
 @dataclass
-class FooZero(ComputingResourceModel):
+class FooZero(DemandOfferBaseModel):
     pass
 
 
@@ -99,7 +100,7 @@ async def test_serialize(model, expected_properties, expected_constraints):
     )
 )
 def test_serialize_value(value, expected):
-    assert ComputingResourceModel.serialize_value(value) == expected
+    assert DemandOfferBaseModel.serialize_value(value) == expected
 
 @pytest.mark.parametrize(
     'value, field, expected',
@@ -122,7 +123,7 @@ def test_serialize_value(value, expected):
     )
 )
 def test_deserialize_value(value, field, expected):
-    assert ComputingResourceModel.deserialize_value(value, field) == expected
+    assert DemandOfferBaseModel.deserialize_value(value, field) == expected
 
 
 def test_from_properties():

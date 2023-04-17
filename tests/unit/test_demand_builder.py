@@ -2,12 +2,10 @@ from dataclasses import dataclass
 
 import pytest
 
-from golem_core.demand_builder.builder import DemandBuilder, DemandBuilderDecorator
-from golem_core.demand_builder.model import ComputingResourceModel, prop, constraint
-
+from golem_core.core.market_api import DemandBuilder, DemandBuilderDecorator, DemandOfferBaseModel, prop, constraint
 
 @dataclass
-class ExampleModel(ComputingResourceModel):
+class ExampleModel(DemandOfferBaseModel):
     prop1: int = prop("some.prop1.path")
     prop2: int = prop("some.prop2.path")
     con1: int = constraint("some.con1.path", "=")
@@ -49,7 +47,7 @@ async def test_create_demand(mocker):
     demand_builder = DemandBuilder()
 
     mocked_node = mocker.Mock()
-    mocked_demand = mocker.patch('golem_core.demand_builder.builder.Demand', **{
+    mocked_demand = mocker.patch('golem_core.core.market_api.resources.demand.demand_builder.Demand', **{
         'create_from_properties_constraints': mocker.AsyncMock(return_value='foobar')
     })
 

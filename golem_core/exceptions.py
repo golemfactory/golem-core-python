@@ -1,0 +1,2 @@
+class BaseGolemException(Exception):
+    pass

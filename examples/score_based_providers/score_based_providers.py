@@ -3,14 +3,16 @@ from datetime import timedelta
 from typing import Callable, Dict, Optional, Tuple
 
 from golem_core import GolemNode, commands, RepositoryVmPayload
-from golem_core.low import Activity, Proposal
+from golem_core.core import Activity, Proposal
 
-from golem_core.mid import (
+from golem_core.pieline import (
     Buffer,
     Chain,
     Map,
     Limit,
     SimpleScorer,
+)
+from golem_core.core.market_api.pipeline.defaults import (
     default_negotiate,
     default_create_agreement,
     default_create_activity,

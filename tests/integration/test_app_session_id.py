@@ -2,8 +2,8 @@ import pytest
 import asyncio
 
 from golem_core import GolemNode
-from golem_core.events import ResourceEvent
-from golem_core.low import DebitNote, Invoice
+from golem_core.core.events import ResourceEvent
+from golem_core.core import DebitNote, Invoice
 
 from .helpers import get_activity
 
@@ -32,7 +32,7 @@ async def test_app_session_id(kwargs: dict, has_events: bool) -> None:
             pass
 
         #   TODO: This is not great because test might sometimes fail when there is
-        #         a network delay, and usually it will take too long.
+        #         a network_api delay, and usually it will take too long.
         #         This can be improved: don't wait a fixed time, only wait until
         #         `other_golem` got expected events.
         await asyncio.sleep(3)
