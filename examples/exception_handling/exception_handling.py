@@ -5,7 +5,7 @@ from golem_core.core.golem_node import GolemNode
 from golem_core.utils.logging import DefaultLogger
 from golem_core.core.payment_api import DefaultPaymentManager
 from golem_core.core.activity_api import commands, Activity, BatchError, BatchTimeoutError
-from golem_core.pieline import (
+from golem_core.pipeline import (
     Buffer,
     Chain,
     Limit,

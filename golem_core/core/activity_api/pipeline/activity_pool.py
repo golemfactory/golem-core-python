@@ -4,7 +4,7 @@ from typing import AsyncIterator, Awaitable, List, Union
 
 from golem_core.core.activity_api.resources import Activity
 
-from golem_core.pieline.exceptions import InputStreamExhausted
+from golem_core.pipeline.exceptions import InputStreamExhausted
 
 
 class ActivityPool:
@@ -13,7 +13,7 @@ class ActivityPool:
     Sample usage::
 
         from golem_core import GolemNode
-        from golem_core.pieline import Chain, Buffer, Map, ActivityPool
+        from golem_core.pipeline import Chain, Buffer, Map, ActivityPool
         from golem_core.commands import Run
 
         async def say_hi(activity_api):

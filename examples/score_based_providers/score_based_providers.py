@@ -12,7 +12,7 @@ from golem_core.core.market_api import (
     default_create_agreement, default_create_activity,
 )
 from golem_core.core.payment_api import DefaultPaymentManager
-from golem_core.pieline import (
+from golem_core.pipeline import (
     Buffer,
     Chain,
     Map,

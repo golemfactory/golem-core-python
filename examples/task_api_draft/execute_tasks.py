@@ -5,7 +5,7 @@ from datetime import timedelta
 from golem_core.core.activity_api import Activity, ActivityPool, default_prepare_activity
 from golem_core.core.golem_node import GolemNode
 from golem_core.core.payment_api import DefaultPaymentManager
-from golem_core.pieline import (
+from golem_core.pipeline import (
     Buffer, Chain, Map, Zip,
 )
 from golem_core.core.market_api import (

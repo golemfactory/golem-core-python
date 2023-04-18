@@ -9,7 +9,7 @@ from golem_core.core.golem_node import GolemNode
 from golem_core.core.market_api import Proposal, SimpleScorer
 from golem_core.core.payment_api import DebitNote, DefaultPaymentManager
 from golem_core.core.resources import NewResource, ResourceClosed
-from golem_core.pieline import (
+from golem_core.pipeline import (
     Buffer, Chain, Map, Zip,
 )
 from golem_core.core.market_api.pipeline.defaults import (

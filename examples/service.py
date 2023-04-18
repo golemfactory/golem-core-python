@@ -9,7 +9,7 @@ from golem_core.core.activity_api import Activity, commands
 from golem_core.core.golem_node import GolemNode
 from golem_core.core.market_api import RepositoryVmPayload
 from golem_core.core.network_api import Network
-from golem_core.pieline import (
+from golem_core.pipeline import (
     Buffer, Chain, Limit, Map
 )
 from golem_core.core.market_api.pipeline.defaults import (

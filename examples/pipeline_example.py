@@ -7,7 +7,7 @@ from golem_core.core.activity_api import Activity, commands, ActivityPool
 from golem_core.core.golem_node import GolemNode
 from golem_core.core.market_api import RepositoryVmPayload, Proposal, SimpleScorer
 from golem_core.core.payment_api import DefaultPaymentManager
-from golem_core.pieline import (
+from golem_core.pipeline import (
     Buffer, Chain, Map, Zip,
 )
 from golem_core.core.market_api.pipeline.defaults import (

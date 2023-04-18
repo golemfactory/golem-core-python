@@ -2,7 +2,7 @@ from typing import Any, AsyncIterator, Callable
 
 
 class Chain():
-    """Wrapper class for pieline-level components that utilize the pipes and filters pattern.
+    """Wrapper class for pipeline-level components that utilize the pipes and filters pattern.
 
     Sample usage::
 
@@ -21,7 +21,7 @@ class Chain():
     A more Golem-specific usage::
 
         from golem_core import GolemNode, RepositoryVmPayload
-        from golem_core.pieline import (
+        from golem_core.pipeline import (
             Buffer, Chain, Map,
             default_negotiate, default_create_agreement, default_create_activity
         )
