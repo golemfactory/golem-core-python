@@ -5,7 +5,7 @@ from typing import List, TYPE_CHECKING
 
 from ya_activity import models
 
-from golem_core.core.activity_api.commands import Command
+from golem_core.core.activity_api.commands import Command, Script
 from golem_core.core.activity_api.resources import PoolingBatch
 from golem_core.core.payment_api import DebitNote
 from golem_core.core.resources import ResourceClosed, ActivityApi, Resource, api_call_wrapper, _NULL

@@ -4,21 +4,21 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Dict, Optional, Tuple
 
-from golem_core import GolemNode, commands, RepositoryVmPayload
-from golem_core.default_logger import DefaultLogger
-from golem_core.default_payment_manager import DefaultPaymentManager
-from golem_core.core.activity_api import Activity
-from golem_core.core.market_api import Proposal
+from golem_core.core.golem_node import GolemNode
+from golem_core.utils.logging import DefaultLogger
+from golem_core.core.payment_api import DefaultPaymentManager
+from golem_core.core.activity_api import commands, Activity
 from golem_core.pieline import (
     Buffer,
     Chain,
     Limit,
     Map,
 )
-from golem_core.core.market_api.pipeline.defaults import (
+from golem_core.core.market_api import (
     default_negotiate,
     default_create_agreement,
     default_create_activity,
+    RepositoryVmPayload, Proposal,
 )
 
 FRAME_CONFIG_TEMPLATE = json.loads(Path("frame_params.json").read_text())

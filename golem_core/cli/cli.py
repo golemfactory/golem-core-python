@@ -4,9 +4,7 @@ from typing import Optional
 import click
 
 
-
-from golem_core import GolemNode
-from golem_core.core.golem_node import PAYMENT_DRIVER, PAYMENT_NETWORK, SUBNET
+from golem_core.core.golem_node import GolemNode, SUBNET, PAYMENT_DRIVER, PAYMENT_NETWORK
 from golem_core.cli.utils import (
     format_allocations, format_demands, format_proposals,
     CliPayload, async_golem_wrapper, parse_timedelta_str

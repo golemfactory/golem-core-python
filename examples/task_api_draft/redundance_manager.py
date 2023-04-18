@@ -2,8 +2,8 @@ import asyncio
 from typing import AsyncIterator, Awaitable, Callable, DefaultDict, List, Optional, Set, Tuple, TypeVar
 from collections import Counter, defaultdict
 
-from golem_core.core import Activity, Proposal
-
+from golem_core.core.activity_api import Activity
+from golem_core.core.market_api import Proposal
 from .task_data_stream import TaskDataStream
 
 TaskData = TypeVar("TaskData")

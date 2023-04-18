@@ -8,11 +8,11 @@ import re
 
 from prettytable import PrettyTable
 
-from golem_core.core.market_api.demand_builder import constraint
+from golem_core.core.market_api import constraint, RUNTIME_NAME
 
-from golem_core import GolemNode
-from golem_core.core.market_api.resources.demand.demand_offer_base.payload import Payload
-from ..core.resources import Allocation, Demand, Proposal
+from golem_core.core.golem_node import GolemNode
+from golem_core.core.market_api import Payload, Demand, Proposal
+from golem_core.core.payment_api import Allocation
 
 
 def format_allocations(allocations: List[Allocation]) -> str:
@@ -80,7 +80,7 @@ def format_proposals(proposals: List[Proposal], first: bool) -> str:
 
 @dataclass
 class CliPayload(Payload):
-    runtime: str = constraint(props.RUNTIME_NAME, default=MISSING)
+    runtime: str = constraint(RUNTIME_NAME, default=MISSING)
 
 
 def parse_timedelta_str(timedelta_str: str) -> float:

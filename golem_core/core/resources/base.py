@@ -23,8 +23,8 @@ R = TypeVar("R")
 
 TResource = TypeVar("TResource", bound="Resource")
 TModel = TypeVar("TModel")
-TParent = TypeVar("TParent", bound="Resource")
-TChild = TypeVar("TChild", bound="Resource")
+TParent = TypeVar("TParent")
+TChild = TypeVar("TChild")
 TEvent = TypeVar("TEvent")
 
 
@@ -32,7 +32,6 @@ class _NULL:
     """Set this as a type to tell the typechecker that call is just invalid.
 
     This might be ugly, but keeps Resource inheritance tree simple."""
-
 
 
 def api_call_wrapper(
@@ -133,7 +132,7 @@ class Resource(
 
     async def child_aiter(self) -> AsyncIterator[TChild]:
         """Yields children. Stops when :class:`Resource` knows there will be no more children."""
-        async def no_more_children() -> None:  # type: ignore  # missing return statement?
+        async def no_more_children() -> None:  # missing return statement?
             await self._no_more_children
 
         stop_task = asyncio.create_task(no_more_children())

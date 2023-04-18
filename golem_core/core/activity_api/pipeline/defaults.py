@@ -1,5 +1,5 @@
 from golem_core.core.activity_api.commands import Deploy, Start
-from golem_core.core.resources import Activity
+from golem_core.core.activity_api import Activity
 
 
 async def default_prepare_activity(activity: Activity) -> Activity:

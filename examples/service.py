@@ -5,7 +5,10 @@ from typing import Awaitable, Callable, Tuple
 from uuid import uuid4
 from urllib.parse import urlparse
 
-from golem_core import GolemNode, commands, RepositoryVmPayload
+from golem_core.core.activity_api import Activity, commands
+from golem_core.core.golem_node import GolemNode
+from golem_core.core.market_api import RepositoryVmPayload
+from golem_core.core.network_api import Network
 from golem_core.pieline import (
     Buffer, Chain, Limit, Map
 )
@@ -14,9 +17,7 @@ from golem_core.core.market_api.pipeline.defaults import (
     default_create_agreement,
     default_create_activity,
 )
-from golem_core.default_logger import DefaultLogger
-
-from golem_core.core import Activity, Network
+from golem_core.utils.logging import DefaultLogger
 
 PAYLOAD = RepositoryVmPayload(
     "1e06505997e8bd1b9e1a00bd10d255fc6a390905e4d6840a22a79902",

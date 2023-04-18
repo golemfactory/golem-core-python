@@ -10,7 +10,7 @@ from golem_core.core.resources import ActivityApi, YagnaEventCollector, Resource
 
 if TYPE_CHECKING:
     from golem_core.core.activity_api.resources.activity import Activity
-    from golem_core import GolemNode
+    from golem_core.core.golem_node import GolemNode
 
 
 class PoolingBatch(

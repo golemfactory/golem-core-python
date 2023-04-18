@@ -10,7 +10,7 @@ from golem_core.core.payment_api import Invoice
 from golem_core.core.resources import Resource, ResourceClosed, api_call_wrapper, _NULL
 
 if TYPE_CHECKING:
-    pass
+    from golem_core.core.market_api.resources.proposal import Proposal
 
 
 class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _NULL]):

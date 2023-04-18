@@ -1,14 +1,15 @@
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Optional
 
-from golem_core import GolemNode, RepositoryVmPayload
+from golem_core.core.golem_node import GolemNode
+from golem_core.core.market_api import RepositoryVmPayload
 from golem_core.pieline import Chain, Map
 from golem_core.core.market_api.pipeline.defaults import (
     default_negotiate,
     default_create_agreement,
     default_create_activity,
 )
-from golem_core.core import Activity
+from golem_core.core.activity_api import Activity
 
 ANY_PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 

@@ -3,20 +3,19 @@ from datetime import timedelta
 from random import random
 from typing import AsyncIterator, Callable, Tuple
 
-from golem_core import GolemNode, commands, RepositoryVmPayload
-from golem_core.core import Activity, Proposal
-
+from golem_core.core.activity_api import Activity, commands, ActivityPool
+from golem_core.core.golem_node import GolemNode
+from golem_core.core.market_api import RepositoryVmPayload, Proposal, SimpleScorer
+from golem_core.core.payment_api import DefaultPaymentManager
 from golem_core.pieline import (
     Buffer, Chain, Map, Zip,
-    ActivityPool, SimpleScorer,
 )
 from golem_core.core.market_api.pipeline.defaults import (
     default_negotiate,
     default_create_agreement,
     default_create_activity,
 )
-from golem_core.default_logger import DefaultLogger
-from golem_core.default_payment_manager import DefaultPaymentManager
+from golem_core.utils.logging import DefaultLogger
 
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 

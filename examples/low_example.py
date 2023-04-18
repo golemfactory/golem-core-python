@@ -4,11 +4,10 @@ from tempfile import TemporaryDirectory
 from os import path
 from typing import AsyncGenerator, Optional
 
-import golem_core.core.resources.events
-from golem_core import GolemNode, commands, Script, RepositoryVmPayload
-from golem_core.core.events import ResourceEvent
-from golem_core.core import Activity
-from golem_core.core.activity_api.exceptions import BatchError, CommandFailed, CommandCancelled
+from golem_core.core.activity_api import Activity, commands, Script, CommandFailed, CommandCancelled, BatchError
+from golem_core.core.golem_node import GolemNode
+from golem_core.core.market_api import RepositoryVmPayload
+from golem_core.core.resources import ResourceEvent, NewResource, ResourceClosed
 
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
@@ -121,9 +120,8 @@ async def example_5() -> None:
     assert got_events[0].resource == allocation
     assert got_events[1].resource == allocation
 
-    from golem_core import events
-    assert isinstance(got_events[0], golem_core.core.resources.events.NewResource)
-    assert isinstance(got_events[1], golem_core.core.resources.events.ResourceClosed)
+    assert isinstance(got_events[0], NewResource)
+    assert isinstance(got_events[1], ResourceClosed)
 
 
 async def example_6() -> None:

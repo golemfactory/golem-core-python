@@ -2,8 +2,9 @@ import asyncio
 import json
 from pathlib import Path
 
-from golem_core import commands, execute_tasks, RepositoryVmPayload
-from golem_core.core import Activity
+from examples.task_api_draft.execute_tasks import execute_tasks
+from golem_core.core.activity_api import Activity, commands
+from golem_core.core.market_api import RepositoryVmPayload
 
 FRAME_CONFIG_TEMPLATE = json.loads(Path("frame_params.json").read_text())
 FRAMES = list(range(0, 60, 10))

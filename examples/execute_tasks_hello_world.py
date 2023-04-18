@@ -1,6 +1,8 @@
 import asyncio
-from golem_core import commands, execute_tasks, RepositoryVmPayload
-from golem_core.core import Activity
+
+from examples.task_api_draft.execute_tasks import execute_tasks
+from golem_core.core.activity_api import Activity, commands
+from golem_core.core.market_api import RepositoryVmPayload
 
 TASK_DATA = list(range(7))
 BUDGET = 1
