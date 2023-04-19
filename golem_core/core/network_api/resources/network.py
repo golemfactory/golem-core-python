@@ -27,16 +27,16 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
 
     Sample usage::
 
-        activity_api: Activity
-        network_api = await golem.create_network()
+        activity: Activity
+        network = await golem.create_network()
 
-        provider_id = activity_api.parent.parent.data.issuer_id
-        ip = await network_api.create_node(provider_id)
+        provider_id = activity.parent.parent.data.issuer_id
+        ip = await network.create_node(provider_id)
 
-        deploy_args = {"net": [network_api.deploy_args(ip)]}
-        await activity_api.execute_commands(commands.Deploy(deploy_args))
+        deploy_args = {"net": [network.deploy_args(ip)]}
+        await activity.execute_commands(commands.Deploy(deploy_args))
 
-        #   activity_api can now be accessed from other nodes in the network_api
+        #   activity can now be accessed from other nodes in the network
 
     """
 
@@ -64,18 +64,18 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
 
     @api_call_wrapper(ignore=[404])
     async def remove(self) -> None:
-        """Remove the network_api."""
+        """Remove the network."""
         await self.api.remove_network(self.id)
         self.node.event_bus.emit(ResourceClosed(self))
 
     @api_call_wrapper()
     async def create_node(self, provider_id: str, node_ip: Optional[str] = None) -> str:
-        """Add a node to the network_api.
+        """Add a node to the network.
 
         :param provider_id: ID of the provider who hosts the :any:`Activity` that will
             be connected to the new node.
-        :param node_ip: IP of the node in the network_api, by default next free IP will be used.
-        :return: IP of the node in the network_api.
+        :param node_ip: IP of the node in the network, by default next free IP will be used.
+        :return: IP of the node in the network.
         """
         #   Q: Why is there no `Node` class?
         #   A: Mostly because yagna nodes don't have proper IDs (they are just provider_ids), and this
@@ -97,7 +97,7 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
 
     @api_call_wrapper()
     async def refresh_nodes(self) -> None:
-        """Propagates the information about created nodes to the network_api (TODO: more precise explanation maybe?)."""
+        """Propagates the information about created nodes to the network (TODO: more precise explanation maybe?)."""
         tasks = []
         for ip, provider_id in self._nodes.items():
             data = models.Node(id=provider_id, ip=ip)  # type: ignore  # mypy, why?
@@ -105,14 +105,14 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
         await asyncio.gather(*tasks)
 
     def deploy_args(self, ip: str) -> DeployArgsType:
-        """A data structure that should be passed to :any:`Deploy` to make an :any:`Activity` a part of the network_api.
+        """A data structure that should be passed to :any:`Deploy` to make an :any:`Activity` a part of the network.
 
-        :param ip: IP of the previously created network_api node.
+        :param ip: IP of the previously created network node.
 
         Sample usage::
 
-            deploy_args = {"net": [network_api.deploy_args(ip)]}
-            await activity_api.execute_commands(commands.Deploy(deploy_args))
+            deploy_args = {"net": [network.deploy_args(ip)]}
+            await activity.execute_commands(commands.Deploy(deploy_args))
 
         """
         return {

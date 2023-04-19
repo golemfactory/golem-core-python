@@ -1,8 +1,9 @@
 import logging
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-from ..core.events import Event
+if TYPE_CHECKING:
+    from golem_core.events import Event
 
 
 class _YagnaDatetimeFormatter(logging.Formatter):
@@ -64,6 +65,6 @@ class DefaultLogger:
 
         return logger
 
-    async def on_event(self, event: Event) -> None:
+    async def on_event(self, event: "Event") -> None:
         """Callback that can be passed to :any:`EventBus.listen`."""
         self.logger.info(event)

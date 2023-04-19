@@ -15,12 +15,11 @@ class DemandBuilder:
     example usage:
 
     ```python
-import golem_core.core.activity_api.resources.activity_api    >>> from golem_core.core.demand_builder import props
-    >>> from golem_core.core.market_api import DemandBuilder
+    >>> from golem_core.core.market_api import DemandBuilder, defaults
     >>> from datetime import datetime, timezone
     >>> builder = DemandBuilder()
-    >>> await builder.add(props.NodeInfo(name="a node", subnet_tag="testnet"))
-    >>> await builder.add(golem_core.core.activity_api.resources.activity_api.Activity(expiration=datetime.now(timezone.utc)))
+    >>> await builder.add(defaults.NodeInfo(name="a node", subnet_tag="testnet"))
+    >>> await builder.add(defaults.Activity(expiration=datetime.now(timezone.utc)))
     >>> print(builder)
     {'properties':
         {'golem.node.id.name': 'a node',

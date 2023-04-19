@@ -139,7 +139,7 @@ async def example_6() -> None:
 
 @asynccontextmanager
 async def get_activity(golem: Optional[GolemNode] = None) -> AsyncGenerator[Activity, None]:
-    """Create a single activity_api"""
+    """Create a single activity"""
     if golem is None:
         golem = GolemNode()
 
@@ -175,7 +175,7 @@ async def get_activity(golem: Optional[GolemNode] = None) -> AsyncGenerator[Acti
 
 
 async def example_7() -> None:
-    """Use the direct interface of the activity_api"""
+    """Use the direct interface of the activity"""
     async with get_activity() as activity:
         assert activity.idle
         batch = await activity.execute_commands(

@@ -28,8 +28,8 @@ import semantic_version
 from async_exit_stack import AsyncExitStack
 from typing_extensions import Literal, Protocol, TypedDict
 
-from .common import Content, Destination, Source, StorageProvider
-from .utils import strtobool
+from golem_core.utils.storage.common import Content, Destination, Source, StorageProvider
+from golem_core.utils.storage.utils import strtobool
 
 _logger = logging.getLogger(__name__)
 

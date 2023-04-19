@@ -19,7 +19,6 @@ class ExampleEnum(Enum):
     ONE = 'one'
     TWO = 'two'
 
-
 @dataclass
 class Foo(DemandOfferBaseModel):
     bar: str = prop("bar.dotted.path", default="cafebiba")

@@ -31,13 +31,13 @@ async def prepare_activity(activity: Activity) -> Activity:
         commands.Run(["/bin/echo", "-n", f"ACTIVITY {activity.id} IS READY"]),
     )
     await batch.wait(timeout=10)
-    assert batch.events[-1].stdout is not None and "IS READY" in batch.events[-1].stdout, "Prepare activity_api failed"
+    assert batch.events[-1].stdout is not None and "IS READY" in batch.events[-1].stdout, "Prepare activity failed"
     print(batch.events[-1].stdout)
     return activity
 
 
 async def execute_task(activity: Activity, task_data: int) -> str:
-    assert activity.idle, f"Got a non-idle activity_api {activity}"
+    assert activity.idle, f"Got a non-idle activity {activity}"
     command = commands.Run(["/bin/echo", "-n", f"Executed task {task_data} on {activity}"])
     batch = await activity.execute_commands(command)
     await batch.wait(timeout=3)

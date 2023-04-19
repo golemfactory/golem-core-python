@@ -48,7 +48,7 @@ python3 -m golem_core find-node --runtime vm --timeout 1m # stops after 60 secon
 python3 -m golem_core allocation list
 
 python3 -m golem_core allocation new 1
-python3 -m golem_core allocation new 2 --driver erc20 --network_api rinkeby
+python3 -m golem_core allocation new 2 --driver erc20 --network rinkeby
 
 python3 -m golem_core allocation clean
 ```

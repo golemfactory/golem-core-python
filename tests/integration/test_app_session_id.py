@@ -32,7 +32,7 @@ async def test_app_session_id(kwargs: dict, has_events: bool) -> None:
             pass
 
         #   TODO: This is not great because test might sometimes fail when there is
-        #         a network_api delay, and usually it will take too long.
+        #         a network delay, and usually it will take too long.
         #         This can be improved: don't wait a fixed time, only wait until
         #         `other_golem` got expected events.
         await asyncio.sleep(3)

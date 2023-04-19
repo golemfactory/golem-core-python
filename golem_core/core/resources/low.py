@@ -23,7 +23,7 @@ DEFAULT_YAGNA_API_URL: Final[str] = "http://127.0.0.1:7465"
 
 @dataclass
 class ApiConfig:
-    """Yagna core level API configuration.
+    """Yagna low level API configuration.
 
     Attributes:
         app_key: Yagna application key.
@@ -55,10 +55,10 @@ class ApiConfig:
             raise MissingConfiguration(
                 key="YAGNA_APPKEY", description="API authentication token"
             )
-        self.market_url: str = self.__resolve_url(self.market_url, "/market_api-api/v1")
-        self.payment_url: str = self.__resolve_url(self.payment_url, "/payment_api-api/v1")
+        self.market_url: str = self.__resolve_url(self.market_url, "/market-api/v1")
+        self.payment_url: str = self.__resolve_url(self.payment_url, "/payment-api/v1")
         self.activity_url: str = self.__resolve_url(
-            self.activity_url, "/activity_api-api/v1"
+            self.activity_url, "/activity-api/v1"
         )
         self.net_url: str = self.__resolve_url(self.net_url, "/net-api/v1")
 

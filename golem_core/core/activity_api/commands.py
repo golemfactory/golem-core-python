@@ -22,7 +22,7 @@ class Command(ABC):
 
     @abstractmethod
     def args_dict(self) -> ArgsDict:
-        """TODO"""
+        raise NotImplementedError
 
     async def before(self) -> None:
         pass

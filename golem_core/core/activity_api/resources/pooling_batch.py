@@ -21,7 +21,7 @@ class PoolingBatch(
 
     Usage::
 
-        batch = activity_api.execute_commands(Deploy(), Start())
+        batch = activity.execute_commands(Deploy(), Start())
         await batch.wait()
         for event in batch.events:
             print(event.stdout)
@@ -87,7 +87,7 @@ class PoolingBatch(
         When the batch is :any:`done`:
 
         * If the batch is a :any:`success`, there will be a single event for every command.
-        * If not, there will be a single event for every succesful command followed by
+        * If not, there will be a single event for every successful command followed by
           an event for the command that failed.
 
         If the batch is not :any:`done`, events for already finished commands will be returned.
@@ -101,7 +101,7 @@ class PoolingBatch(
             await super()._collect_yagna_events()
         except Exception:
             #   This happens when activity_api is destroyed when we're waiting for batch results
-            #   (I'm not sure if always - for sure when provider destroys activity_api because
+            #   (I'm not sure if always - for sure when provider destroys activity because
             #   agreement timed out). Maybe some other scenarios are also possible.
             self._set_finished()
 

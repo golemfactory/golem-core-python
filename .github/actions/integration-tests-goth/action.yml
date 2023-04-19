@@ -27,7 +27,7 @@ runs:
         poetry env use python${{ inputs.PYTHON_VERSION }}
         poetry install
 
-    - name: Disconnect Docker containers from default network_api
+    - name: Disconnect Docker containers from default network
       shell: bash
       continue-on-error: true
       # related to this issue: https://github.com/moby/moby/issues/23302
@@ -50,7 +50,7 @@ runs:
       shell: bash
       run: echo ${{ inputs.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${{github.actor}} --password-stdin
 
-    - name: Setup goth golem network_api
+    - name: Setup goth golem network
       shell: bash
       env:
         GITHUB_API_TOKEN: ${{ inputs.GITHUB_TOKEN }}
@@ -66,7 +66,7 @@ runs:
       continue-on-error: true
       run: docker rm --force $(docker ps -a -q)
 
-    - name: Stop goth network_api
+    - name: Stop goth network
       shell: bash
       if: always()
       continue-on-error: true

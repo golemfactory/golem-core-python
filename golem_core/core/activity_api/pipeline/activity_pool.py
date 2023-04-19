@@ -16,16 +16,16 @@ class ActivityPool:
         from golem_core.pipeline import Chain, Buffer, Map, ActivityPool
         from golem_core.commands import Run
 
-        async def say_hi(activity_api):
-            batch = await activity_api.execute_commands(Run(f"echo -n 'Hi, this is {activity_api}'"))
+        async def say_hi(activity):
+            batch = await activity.execute_commands(Run(f"echo -n 'Hi, this is {activity}'"))
             await batch.wait(10)
             return batch.events[0].stdout
 
         async with GolemNode() as golem:
             async def activity_stream():
                 #   This assumes we have some ready activities with known ids
-                yield golem.activity_api(first_activity_id)
-                yield golem.activity_api(second_activity_id)
+                yield golem.activity(first_activity_id)
+                yield golem.activity(second_activity_id)
 
             async for result in Chain(
                 activity_stream(),
@@ -51,7 +51,7 @@ class ActivityPool:
     def __init__(self, max_size: int = 1):
         """
         :param max_size: Maximal size of the ActivityPool. Actual size can be lower - it grows only when
-            ActivityPool is asked for an activity_api and there is no idle activity_api that can be returned
+            ActivityPool is asked for an activity and there is no idle activity that can be returned
             immediately.
         """
         self.max_size = max_size
@@ -76,11 +76,11 @@ class ActivityPool:
             yield self._get_next_idle_activity(activity_stream)
 
     def _create_manager_task(self, future_activity: Awaitable[Activity]) -> None:
-        #   Create an activity_api manager task
+        #   Create an activity manager task
         manager_task = asyncio.create_task(self._manage_activity(future_activity))
         self._activity_manager_tasks.append(manager_task)
 
-        #   Create a separate task that will stop the manager task when activity_api is destroyed
+        #   Create a separate task that will stop the manager task when activity is destroyed
         asyncio.create_task(self._activity_destroyed_cleanup(manager_task, future_activity))
 
     async def _activity_destroyed_cleanup(

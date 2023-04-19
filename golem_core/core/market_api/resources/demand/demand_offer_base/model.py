@@ -172,8 +172,7 @@ def prop(key: str, *, default: Any = dataclasses.MISSING, default_factory: Any =
     example:
     ```python
     >>> from dataclasses import dataclass
-    >>> from golem_core.core.demand_builder.model import DemandOfferBaseModel, prop
-    >>> from golem_core.core.demand_builder.builder import DemandBuilder
+    >>> from golem_core.core.market_api import DemandOfferBaseModel, prop, DemandBuilder
     >>>
     >>> @dataclass
     ... class Foo(DemandOfferBaseModel):
@@ -213,8 +212,7 @@ def constraint(
     example:
     ```python
     >>> from dataclasses import dataclass
-    >>> from golem_core.core.demand_builder.model import DemandOfferBaseModel, constraint
-    >>> from golem_core.core.demand_builder.builder import DemandBuilder
+    >>> from golem_core.core.market_api import DemandOfferBaseModel, constraint, DemandBuilder
     >>>
     >>> @dataclass
     ... class Foo(DemandOfferBaseModel):
@@ -256,7 +254,7 @@ def join_str_constraints(
     example:
     ```python
     >>> from dataclasses import dataclass
-    >>> from golem_core.core.demand_builder.model import join_str_constraints
+    >>> from golem_core.core.market_api import join_str_constraints
     >>>
     >>> min_bar = '(bar>=42)'
     >>> max_bar = '(bar<=128)'

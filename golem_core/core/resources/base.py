@@ -94,7 +94,7 @@ class Resource(
         self._events: List[TEvent] = []
 
         #   When this is done, we know self._children will never change again
-        #   This is set by particular core depending on their internal logic,
+        #   This is set by particular resources depending on their internal logic,
         #   and consumed in Resource.child_aiter().
         self._no_more_children: asyncio.Future = asyncio.Future()
 
@@ -188,7 +188,7 @@ class Resource(
         Raises :class:`RuntimeError` if data was never fetched.
 
         NOTE: `data` might be available even without a prior call to :func:`get_data`
-        because some core (e.g. initial :any:`Proposal`) are fetched from `yagna`
+        because some resources (e.g. initial :any:`Proposal`) are fetched from `yagna`
         with full data right away.
         """
         if self._data is None:

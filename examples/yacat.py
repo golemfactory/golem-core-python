@@ -56,7 +56,7 @@ async def gather_debit_note_log(event: NewResource) -> None:
     debit_note: DebitNote = event.resource  # type: ignore
     activity_id = (await debit_note.get_data()).activity_id
     if not any(activity.id == activity_id for activity in activity_data):
-        #   This is a debit note for an unknown activity_api (e.g. from a previous run)
+        #   This is a debit note for an unknown activity (e.g. from a previous run)
         return
 
     activity = debit_note.node.activity(activity_id)
@@ -69,7 +69,7 @@ async def gather_debit_note_log(event: NewResource) -> None:
 async def note_activity_destroyed(event: ResourceClosed) -> None:
     activity: Activity = event.resource  # type: ignore
     if activity not in activity_data:
-        #   Destoyed activity_api from a previous run
+        #   Destoyed activity from a previous run
         return
 
     current_status = activity_data[activity]['status']
@@ -82,7 +82,7 @@ async def update_new_activity_status(event: NewResource) -> None:
     activity_data[activity]['status'] = 'new'
 
     if not activity.has_parent:
-        activity_data[activity]['status'] = 'old run activity_api'
+        activity_data[activity]['status'] = 'old run activity'
 
         #   This is an Activity from some other run
         #   (this will not happen in the future, session ID will prevent this)

@@ -101,5 +101,5 @@ class ResourceClosed(ResourceEvent):
     Currently this is not true for :any:`Activity` - this is a known TODO
     (https://github.com/golemfactory/golem-core-python/issues/33).
 
-    Not all core are closed, e.g. :any:`PoolingBatch` is not.
+    Not all resources are closed, e.g. :any:`PoolingBatch` is not.
     """

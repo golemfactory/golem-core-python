@@ -29,20 +29,20 @@ class NodeInfo(DemandOfferBaseModel):
 class Activity(DemandOfferBaseModel):
     """Activity-related Properties."""
 
-    cost_cap: Optional[Decimal] = prop("golem.activity_api.cost_cap", default=None)
+    cost_cap: Optional[Decimal] = prop("golem.activity.cost_cap", default=None)
     """Sets a Hard cap on total cost of the Activity (regardless of the usage vector or
     pricing function). The Provider is entitled to 'kill' an Activity which exceeds the
     capped cost amount indicated by Requestor.
     """
 
-    cost_warning: Optional[Decimal] = prop("golem.activity_api.cost_warning", default=None)
+    cost_warning: Optional[Decimal] = prop("golem.activity.cost_warning", default=None)
     """Sets a Soft cap on total cost of the Activity (regardless of the usage vector or
     pricing function). When the cost_warning amount is reached for the Activity,
     the Provider is expected to send a Debit Note to the Requestor, indicating
     the current amount due
     """
 
-    timeout_secs: Optional[float] = prop("golem.activity_api.timeout_secs", default=None)
+    timeout_secs: Optional[float] = prop("golem.activity.timeout_secs", default=None)
     """A timeout value for batch computation (eg. used for container-based batch
     processes). This property allows to set the timeout to be applied by the Provider
     when running a batch computation: the Requestor expects the Activity to take
@@ -52,6 +52,6 @@ class Activity(DemandOfferBaseModel):
     """
 
     expiration: Optional[datetime] = prop("golem.srv.comp.expiration", default=None)
-    multi_activity: Optional[bool] = prop("golem.srv.caps.multi-activity_api", default=None)
-    """Whether client supports multi_activity (executing more than one activity_api per agreement).
+    multi_activity: Optional[bool] = prop("golem.srv.caps.multi-activity", default=None)
+    """Whether client supports multi_activity (executing more than one activity per agreement).
     """

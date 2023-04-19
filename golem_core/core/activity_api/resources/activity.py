@@ -68,7 +68,7 @@ class Activity(Resource[ActivityApi, _NULL, "Agreement", PoolingBatch, _NULL]):
 
     @property
     def destroyed(self) -> bool:
-        """True after a succesful call to :func:`destroy`."""
+        """True after a successful call to :func:`destroy`."""
         return self._destroyed_event.is_set()
 
     ####################

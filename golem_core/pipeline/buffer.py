@@ -42,8 +42,8 @@ class Buffer(Generic[DataType]):
             In most Golem-specific scenarios buffer size will correspond to things like
             "how many agreements are negotiated at the same time", so usually the higher the size:
 
-            * The faster we'll be able to create and utilize core
-            * The higher chance for "useless" core (e.g. we might be creating multiple agreements
+            * The faster we'll be able to create and utilize resources
+            * The higher chance for "useless" resources (e.g. we might be creating multiple agreements
               even when there is only a single task left)
             * The higher workload for the local machine (more asyncio tasks) and yagna (more requests)
         """

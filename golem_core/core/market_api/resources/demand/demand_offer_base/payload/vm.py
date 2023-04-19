@@ -9,14 +9,12 @@ from dns.exception import DNSException
 from srvresolver.srv_record import SRVRecord
 from srvresolver.srv_resolver import SRVResolver
 
-from golem_core.core.market_api.resources.demand.demand_offer_base import defaults
 from golem_core.utils.http import make_http_get_request, make_http_head_request
-
+from golem_core.core.market_api.resources.demand.demand_offer_base import defaults
 from golem_core.core.market_api.resources.demand.demand_offer_base.model import constraint, prop
-
 from golem_core.core.market_api.resources.demand.demand_offer_base.payload.base import Payload
 
-DEFAULT_REPO_URL_SRV: Final[str] = "_girepo._tcp.dev.golem.network_api"
+DEFAULT_REPO_URL_SRV: Final[str] = "_girepo._tcp.dev.golem.network"
 DEFAULT_REPO_URL_FALLBACK: Final[str] = "http://girepo.dev.golem.network:8000"
 DEFAULT_REPO_URL_TIMEOUT: Final[timedelta] = timedelta(seconds=10)
 

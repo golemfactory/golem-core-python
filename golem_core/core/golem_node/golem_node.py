@@ -17,7 +17,7 @@ from golem_core.core.network_api import Network
 
 PAYMENT_DRIVER: str = os.getenv("YAGNA_PAYMENT_DRIVER", "erc20").lower()
 PAYMENT_NETWORK: str = os.getenv("YAGNA_PAYMENT_NETWORK", "rinkeby").lower()
-SUBNET: str = os.getenv("YAGNA_SUBNET", "public").lower()
+SUBNET: str = os.getenv("YAGNA_SUBNET", "public")
 
 DEFAULT_EXPIRATION_TIMEOUT = timedelta(seconds=1800)
 
@@ -90,7 +90,7 @@ class GolemNode:
         return self
 
     async def __aexit__(self, *exc_info: Any) -> None:
-        """Shutdown. Stop collecting yagna events, close all core created with autoclose=True, close APIs etc."""
+        """Shutdown. Stop collecting yagna events, close all resources created with autoclose=True, close APIs etc."""
         await self.aclose()
 
     async def start(self) -> None:
@@ -157,7 +157,7 @@ class GolemNode:
             await asyncio.gather(*network_tasks)
 
     ###########################
-    #   Create new core
+    #   Create new resources
     async def create_allocation(
         self,
         amount: Union[Decimal, float],
@@ -168,7 +168,7 @@ class GolemNode:
         """Create a new allocation.
 
         :param amount: Amount of GLMs to be allocated
-        :param network: Payment network_api
+        :param network: Payment network
         :param driver: Payment driver
         :param autoclose: Release allocation on :func:`__aexit__`
         """
@@ -229,14 +229,14 @@ class GolemNode:
     ) -> Network:
         """Create a new :any:`Network`.
 
-        :param ip: IP address of the network_api. May contain netmask, e.g. `192.168.0.0/24`.
+        :param ip: IP address of the network. May contain netmask, e.g. `192.168.0.0/24`.
         :param mask: Optional netmask (only if not provided within the `ip` argument).
-        :param gateway: Optional gateway address for the network_api.
-        :param autoclose: Remove network_api on :func:`__aexit__`
-        :param add_requestor: If True, adds requestor with ip `requestor_ip` to the network_api.
+        :param gateway: Optional gateway address for the network.
+        :param autoclose: Remove network on :func:`__aexit__`
+        :param add_requestor: If True, adds requestor with ip `requestor_ip` to the network.
                               If False, requestor will be able to interact with other nodes only
                               after an additional call to :func:`add_to_network`.
-        :param requestor_ip: Ip of the requestor node in the network_api. Ignored if not `add_requestor`.
+        :param requestor_ip: Ip of the requestor node in the network. Ignored if not `add_requestor`.
                              If `None`, next free ip will be assigned.
         """
         network = await Network.create(self, ip, mask, gateway)
@@ -255,7 +255,7 @@ class GolemNode:
             builder.add_properties({p.key: p.value for p in properties})
 
     ###########################
-    #   Single-resource factories for already existing core
+    #   Single-resource factories for already existing resources
     def allocation(self, allocation_id: str) -> Allocation:
         """Returns an :any:`Allocation` with a given id (assumed to be correct, there is no validation)."""
         return Allocation(self, allocation_id)
@@ -291,13 +291,13 @@ class GolemNode:
     def batch(self, batch_id: str, activity_id: str) -> PoolingBatch:
         """Returns a :any:`PoolingBatch` with a given id (assumed to be correct, there is no validation).
 
-        Id of a batch has a meaning only in the context of an activity_api,
+        Id of a batch has a meaning only in the context of an activity,
         so activity_id is also necessary (and also not validated)."""
         activity = self.activity(activity_id)
         return activity.batch(batch_id)
 
     ##########################
-    #   Multi-resource factories for already existing core
+    #   Multi-resource factories for already existing resources
     async def allocations(self) -> List[Allocation]:
         """Returns a list of :any:`Allocation` objects corresponding to all current allocations.
 
@@ -343,13 +343,13 @@ class GolemNode:
     #########
     #   Other
     async def add_to_network(self, network: Network, ip: Optional[str] = None) -> None:
-        """Add requestor to the network_api.
+        """Add requestor to the network.
 
         :param network: A :any:`Network` we're adding the requestor to.
-        :param ip: IP of the requestor node, defaults to a new free IP in the network_api.
+        :param ip: IP of the requestor node, defaults to a new free IP in the network.
 
         This is only necessary if we either called :func:`create_network` with `add_requestor=False`,
-        or we want the requestor to have multiple IPs in the network_api
+        or we want the requestor to have multiple IPs in the network
         (TODO: is there a scenario where this makes sense?)."""
         await network.add_requestor_ip(ip)
 
@@ -359,7 +359,7 @@ class GolemNode:
         self._autoclose_resources.add(resource)
 
     def all_resources(self, cls: Type[TResource]) -> List[TResource]:
-        """Returns all known core of a given type"""
+        """Returns all known resources of a given type"""
         return list(self._resources[cls].values())  # type: ignore
 
     def __str__(self) -> str:

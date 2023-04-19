@@ -17,7 +17,7 @@ from golem_core.core.payment_api import Allocation
 
 def format_allocations(allocations: List[Allocation]) -> str:
     x = PrettyTable()
-    x.field_names = ["id", "address", "driver", "network_api", "total", "remaining", "timeout"]
+    x.field_names = ["id", "address", "driver", "network", "total", "remaining", "timeout"]
     for allocation in allocations:
         data = allocation.data
         assert data.payment_platform is not None  # mypy
