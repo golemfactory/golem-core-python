@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from golem_core.events import Event
+    from golem_core.core.events import Event
 
 
 class _YagnaDatetimeFormatter(logging.Formatter):
