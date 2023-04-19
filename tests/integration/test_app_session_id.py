@@ -8,8 +8,6 @@ from golem_core.core.payment_api import DebitNote, Invoice
 from .helpers import get_activity
 
 
-
-
 @pytest.mark.parametrize("kwargs, has_events", (
     ({"app_session_id": "0"}, True),
     ({"app_session_id": None}, True),

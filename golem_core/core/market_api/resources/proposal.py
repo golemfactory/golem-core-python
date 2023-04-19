@@ -64,6 +64,10 @@ class Proposal(
         """Initial :class:`Demand` of this proposal."""
         # We can either have no parent (this is possible when this Proposal was created from id),
         # and then _demand is always set, or a Proposal-parent or a Demand-parent.
+
+        # FIXME: remove local import
+        from golem_core.core.market_api.resources.demand import Demand
+
         if self._demand is not None:
             return self._demand
         else:
