@@ -9,7 +9,7 @@ from golem_core.core.activity_api.exceptions import (
 )
 from golem_core.core.activity_api.resources import Activity, PoolingBatch
 
-from golem_core.core.activity_api.pipeline import ActivityPool, default_prepare_activity
+from golem_core.core.activity_api.pipeline import default_prepare_activity
 
 __all__ = (
     'Activity',
@@ -27,6 +27,5 @@ __all__ = (
     'Run',
     'SendFile',
     'DownloadFile',
-    'ActivityPool',
     'default_prepare_activity',
 )

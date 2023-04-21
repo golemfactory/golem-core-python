@@ -6,7 +6,7 @@ from typing import Any, AsyncIterator, Callable, Dict, Optional, Tuple
 
 from golem_core.core.golem_node import GolemNode
 from golem_core.utils.logging import DefaultLogger
-from golem_core.core.payment_api import DefaultPaymentManager
+from golem_core.managers import DefaultPaymentManager
 from golem_core.core.activity_api import commands, Activity
 from golem_core.pipeline import (
     Buffer,

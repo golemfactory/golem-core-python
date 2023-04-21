@@ -49,7 +49,7 @@ class PaymentEventCollector(YagnaEventCollector, ABC):
 
     @abstractmethod
     async def _get_event_resources(self, event: Any) -> Tuple[Resource, Resource]:
-        """TODO"""
+        raise NotImplemented
 
 
 class DebitNoteEventCollector(PaymentEventCollector):

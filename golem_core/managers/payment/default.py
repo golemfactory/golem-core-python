@@ -2,13 +2,12 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import Set, TYPE_CHECKING
 
-from golem_core.core.payment_api.resources import Invoice, DebitNote
+from golem_core.core.payment_api import Invoice, DebitNote
 from golem_core.core.resources import NewResource
 
 if TYPE_CHECKING:
     from golem_core.core.golem_node import GolemNode
     from golem_core.core.payment_api import Allocation
-
 
 
 class DefaultPaymentManager:

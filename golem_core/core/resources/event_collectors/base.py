@@ -51,11 +51,11 @@ class YagnaEventCollector(ABC):
     @property
     @abstractmethod
     def _collect_events_func(self) -> Callable:
-        """TODO"""
+        raise NotImplemented
 
     @abstractmethod
     async def _process_event(self, event: Any) -> None:
-        """TODO"""
+        raise NotImplemented
 
     def _collect_events_args(self) -> List:
         return []

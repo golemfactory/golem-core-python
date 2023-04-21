@@ -3,14 +3,15 @@ from datetime import timedelta
 from random import random
 from typing import AsyncIterator, Callable, Tuple
 
-from golem_core.core.activity_api import Activity, commands, ActivityPool
+from examples.task_api_draft.task_api.activity_pool import ActivityPool
+from golem_core.core.activity_api import Activity, commands
 from golem_core.core.golem_node import GolemNode
-from golem_core.core.market_api import RepositoryVmPayload, Proposal, SimpleScorer
-from golem_core.core.payment_api import DefaultPaymentManager
+from golem_core.core.market_api import RepositoryVmPayload, Proposal
+from golem_core.managers import DefaultPaymentManager
 from golem_core.pipeline import (
-    Buffer, Chain, Map, Zip,
+    Buffer, Chain, Map, Zip, Sort,
 )
-from golem_core.core.market_api.pipeline.defaults import (
+from golem_core.core.market_api.pipeline import (
     default_negotiate,
     default_create_agreement,
     default_create_activity,
@@ -82,7 +83,7 @@ async def main() -> None:
 
         chain = Chain(
             demand.initial_proposals(),
-            SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=0.1)),
+            Sort(score_proposal, min_elements=10, max_wait=timedelta(seconds=0.1)),
             Map(default_negotiate),
             Map(default_create_agreement),
             Map(default_create_activity),

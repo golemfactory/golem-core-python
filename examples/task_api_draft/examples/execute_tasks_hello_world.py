@@ -1,6 +1,6 @@
 import asyncio
 
-from examples.task_api_draft.execute_tasks import execute_tasks
+from examples.task_api_draft.task_api.execute_tasks import execute_tasks
 from golem_core.core.activity_api import Activity, commands
 from golem_core.core.market_api import RepositoryVmPayload
 

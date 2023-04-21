@@ -4,22 +4,24 @@ from typing import Any, AsyncIterator, Callable, DefaultDict, Iterable, List, Op
 
 from prettytable import PrettyTable
 
-from golem_core.core.activity_api import Activity, PoolingBatch, default_prepare_activity, ActivityPool
+from examples.task_api_draft.task_api.activity_pool import ActivityPool
+from golem_core.core.activity_api import Activity, PoolingBatch, default_prepare_activity
 from golem_core.core.golem_node import GolemNode
-from golem_core.core.market_api import Proposal, SimpleScorer
-from golem_core.core.payment_api import DebitNote, DefaultPaymentManager
+from golem_core.core.market_api import Proposal
+from golem_core.core.payment_api import DebitNote
 from golem_core.core.resources import NewResource, ResourceClosed
+from golem_core.managers import DefaultPaymentManager
 from golem_core.pipeline import (
-    Buffer, Chain, Map, Zip,
+    Buffer, Chain, Map, Zip, Sort,
 )
-from golem_core.core.market_api.pipeline.defaults import (
+from golem_core.core.market_api.pipeline import (
     default_negotiate,
     default_create_agreement,
     default_create_activity,
 )
 from golem_core.utils.logging import DefaultLogger
 
-from yacat_no_business_logic import PAYLOAD, main_task_source, tasks_queue, results
+from examples.task_api_draft.examples.yacat_no_business_logic import PAYLOAD, main_task_source, tasks_queue, results
 
 
 ###########################
@@ -69,7 +71,7 @@ async def gather_debit_note_log(event: NewResource) -> None:
 async def note_activity_destroyed(event: ResourceClosed) -> None:
     activity: Activity = event.resource  # type: ignore
     if activity not in activity_data:
-        #   Destoyed activity from a previous run
+        #   Destroyed activity from a previous run
         return
 
     current_status = activity_data[activity]['status']
@@ -164,7 +166,7 @@ async def main() -> None:
         try:
             async for activity in Chain(
                 demand.initial_proposals(),
-                SimpleScorer(score_proposal, min_proposals=10),
+                Sort(score_proposal, min_elements=10),
                 Map(default_negotiate),
                 Map(default_create_agreement),
                 Map(default_create_activity),

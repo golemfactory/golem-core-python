@@ -19,7 +19,7 @@ class EventFilter(ABC):
     """Base class for all EventFilters"""
     @abstractmethod
     def includes(self, event: Event) -> bool:
-        """TODO"""
+        raise NotImplemented
 
 
 @dataclass(frozen=True)

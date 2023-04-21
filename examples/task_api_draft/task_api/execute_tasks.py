@@ -2,18 +2,22 @@ from typing import AsyncIterator, Awaitable, Callable, Iterable, Optional, Tuple
 from random import random
 from datetime import timedelta
 
-from golem_core.core.activity_api import Activity, ActivityPool, default_prepare_activity
+from golem_core.core.activity_api import Activity, default_prepare_activity
 from golem_core.core.golem_node import GolemNode
-from golem_core.core.payment_api import DefaultPaymentManager
+from golem_core.managers import DefaultPaymentManager
 from golem_core.pipeline import (
-    Buffer, Chain, Map, Zip,
+    Buffer, Chain, Map, Zip, Sort,
 )
 from golem_core.core.market_api import (
     default_negotiate,
     default_create_agreement,
-    default_create_activity, Proposal, Demand, SimpleScorer, Payload,
+    default_create_activity,
+    Proposal,
+    Demand,
+    Payload,
 )
 from golem_core.utils.logging import DefaultLogger
+from .activity_pool import ActivityPool
 
 from .task_data_stream import TaskDataStream
 from .redundance_manager import RedundanceManager
@@ -54,7 +58,7 @@ def get_chain(
     if redundance is None:
         chain = Chain(
             demand.initial_proposals(),
-            SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=0.1)),
+            Sort(score_proposal, min_elements=10, max_wait=timedelta(seconds=0.1)),
             Map(default_negotiate),
             Map(default_create_agreement),
             Map(default_create_activity),
@@ -70,7 +74,7 @@ def get_chain(
 
         chain = Chain(
             demand.initial_proposals(),
-            SimpleScorer(score_proposal, min_proposals=10, max_wait=timedelta(seconds=0.1)),
+            Sort(score_proposal, min_elements=10, max_wait=timedelta(seconds=0.1)),
             redundance_manager.filter_providers,
             Map(default_negotiate),
             Map(default_create_agreement),
@@ -112,7 +116,7 @@ async def execute_tasks(
     :param max_workers: How many tasks should be processed at the same time.
     :param prepare_activity: Async function that will be executed once on every :any:`Activity` before it will be used
         for processing `task_data`. Defaults to :any:`default_prepare_activity`.
-    :param score_proposal: Scoring function that will be passed to :any:`SimpleScorer`. Defaults to random.
+    :param score_proposal: Scoring function that will be passed to :any:`Sort`. Defaults to random.
     :param redundance: Optional tuple (min_provider_cnt, ratio). If passed:
 
         *   Each task will be repeated on at least `min_provider_cnt` different providers.

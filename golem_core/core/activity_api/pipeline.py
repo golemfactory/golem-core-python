@@ -2,6 +2,7 @@ from golem_core.core.activity_api.commands import Deploy, Start
 from golem_core.core.activity_api import Activity
 
 
+# TODO: Move default functions to Activity class
 async def default_prepare_activity(activity: Activity) -> Activity:
     """Executes Deploy() and Start() commands on a given :any:`Activity`. Returns the same :any:`Activity`.
 

@@ -4,7 +4,7 @@ from typing import List, Union
 import random
 import string
 
-from examples.task_api_draft.execute_tasks import execute_tasks
+from examples.task_api_draft.task_api.execute_tasks import execute_tasks
 from golem_core.core.activity_api import Activity, Run
 from golem_core.core.market_api import RepositoryVmPayload
 
@@ -97,7 +97,7 @@ async def main() -> None:
     await asyncio.sleep(0.1)
     async for result in execute_tasks(
         budget=1,
-        execute_task=lambda activity, task: task.execute(activity),
+        execute_task=lambda activity, task: task.execute(activity),  # type: ignore[attr-defined]
         task_data=iter(tasks_queue.get_nowait, None),
         payload=PAYLOAD,
         max_workers=MAX_WORKERS,

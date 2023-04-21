@@ -15,7 +15,7 @@ class DemandBuilder:
     example usage:
 
     ```python
-    >>> from golem_core.core.market_api import DemandBuilder, defaults
+    >>> from golem_core.core.market_api import DemandBuilder, pipeline
     >>> from datetime import datetime, timezone
     >>> builder = DemandBuilder()
     >>> await builder.add(defaults.NodeInfo(name="a node", subnet_tag="testnet"))

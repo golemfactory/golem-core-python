@@ -12,7 +12,7 @@ from golem_core.core.network_api import Network
 from golem_core.pipeline import (
     Buffer, Chain, Limit, Map
 )
-from golem_core.core.market_api.pipeline.defaults import (
+from golem_core.core.market_api.pipeline import (
     default_negotiate,
     default_create_agreement,
     default_create_activity,

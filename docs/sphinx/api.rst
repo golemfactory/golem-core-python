@@ -32,6 +32,9 @@ General components
 
 Classes in this section know nothing about any Golem-specific logic. They should one day be extracted to a sparate library.
 
+
+.. autoclass:: golem_core.pipeline.Sort
+    :members: __init__, __call__
 .. autoclass:: golem_core.pipeline.Chain
 .. autoclass:: golem_core.pipeline.Map
     :members: __init__, __call__
@@ -46,10 +49,6 @@ Golem-specific components
 ------------------------------
 Components in this section contain the common logic that is shared by various Golem applications.
 
-.. autoclass:: golem_core.core.market_api.SimpleScorer
-    :members: __init__, __call__
-.. autoclass:: golem_core.core.activity_api.ActivityPool
-    :members: __init__, __call__
 .. autofunction:: golem_core.core.market_api.default_negotiate
 .. autofunction:: golem_core.core.market_api.default_create_agreement
 .. autofunction:: golem_core.core.market_api.default_create_activity
@@ -172,8 +171,8 @@ Logging
 .. autoclass:: golem_core.utils.logging.DefaultLogger
     :members: __init__, file_name, logger, on_event
 
-Other
-=====
+Managers
+========
 
-.. autoclass:: golem_core.core.payment_api.DefaultPaymentManager
+.. autoclass:: golem_core.managers.DefaultPaymentManager
     :members: __init__, terminate_agreements, wait_for_invoices

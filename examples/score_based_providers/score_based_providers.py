@@ -7,16 +7,16 @@ from golem_core.core.golem_node import GolemNode
 from golem_core.core.market_api import (
     RepositoryVmPayload,
     Proposal,
-    SimpleScorer,
     default_negotiate,
     default_create_agreement, default_create_activity,
 )
-from golem_core.core.payment_api import DefaultPaymentManager
+from golem_core.managers import DefaultPaymentManager
 from golem_core.pipeline import (
     Buffer,
     Chain,
     Map,
     Limit,
+    Sort,
 )
 from golem_core.utils.logging import DefaultLogger
 
@@ -109,9 +109,9 @@ async def main() -> None:
 
         chain = Chain(
             demand.initial_proposals(),
-            SimpleScorer(
+            Sort(
                 select_proposal,
-                min_proposals=SELECT_MIN_PROPOSALS,
+                min_elements=SELECT_MIN_PROPOSALS,
                 min_wait=SELECT_MIN_TIME,
                 max_wait=SELECT_MAX_TIME,
             ),

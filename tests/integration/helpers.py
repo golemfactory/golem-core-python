@@ -4,7 +4,7 @@ from typing import AsyncGenerator, Optional
 from golem_core.core.golem_node import GolemNode
 from golem_core.core.market_api import RepositoryVmPayload
 from golem_core.pipeline import Chain, Map
-from golem_core.core.market_api.pipeline.defaults import (
+from golem_core.core.market_api.pipeline import (
     default_negotiate,
     default_create_agreement,
     default_create_activity,

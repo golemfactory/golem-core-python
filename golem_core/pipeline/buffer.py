@@ -2,7 +2,7 @@ import asyncio
 import inspect
 from typing import AsyncIterator, Awaitable, Generic, List, TypeVar, Union
 
-from .exceptions import InputStreamExhausted
+from golem_core.pipeline.exceptions import InputStreamExhausted
 
 DataType = TypeVar("DataType")
 

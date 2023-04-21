@@ -2,7 +2,7 @@ import asyncio
 import inspect
 from typing import AsyncIterator, Awaitable, Generic, TypeVar, Callable, Tuple, Union
 
-from .exceptions import InputStreamExhausted
+from golem_core.pipeline.exceptions import InputStreamExhausted
 
 InType = TypeVar("InType")
 OutType = TypeVar("OutType")
