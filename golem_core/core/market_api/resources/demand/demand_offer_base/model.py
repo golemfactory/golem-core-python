@@ -13,12 +13,13 @@ from typing import (
     Final,
     Literal,
     Tuple,
-    Iterable,
+    Iterable, Union, get_origin, get_args,
 )
 from golem_core.core.market_api.resources.demand.demand_offer_base.exceptions import (
     ConstraintException,
     InvalidPropertiesError,
 )
+from golem_core.utils.typing import match_type_union_aware
 
 TDemandOfferBaseModel = TypeVar("TDemandOfferBaseModel", bound="DemandOfferBaseModel")
 
@@ -115,14 +116,14 @@ class DemandOfferBaseModel(abc.ABC):
 
         Intended to be overriden with additional type serialisation methods.
         """
-        if inspect.isclass(field.type) and issubclass(field.type, datetime.datetime):
-            return datetime.datetime.fromtimestamp(
+        if matched_type := match_type_union_aware(field.type, lambda t: inspect.isclass(t) and issubclass(t, datetime.datetime)):
+            return matched_type.fromtimestamp(
                 int(float(value) * 0.001),
                 datetime.timezone.utc
             )
 
-        if inspect.isclass(field.type) and issubclass(field.type, enum.Enum):
-            return field.type(value)
+        if matched_type := match_type_union_aware(field.type, lambda t: inspect.isclass(t) and issubclass(t, enum.Enum)):
+            return matched_type(value)
 
         return value
 
