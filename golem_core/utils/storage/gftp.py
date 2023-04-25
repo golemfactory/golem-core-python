@@ -2,6 +2,7 @@
 
 import asyncio
 import contextlib
+import json
 import logging
 import os
 import sys
@@ -138,6 +139,23 @@ class __Process(jsonrpc_base.Server):
             stderr.write("\n <= " if msg_dir == "in" else "\n => ")
             stderr.write(msg)
             stderr.flush()
+    
+    async def send_message(self, message):
+        async with self._lock:
+            assert self._proc is not None
+            assert self._proc.stdin is not None
+            assert self._proc.stdout is not None
+            bytes = message.serialize() + "\n"
+            self.__log_debug("out", bytes)
+            self._proc.stdin.write(bytes.encode("utf-8"))
+            await self._proc.stdin.drain()
+            msg = await self._proc.stdout.readline()
+            self.__log_debug("in", msg)
+            if not msg:
+                sys.stderr.write("Please check if gftp is installed and is in your $PATH.\n")
+                sys.stderr.flush()
+            msg = json.loads(msg)
+            return message.parse_response(msg)
 
 
 class GftpSource(Source):
