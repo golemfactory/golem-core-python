@@ -1,12 +1,12 @@
 import datetime
 from enum import Enum
-from typing import Dict
+from typing import Dict, Optional
 
 import pytest
 from dataclasses import dataclass, fields, Field
 
-from golem_core.demand_builder.model import (
-    ComputingResourceModel,
+from golem_core.core.market_api import (
+    DemandOfferBaseModel,
     prop,
     constraint,
     InvalidPropertiesError,
@@ -20,7 +20,7 @@ class ExampleEnum(Enum):
     TWO = 'two'
 
 @dataclass
-class Foo(ComputingResourceModel):
+class Foo(DemandOfferBaseModel):
     bar: str = prop("bar.dotted.path", default="cafebiba")
     max_baz: int = constraint("baz", "<=", default=100)
     min_baz: int = constraint("baz", ">=", default=1)
@@ -28,21 +28,22 @@ class Foo(ComputingResourceModel):
 
 
 @dataclass
-class FooToo(ComputingResourceModel):
+class FooToo(DemandOfferBaseModel):
     text: str = prop("some.path")
     baz: int = constraint("baz", "=", default=21)
     en: ExampleEnum = prop("some_enum", default=ExampleEnum.TWO)
+    en_optional: Optional[ExampleEnum] = prop("some_op_enum", default=ExampleEnum.TWO)
     created_at: datetime.datetime = prop("created_at", default_factory=datetime.datetime.now)
+    updated_at: Optional[datetime.datetime] = prop("updated_at", default=None)
 
     def __post_init__(self):
         if self.text == 'blow up please!':
             raise ValueError('Some validation error!')
 
-
 FooTooFields: Dict[str, Field] = {f.name: f for f in fields(FooToo)}
 
 @dataclass
-class FooZero(ComputingResourceModel):
+class FooZero(DemandOfferBaseModel):
     pass
 
 
@@ -99,7 +100,7 @@ async def test_serialize(model, expected_properties, expected_constraints):
     )
 )
 def test_serialize_value(value, expected):
-    assert ComputingResourceModel.serialize_value(value) == expected
+    assert DemandOfferBaseModel.serialize_value(value) == expected
 
 @pytest.mark.parametrize(
     'value, field, expected',
@@ -122,21 +123,25 @@ def test_serialize_value(value, expected):
     )
 )
 def test_deserialize_value(value, field, expected):
-    assert ComputingResourceModel.deserialize_value(value, field) == expected
+    assert DemandOfferBaseModel.deserialize_value(value, field) == expected
 
 
 def test_from_properties():
     model = FooToo.from_properties({
         'some.path': 'some text',
         'some_enum': 'one',
+        'some_op_enum': 'one',
         'created_at': 1680785690000,
+        'updated_at': 1680785690000,
         'extra_field': 'should_be_ignored',
     })
 
     assert model == FooToo(
         text='some text',
         en=ExampleEnum.ONE,
+        en_optional=ExampleEnum.ONE,
         created_at=datetime.datetime(2023, 4, 6, 12, 54, 50, tzinfo=datetime.timezone.utc),
+        updated_at=datetime.datetime(2023, 4, 6, 12, 54, 50, tzinfo=datetime.timezone.utc),
     )
 
 def test_from_properties_missing_key():

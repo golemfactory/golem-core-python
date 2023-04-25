@@ -2,21 +2,23 @@ import asyncio
 from datetime import timedelta
 from typing import Callable, Dict, Optional, Tuple
 
-from golem_core import GolemNode, commands, RepositoryVmPayload
-from golem_core.low import Activity, Proposal
-
-from golem_core.mid import (
+from golem_core.core.activity_api import Activity, commands
+from golem_core.core.golem_node import GolemNode
+from golem_core.core.market_api import (
+    RepositoryVmPayload,
+    Proposal,
+    default_negotiate,
+    default_create_agreement, default_create_activity,
+)
+from golem_core.managers import DefaultPaymentManager
+from golem_core.pipeline import (
     Buffer,
     Chain,
     Map,
     Limit,
-    SimpleScorer,
-    default_negotiate,
-    default_create_agreement,
-    default_create_activity,
+    Sort,
 )
-from golem_core.default_logger import DefaultLogger
-from golem_core.default_payment_manager import DefaultPaymentManager
+from golem_core.utils.logging import DefaultLogger
 
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
@@ -107,9 +109,9 @@ async def main() -> None:
 
         chain = Chain(
             demand.initial_proposals(),
-            SimpleScorer(
+            Sort(
                 select_proposal,
-                min_proposals=SELECT_MIN_PROPOSALS,
+                min_elements=SELECT_MIN_PROPOSALS,
                 min_wait=SELECT_MIN_TIME,
                 max_wait=SELECT_MAX_TIME,
             ),

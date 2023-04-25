@@ -4,22 +4,24 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Dict, Optional, Tuple
 
-from golem_core import GolemNode, commands, RepositoryVmPayload
-from golem_core.default_logger import DefaultLogger
-from golem_core.default_payment_manager import DefaultPaymentManager
-from golem_core.low.activity import Activity
-from golem_core.low.market import Proposal
-from golem_core.mid import (
+from golem_core.core.golem_node import GolemNode
+from golem_core.utils.logging import DefaultLogger
+from golem_core.managers import DefaultPaymentManager
+from golem_core.core.activity_api import commands, Activity
+from golem_core.pipeline import (
     Buffer,
     Chain,
     Limit,
     Map,
-    default_create_activity,
-    default_create_agreement,
+)
+from golem_core.core.market_api import (
     default_negotiate,
+    default_create_agreement,
+    default_create_activity,
+    RepositoryVmPayload, Proposal,
 )
 
-FRAME_CONFIG_TEMPLATE = json.loads(Path("frame_params.json").read_text())
+FRAME_CONFIG_TEMPLATE = json.loads(Path(__file__).with_name("frame_params.json").read_text())
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 # scores will contain time of profiling execution
@@ -46,7 +48,7 @@ async def prepare_activity(activity: Activity) -> Activity:
     batch = await activity.execute_commands(
         commands.Deploy(),
         commands.Start(),
-        commands.SendFile("cubes.blend", "/golem/resource/scene.blend"),
+        commands.SendFile(str(Path(__file__).with_name("cubes.blend")), "/golem/resource/scene.blend"),
     )
     await batch.wait(timeout=120)
     return activity

@@ -1,13 +1,11 @@
 import pytest
 import asyncio
 
-from golem_core import GolemNode
-from golem_core.events import ResourceEvent
-from golem_core.low import DebitNote, Invoice
+from golem_core.core.golem_node import GolemNode
+from golem_core.core.resources import ResourceEvent
+from golem_core.core.payment_api import DebitNote, Invoice
 
 from .helpers import get_activity
-
-
 
 
 @pytest.mark.parametrize("kwargs, has_events", (
