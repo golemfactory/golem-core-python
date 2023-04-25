@@ -19,7 +19,7 @@ PAYMENT_DRIVER: str = os.getenv("YAGNA_PAYMENT_DRIVER", "erc20").lower()
 PAYMENT_NETWORK: str = os.getenv("YAGNA_PAYMENT_NETWORK", "rinkeby").lower()
 SUBNET: str = os.getenv("YAGNA_SUBNET", "public")
 
-DEFAULT_EXPIRATION_TIMEOUT = timedelta(seconds=1800)
+DEFAULT_EXPIRATION_TIMEOUT = timedelta(minutes=30)
 
 
 class _RandomSessionId:

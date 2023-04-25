@@ -21,7 +21,7 @@ from golem_core.core.market_api import (
     RepositoryVmPayload, Proposal,
 )
 
-FRAME_CONFIG_TEMPLATE = json.loads(Path("frame_params.json").read_text())
+FRAME_CONFIG_TEMPLATE = json.loads(Path(__file__).with_name("frame_params.json").read_text())
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 # scores will contain time of profiling execution
@@ -48,7 +48,7 @@ async def prepare_activity(activity: Activity) -> Activity:
     batch = await activity.execute_commands(
         commands.Deploy(),
         commands.Start(),
-        commands.SendFile("cubes.blend", "/golem/resource/scene.blend"),
+        commands.SendFile(str(Path(__file__).with_name("cubes.blend")), "/golem/resource/scene.blend"),
     )
     await batch.wait(timeout=120)
     return activity
