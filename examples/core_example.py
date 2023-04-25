@@ -260,7 +260,7 @@ async def example_10() -> None:
                 commands.SendFile(local_fname, remote_fname),
                 commands.Run(f"cat {remote_fname}"),
             )
-            await batch.wait(5)
+            await batch.wait(10)
             assert batch.events[-1].stdout == in_file_text
 
 
