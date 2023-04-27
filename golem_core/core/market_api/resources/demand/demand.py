@@ -1,33 +1,43 @@
-from typing import AsyncIterator, Dict, List, Callable, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, AsyncIterator, Callable, Dict, List, Union
 
-from ya_market import RequestorApi, models as models
+from ya_market import RequestorApi
+from ya_market import models as models
 
-from golem_core.core.resources import YagnaEventCollector
 from golem_core.core.market_api.resources.proposal import Proposal
-from golem_core.core.resources import Resource, ResourceNotFound, ResourceClosed, api_call_wrapper, _NULL
+from golem_core.core.resources import (
+    _NULL,
+    Resource,
+    ResourceClosed,
+    ResourceNotFound,
+    YagnaEventCollector,
+    api_call_wrapper,
+)
 
 if TYPE_CHECKING:
     from golem_core.core.golem_node import GolemNode
+
 
 class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], YagnaEventCollector):
     """A single demand on the Golem Network.
 
     Created with one of the :class:`Demand`-returning methods of the :any:`GolemNode`.
     """
+
     ######################
     #   EXTERNAL INTERFACE
     @api_call_wrapper(ignore=[404, 410])
     async def unsubscribe(self) -> None:
         """Stop all operations related to this demand and remove it.
 
-        This is a final operation, unsubscribed demand is not available anymore."""
+        This is a final operation, unsubscribed demand is not available anymore.
+        """
         self.set_no_more_children()
         self.stop_collecting_events()
         await self.api.unsubscribe_demand(self.id)
         self.node.event_bus.emit(ResourceClosed(self))
 
     async def initial_proposals(self) -> AsyncIterator["Proposal"]:
-        """Yields initial proposals matched to this demand."""
+        """Yield initial proposals matched to this demand."""
         async for proposal in self.child_aiter():
             assert isinstance(proposal, Proposal)  # mypy
             if proposal.initial:
@@ -55,7 +65,9 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], Yagn
     def _collect_events_func(self) -> Callable:
         return self.api.collect_offers
 
-    async def _process_event(self, event: Union[models.ProposalEvent, models.ProposalRejectedEvent]) -> None:
+    async def _process_event(
+        self, event: Union[models.ProposalEvent, models.ProposalRejectedEvent]
+    ) -> None:
         if isinstance(event, models.ProposalEvent):
             proposal = Proposal.from_proposal_event(self.node, event)
             parent = self._get_proposal_parent(proposal)
@@ -99,7 +111,7 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], Yagn
     def _get_proposal_parent(self, proposal: "Proposal") -> Union["Demand", "Proposal"]:
         assert proposal.data is not None
 
-        if proposal.data.state == 'Initial':
+        if proposal.data.state == "Initial":
             parent = self
         else:
             parent_proposal_id = proposal.data.prev_proposal_id

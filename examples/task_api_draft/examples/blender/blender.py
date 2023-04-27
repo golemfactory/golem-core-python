@@ -16,7 +16,9 @@ async def prepare_activity(activity: Activity) -> Activity:
     batch = await activity.execute_commands(
         commands.Deploy(),
         commands.Start(),
-        commands.SendFile(str(Path(__file__).with_name("cubes.blend")), "/golem/resource/scene.blend")
+        commands.SendFile(
+            str(Path(__file__).with_name("cubes.blend")), "/golem/resource/scene.blend"
+        ),
     )
     await batch.wait(timeout=60)
     return activity
@@ -31,7 +33,7 @@ async def execute_task(activity: Activity, frame_ix: int) -> str:
     batch = await activity.execute_commands(
         commands.Run(f"echo '{json.dumps(frame_config)}' > /golem/work/params.json"),
         commands.Run(["/golem/entrypoints/run-blender.sh"]),
-        commands.DownloadFile(f"/golem/output/{fname}", fname)
+        commands.DownloadFile(f"/golem/output/{fname}", fname),
     )
     await batch.wait(timeout=20)
     return fname
@@ -53,7 +55,8 @@ async def main() -> None:
     print("DONE")
     assert len(out_files) == len(FRAMES)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     task = loop.create_task(main())
     try:

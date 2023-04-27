@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from golem_core.core.events import Event
@@ -11,9 +11,7 @@ class _YagnaDatetimeFormatter(logging.Formatter):
 
     LOCAL_TZ = datetime.now(timezone.utc).astimezone().tzinfo
 
-    def formatTime(
-        self, record: logging.LogRecord, datefmt: Optional[str] = None
-    ) -> str:
+    def formatTime(self, record: logging.LogRecord, datefmt: Optional[str] = None) -> str:
         """Format datetime; example: `2021-06-11T14:55:43.156.123+0200`."""
         dt = datetime.fromtimestamp(record.created, tz=self.LOCAL_TZ)
         millis = f"{(dt.microsecond // 1000):03d}"
@@ -32,8 +30,10 @@ class DefaultLogger:
 
         DefaultLogger().logger.debug("What's up?")
     """
+
     def __init__(self, file_name: str = "log.log"):
-        """
+        """Init DefaultLogger.
+
         :param file_name: Name of the file where all events will be dumped.
         """
         self._file_name = file_name
@@ -56,9 +56,7 @@ class DefaultLogger:
         format_ = "[%(asctime)s %(levelname)s %(name)s] %(message)s"
         formatter = _YagnaDatetimeFormatter(fmt=format_)
 
-        file_handler = logging.FileHandler(
-            filename=self._file_name, mode="w", encoding="utf-8"
-        )
+        file_handler = logging.FileHandler(filename=self._file_name, mode="w", encoding="utf-8")
         file_handler.setFormatter(formatter)
         file_handler.setLevel(logging.DEBUG)
         logger.addHandler(file_handler)
@@ -66,5 +64,5 @@ class DefaultLogger:
         return logger
 
     async def on_event(self, event: "Event") -> None:
-        """Callback that can be passed to :any:`EventBus.listen`."""
+        """Handle event produced by :any:`EventBus.listen`."""
         self.logger.info(event)

@@ -1,16 +1,16 @@
-from abc import abstractmethod, ABC
-from typing import Any, Callable, Dict, Tuple, TYPE_CHECKING, Union
+from abc import ABC, abstractmethod
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Any, Callable, Dict, Tuple, Union
 
 from ya_payment import models
 
-from golem_core.core.payment_api.resources import DebitNote, Invoice
+from golem_core.core.payment_api.resources.debit_note import DebitNote
+from golem_core.core.payment_api.resources.invoice import Invoice
 from golem_core.core.resources import Resource, YagnaEventCollector
 
-
 if TYPE_CHECKING:
-    from golem_core.core.golem_node.golem_node import GolemNode
     from golem_core.core.activity_api import Activity
+    from golem_core.core.golem_node.golem_node import GolemNode
     from golem_core.core.market_api import Agreement
 
 InvoiceEvent = Union[
@@ -38,7 +38,7 @@ class PaymentEventCollector(YagnaEventCollector, ABC):
         self.min_ts = datetime.now(timezone.utc)
 
     def _collect_events_kwargs(self) -> Dict:
-        return {'after_timestamp': self.min_ts, 'app_session_id': self.node.app_session_id}
+        return {"after_timestamp": self.min_ts, "app_session_id": self.node.app_session_id}
 
     async def _process_event(self, event: Union[InvoiceEvent, DebitNoteEvent]) -> None:
         self.min_ts = max(event.event_date, self.min_ts)
@@ -49,7 +49,7 @@ class PaymentEventCollector(YagnaEventCollector, ABC):
 
     @abstractmethod
     async def _get_event_resources(self, event: Any) -> Tuple[Resource, Resource]:
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class DebitNoteEventCollector(PaymentEventCollector):

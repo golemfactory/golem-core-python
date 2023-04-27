@@ -1,11 +1,11 @@
 from golem_core.core.market_api.resources.demand.demand_offer_base.defaults import (
-    RUNTIME_NAME,
-    RUNTIME_CAPABILITIES,
     INF_CPU_THREADS,
-    INF_STORAGE,
-    NodeInfo,
-    Activity,
     INF_MEM,
+    INF_STORAGE,
+    RUNTIME_CAPABILITIES,
+    RUNTIME_NAME,
+    Activity,
+    NodeInfo,
 )
 from golem_core.core.market_api.resources.demand.demand_offer_base.exceptions import (
     BaseDemandOfferBaseException,
@@ -13,17 +13,17 @@ from golem_core.core.market_api.resources.demand.demand_offer_base.exceptions im
     InvalidPropertiesError,
 )
 from golem_core.core.market_api.resources.demand.demand_offer_base.model import (
-    TDemandOfferBaseModel,
     DemandOfferBaseModel,
-    join_str_constraints,
+    TDemandOfferBaseModel,
     constraint,
+    join_str_constraints,
     prop,
 )
 from golem_core.core.market_api.resources.demand.demand_offer_base.payload import (
-    Payload,
     ManifestVmPayload,
-    VmPayloadException,
+    Payload,
     RepositoryVmPayload,
+    VmPayloadException,
 )
 
 __all__ = (
@@ -31,19 +31,19 @@ __all__ = (
     "ManifestVmPayload",
     "VmPayloadException",
     "RepositoryVmPayload",
-    'RUNTIME_NAME',
-    'RUNTIME_CAPABILITIES',
-    'INF_CPU_THREADS',
-    'INF_MEM',
-    'INF_STORAGE',
-    'NodeInfo',
-    'Activity',
-    'TDemandOfferBaseModel',
-    'DemandOfferBaseModel',
-    'join_str_constraints',
-    'constraint',
-    'prop',
-    'BaseDemandOfferBaseException',
-    'ConstraintException',
-    'InvalidPropertiesError',
+    "RUNTIME_NAME",
+    "RUNTIME_CAPABILITIES",
+    "INF_CPU_THREADS",
+    "INF_MEM",
+    "INF_STORAGE",
+    "NodeInfo",
+    "Activity",
+    "TDemandOfferBaseModel",
+    "DemandOfferBaseModel",
+    "join_str_constraints",
+    "constraint",
+    "prop",
+    "BaseDemandOfferBaseException",
+    "ConstraintException",
+    "InvalidPropertiesError",
 )

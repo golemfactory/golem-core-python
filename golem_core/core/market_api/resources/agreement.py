@@ -1,16 +1,17 @@
 import asyncio
-from typing import List, Optional, TYPE_CHECKING
 from datetime import timedelta
+from typing import TYPE_CHECKING, List, Optional
 
-from ya_market import RequestorApi, models as models
+from ya_market import RequestorApi
+from ya_market import models as models
 from ya_market.exceptions import ApiException
 
 from golem_core.core.activity_api import Activity
 from golem_core.core.payment_api import Invoice
-from golem_core.core.resources import Resource, ResourceClosed, api_call_wrapper, _NULL
+from golem_core.core.resources import _NULL, Resource, ResourceClosed, api_call_wrapper
 
 if TYPE_CHECKING:
-    from golem_core.core.market_api.resources.proposal import Proposal
+    from golem_core.core.market_api.resources.proposal import Proposal  # noqa
 
 
 class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _NULL]):
@@ -25,6 +26,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
         # Use the activity_api
         await agreement.terminate()
     """
+
     @api_call_wrapper()
     async def confirm(self) -> None:
         """Confirm the agreement.
@@ -54,13 +56,16 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
                 raise
 
     @api_call_wrapper()
-    async def create_activity(self, autoclose: bool = True, timeout: timedelta = timedelta(seconds=10)) -> "Activity":
+    async def create_activity(
+        self, autoclose: bool = True, timeout: timedelta = timedelta(seconds=10)
+    ) -> "Activity":
         """Create a new :any:`Activity` for this :any:`Agreement`.
 
         :param autoclose: Destroy the activity_api when the :any:`GolemNode` closes.
         :param timeout: Request timeout.
         """
         from golem_core.core.activity_api.resources import Activity
+
         activity = await Activity.create(self.node, self.id, timeout)
         if autoclose:
             self.node.add_autoclose_resource(activity)
@@ -68,10 +73,11 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
         return activity
 
     @api_call_wrapper()
-    async def terminate(self, reason: str = '') -> None:
+    async def terminate(self, reason: str = "") -> None:
         """Terminate the agreement.
 
-        :param reason: Optional information for the provider explaining why the agreement was terminated.
+        :param reason: Optional information for the provider explaining why the agreement was
+            terminated.
         """
         try:
             await self.api.terminate_agreement(self.id, request_body={"message": reason})
@@ -95,10 +101,13 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
     def activities(self) -> List["Activity"]:
         """A list of :any:`Activity` created for this :any:`Agreement`."""
         from golem_core.core.activity_api.resources import Activity  # circular imports prevention
+
         return [child for child in self.children if isinstance(child, Activity)]
 
     async def close_all(self) -> None:
-        """Terminate agreement, destroy all activities. Ensure success -> retry if there are any problems.
+        """Terminate agreement, destroy all activities.
+
+        Ensure success -> retry if there are any problems.
 
         This is indended to be used in scenarios when we just want to end
         this agreement and we want to make sure it is really terminated (even if e.g. in some other
@@ -106,8 +115,8 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
         """
         #   TODO: This method is very ugly, also similar method could be useful for acivity only.
         #   BUT this probably should be a yagna-side change. Agreement.terminate() should
-        #   just always succeed, as well as Activity.destroy() - yagna should repeat if necessary etc.
-        #   We should only repeat in rare cases when we can't connect to our local `yagna`.
+        #   just always succeed, as well as Activity.destroy() - yagna should repeat if necessary
+        #   etc. We should only repeat in rare cases when we can't connect to our local `yagna`.
         #   Related issue: https://github.com/golemfactory/golem-core-python/issues/19
 
         #   Q: Why limit on repeats?
@@ -122,7 +131,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
             except ApiException as e:
                 if self._is_permanent_410(e):
                     break
-            await asyncio.sleep(2 ** i)
+            await asyncio.sleep(2**i)
 
         for activity in self.activities:
             for i in range(1, 5):
@@ -131,7 +140,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
                     break
                 except Exception:
                     pass
-                await asyncio.sleep(2 ** i)
+                await asyncio.sleep(2**i)
 
     @staticmethod
     def _is_permanent_410(e: ApiException) -> bool:

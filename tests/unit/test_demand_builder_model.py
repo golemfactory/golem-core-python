@@ -1,23 +1,24 @@
 import datetime
+from dataclasses import Field, dataclass, fields
 from enum import Enum
 from typing import Dict, Optional
 
 import pytest
-from dataclasses import dataclass, fields, Field
 
 from golem_core.core.market_api import (
-    DemandOfferBaseModel,
-    prop,
-    constraint,
-    InvalidPropertiesError,
-    join_str_constraints,
     ConstraintException,
+    DemandOfferBaseModel,
+    InvalidPropertiesError,
+    constraint,
+    join_str_constraints,
+    prop,
 )
 
 
 class ExampleEnum(Enum):
-    ONE = 'one'
-    TWO = 'two'
+    ONE = "one"
+    TWO = "two"
+
 
 @dataclass
 class Foo(DemandOfferBaseModel):
@@ -37,10 +38,12 @@ class FooToo(DemandOfferBaseModel):
     updated_at: Optional[datetime.datetime] = prop("updated_at", default=None)
 
     def __post_init__(self):
-        if self.text == 'blow up please!':
-            raise ValueError('Some validation error!')
+        if self.text == "blow up please!":
+            raise ValueError("Some validation error!")
+
 
 FooTooFields: Dict[str, Field] = {f.name: f for f in fields(FooToo)}
+
 
 @dataclass
 class FooZero(DemandOfferBaseModel):
@@ -74,8 +77,9 @@ async def test_serialize(model, expected_properties, expected_constraints):
     assert properties == expected_properties
     assert constraints == expected_constraints
 
+
 @pytest.mark.parametrize(
-    'value, expected',
+    "value, expected",
     (
         (
             [1, 2, 3],
@@ -89,108 +93,120 @@ async def test_serialize(model, expected_properties, expected_constraints):
             datetime.datetime(2023, 4, 6, 12, 54, 50, tzinfo=datetime.timezone.utc),
             1680785690000,
         ),
+        (ExampleEnum.ONE, "one"),
         (
-            ExampleEnum.ONE,
-            "one"
+            [
+                [1, 2],
+                (ExampleEnum.ONE, ExampleEnum.TWO),
+                datetime.datetime(2023, 4, 6, 12, 54, 50, tzinfo=datetime.timezone.utc),
+            ],
+            [[1, 2], ("one", "two"), 1680785690000],
         ),
-        (
-            [[1, 2], (ExampleEnum.ONE, ExampleEnum.TWO), datetime.datetime(2023, 4, 6, 12, 54, 50, tzinfo=datetime.timezone.utc)],
-            [[1, 2], ("one", "two"), 1680785690000]
-        )
-    )
+    ),
 )
 def test_serialize_value(value, expected):
     assert DemandOfferBaseModel.serialize_value(value) == expected
 
+
 @pytest.mark.parametrize(
-    'value, field, expected',
+    "value, field, expected",
     (
         (
             123,
-            FooTooFields['baz'],
+            FooTooFields["baz"],
             123,
         ),
         (
             "one",
-            FooTooFields['en'],
+            FooTooFields["en"],
             ExampleEnum.ONE,
         ),
         (
             1680785690000,
-            FooTooFields['created_at'],
-            datetime.datetime(2023, 4, 6, 12, 54, 50, tzinfo=datetime.timezone.utc)
-        )
-    )
+            FooTooFields["created_at"],
+            datetime.datetime(2023, 4, 6, 12, 54, 50, tzinfo=datetime.timezone.utc),
+        ),
+    ),
 )
 def test_deserialize_value(value, field, expected):
     assert DemandOfferBaseModel.deserialize_value(value, field) == expected
 
 
 def test_from_properties():
-    model = FooToo.from_properties({
-        'some.path': 'some text',
-        'some_enum': 'one',
-        'some_op_enum': 'one',
-        'created_at': 1680785690000,
-        'updated_at': 1680785690000,
-        'extra_field': 'should_be_ignored',
-    })
+    model = FooToo.from_properties(
+        {
+            "some.path": "some text",
+            "some_enum": "one",
+            "some_op_enum": "one",
+            "created_at": 1680785690000,
+            "updated_at": 1680785690000,
+            "extra_field": "should_be_ignored",
+        }
+    )
 
     assert model == FooToo(
-        text='some text',
+        text="some text",
         en=ExampleEnum.ONE,
         en_optional=ExampleEnum.ONE,
         created_at=datetime.datetime(2023, 4, 6, 12, 54, 50, tzinfo=datetime.timezone.utc),
         updated_at=datetime.datetime(2023, 4, 6, 12, 54, 50, tzinfo=datetime.timezone.utc),
     )
 
+
 def test_from_properties_missing_key():
-    with pytest.raises(InvalidPropertiesError, match='Missing key'):
-        FooToo.from_properties({
-            'some_enum': 'one',
-            'created_at': 1680785690000,
-            'extra_field': 'should_be_ignored',
-        })
+    with pytest.raises(InvalidPropertiesError, match="Missing key"):
+        FooToo.from_properties(
+            {
+                "some_enum": "one",
+                "created_at": 1680785690000,
+                "extra_field": "should_be_ignored",
+            }
+        )
+
 
 def test_from_properties_custom_validation():
-    with pytest.raises(InvalidPropertiesError, match='validation error'):
-        FooToo.from_properties({
-            'some.path': 'blow up please!',
-            'some_enum': 'one',
-            'created_at': 1680785690000,
-            'extra_field': 'should_be_ignored',
-        })
+    with pytest.raises(InvalidPropertiesError, match="validation error"):
+        FooToo.from_properties(
+            {
+                "some.path": "blow up please!",
+                "some_enum": "one",
+                "created_at": 1680785690000,
+                "extra_field": "should_be_ignored",
+            }
+        )
 
 
 @pytest.mark.parametrize(
-    'items, operator, expected',
+    "items, operator, expected",
     (
         (
-            ['A', 'B', 'C'],
-            '&',
-            '(&A\n\tB\n\tC)',
+            ["A", "B", "C"],
+            "&",
+            "(&A\n\tB\n\tC)",
         ),
         (
-            ['A', 'B', 'C'],
-            '|',
-            '(|A\n\tB\n\tC)',
+            ["A", "B", "C"],
+            "|",
+            "(|A\n\tB\n\tC)",
         ),
         (
-            ['A',],
-            '!',
-            '(!A)',
+            [
+                "A",
+            ],
+            "!",
+            "(!A)",
         ),
         (
             [],
-            '&',
-            '(&)',
+            "&",
+            "(&)",
         ),
         (
-            ['A'],
-            '&',
-            'A',
+            ["A"],
+            "&",
+            "A",
         ),
-    )
+    ),
 )
 def test_join_str_constraints(items, operator, expected):
     assert join_str_constraints(items, operator) == expected
@@ -198,4 +214,4 @@ def test_join_str_constraints(items, operator, expected):
 
 def test_join_str_constraints_negation_with_multiple_constraints():
     with pytest.raises(ConstraintException):
-        join_str_constraints(['A', 'B', 'C'], '!')
+        join_str_constraints(["A", "B", "C"], "!")

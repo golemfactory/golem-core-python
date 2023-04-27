@@ -1,8 +1,8 @@
 import asyncio
 import hashlib
-from typing import List, Union
 import random
 import string
+from typing import List, Union
 
 from examples.task_api_draft.task_api.execute_tasks import execute_tasks
 from golem_core.core.activity_api import Activity, Run
@@ -10,7 +10,7 @@ from golem_core.core.market_api import RepositoryVmPayload
 
 PAYLOAD = RepositoryVmPayload("055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db")
 PASSWORD_LENGTH = 3
-CHUNK_SIZE = 2 ** 12
+CHUNK_SIZE = 2**12
 MAX_WORKERS = 3
 
 tasks_queue: "asyncio.Queue[Union[MainTask, AttackPartTask]]" = asyncio.LifoQueue()
@@ -45,7 +45,9 @@ class MainTask:
 
 
 class AttackPartTask:
-    def __init__(self, mask: str, hash_: str, hash_type: int, attack_mode: int, skip: int, limit: int):
+    def __init__(
+        self, mask: str, hash_: str, hash_type: int, attack_mode: int, skip: int, limit: int
+    ):
         self.mask = mask
         self.hash_ = hash_
         self.hash_type = hash_type
@@ -106,7 +108,8 @@ async def main() -> None:
 
     print("DONE")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     task = loop.create_task(main())
     try:

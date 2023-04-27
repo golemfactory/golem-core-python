@@ -27,6 +27,7 @@ async def main() -> None:
     ):
         print("TASK RESULT", result)
 
+
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     task = loop.create_task(main())

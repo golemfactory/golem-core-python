@@ -4,7 +4,10 @@ from abc import ABC, abstractmethod
 # TODO: replace Any here
 from typing import Any, Callable, Dict, List, Optional
 
-from golem_core.core.resources.event_collectors.utils import is_gsb_endpoint_not_found_error, is_intermittent_error
+from golem_core.core.resources.event_collectors.utils import (
+    is_gsb_endpoint_not_found_error,
+    is_intermittent_error,
+)
 
 
 class YagnaEventCollector(ABC):
@@ -51,11 +54,11 @@ class YagnaEventCollector(ABC):
     @property
     @abstractmethod
     def _collect_events_func(self) -> Callable:
-        raise NotImplemented
+        raise NotImplementedError
 
     @abstractmethod
     async def _process_event(self, event: Any) -> None:
-        raise NotImplemented
+        raise NotImplementedError
 
     def _collect_events_args(self) -> List:
         return []

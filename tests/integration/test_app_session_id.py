@@ -1,19 +1,23 @@
-import pytest
 import asyncio
 
+import pytest
+
 from golem_core.core.golem_node import GolemNode
-from golem_core.core.resources import ResourceEvent
 from golem_core.core.payment_api import DebitNote, Invoice
+from golem_core.core.resources import ResourceEvent
 
 from .helpers import get_activity
 
 
-@pytest.mark.parametrize("kwargs, has_events", (
-    ({"app_session_id": "0"}, True),
-    ({"app_session_id": None}, True),
-    ({}, False),
-    ({"app_session_id": "1"}, False),
-))
+@pytest.mark.parametrize(
+    "kwargs, has_events",
+    (
+        ({"app_session_id": "0"}, True),
+        ({"app_session_id": None}, True),
+        ({}, False),
+        ({"app_session_id": "1"}, False),
+    ),
+)
 @pytest.mark.asyncio
 async def test_app_session_id(kwargs: dict, has_events: bool) -> None:
     events = []

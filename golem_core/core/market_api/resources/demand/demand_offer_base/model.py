@@ -1,20 +1,10 @@
 import abc
-import inspect
-import enum
 import dataclasses
 import datetime
+import enum
+import inspect
+from typing import Any, Dict, Final, Iterable, List, Literal, Tuple, Type, TypeVar
 
-from typing import (
-    Any,
-    Dict,
-    List,
-    Type,
-    TypeVar,
-    Final,
-    Literal,
-    Tuple,
-    Iterable, Union, get_origin, get_args,
-)
 from golem_core.core.market_api.resources.demand.demand_offer_base.exceptions import (
     ConstraintException,
     InvalidPropertiesError,
@@ -116,13 +106,14 @@ class DemandOfferBaseModel(abc.ABC):
 
         Intended to be overriden with additional type serialisation methods.
         """
-        if matched_type := match_type_union_aware(field.type, lambda t: inspect.isclass(t) and issubclass(t, datetime.datetime)):
-            return matched_type.fromtimestamp(
-                int(float(value) * 0.001),
-                datetime.timezone.utc
-            )
+        if matched_type := match_type_union_aware(
+            field.type, lambda t: inspect.isclass(t) and issubclass(t, datetime.datetime)
+        ):
+            return matched_type.fromtimestamp(int(float(value) * 0.001), datetime.timezone.utc)
 
-        if matched_type := match_type_union_aware(field.type, lambda t: inspect.isclass(t) and issubclass(t, enum.Enum)):
+        if matched_type := match_type_union_aware(
+            field.type, lambda t: inspect.isclass(t) and issubclass(t, enum.Enum)
+        ):
             return matched_type(value)
 
         return value
@@ -133,12 +124,13 @@ class DemandOfferBaseModel(abc.ABC):
         return [
             f
             for f in dataclasses.fields(cls)
-            if PROP_KEY in f.metadata
-            and f.metadata.get(PROP_MODEL_FIELD_TYPE) == field_type
+            if PROP_KEY in f.metadata and f.metadata.get(PROP_MODEL_FIELD_TYPE) == field_type
         ]
 
     @classmethod
-    def from_properties(cls: Type[TDemandOfferBaseModel], props: Dict[str, Any]) -> TDemandOfferBaseModel:
+    def from_properties(
+        cls: Type[TDemandOfferBaseModel], props: Dict[str, Any]
+    ) -> TDemandOfferBaseModel:
         """Initialize the model with properties from given dictionary.
 
         Only properties defined in model will be picked up from given dictionary, ignoring other
@@ -162,7 +154,9 @@ class DemandOfferBaseModel(abc.ABC):
             raise InvalidPropertiesError(str(e)) from e
 
 
-def prop(key: str, *, default: Any = dataclasses.MISSING, default_factory: Any = dataclasses.MISSING):
+def prop(
+    key: str, *, default: Any = dataclasses.MISSING, default_factory: Any = dataclasses.MISSING
+):
     """
     Return a property-type dataclass field for a DemandOfferBaseModel.
 
@@ -188,10 +182,7 @@ def prop(key: str, *, default: Any = dataclasses.MISSING, default_factory: Any =
     return dataclasses.field(  # type: ignore[call-overload]
         default=default,
         default_factory=default_factory,
-        metadata={
-            PROP_KEY: key,
-            PROP_MODEL_FIELD_TYPE: DemandOfferBaseModelFieldType.property
-        },
+        metadata={PROP_KEY: key, PROP_MODEL_FIELD_TYPE: DemandOfferBaseModelFieldType.property},
     )
 
 
@@ -237,8 +228,7 @@ def constraint(
 
 
 def join_str_constraints(
-    constraints: Iterable[str],
-    operator: ConstraintGroupOperator = "&"
+    constraints: Iterable[str], operator: ConstraintGroupOperator = "&"
 ) -> str:
     """Join a list of constraints using the given opererator.
 

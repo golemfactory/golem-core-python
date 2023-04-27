@@ -20,8 +20,10 @@ class Limit:
         ):
             print(x)
     """
+
     def __init__(self, max_items: int = 1):
-        """
+        """Init Limit.
+
         :param max_items: Maximum number of items yielded
         """
         self.max_items = max_items

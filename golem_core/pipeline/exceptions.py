@@ -5,9 +5,9 @@ class InputStreamExhausted(BaseGolemException):
     """Excepion used internally by pipeline-level components.
 
     This is something like StopAsyncIteration, but in context when StopAsyncIteration can't be used.
-    All mid-level components understand & correctly process this exception, the only way to encounter
-    it in non-chain code is to create a Chain that returns awaitables that can fail because of the
-    input stream that did not return enough values.
+    All mid-level components understand & correctly process this exception, the only way to
+    encounter it in non-chain code is to create a Chain that returns awaitables that can fail
+    because of the input stream that did not return enough values.
 
     E.g. this will raise InputStreamExhausted with 0.64 chance::
 
@@ -39,6 +39,7 @@ class InputStreamExhausted(BaseGolemException):
             print(result)
             break
 
-    then this exception will be handled by the Buffer (and we have 0.64 chance anything will be printed).
+    then this exception will be handled by the Buffer (and we have 0.64 chance anything will be
+    printed).
 
     """

@@ -1,5 +1,4 @@
-import inspect
-from typing import Any, get_origin, Union, get_args, Callable, Optional, Type
+from typing import Any, Callable, Optional, Type, Union, get_args, get_origin
 
 
 def match_type_union_aware(obj_type: Type, match_func: Callable[[Type], bool]) -> Optional[Any]:

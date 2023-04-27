@@ -1,8 +1,8 @@
 import asyncio
 from datetime import datetime, timedelta
-from typing import Set, TYPE_CHECKING
+from typing import TYPE_CHECKING, Set
 
-from golem_core.core.payment_api import Invoice, DebitNote
+from golem_core.core.payment_api import DebitNote, Invoice
 from golem_core.core.resources import NewResource
 
 if TYPE_CHECKING:
@@ -29,8 +29,10 @@ class DefaultPaymentManager:
                 await payment_manager.wait_for_invoices()
 
     """
+
     def __init__(self, node: "GolemNode", allocation: "Allocation"):
-        """
+        """Init DefaultPaymentManager.
+
         :param node: Debit notes/invoices received by this node will be accepted.
             :any:`DefaultPaymentManager` will only work if the :any:`GolemNode` was started with
             `collect_payment_events = True`.
@@ -58,19 +60,22 @@ class DefaultPaymentManager:
     async def on_invoice(self, event: NewResource) -> None:
         invoice = event.resource
         assert isinstance(invoice, Invoice)
-        if (await invoice.get_data(force=True)).status == 'RECEIVED':
+        if (await invoice.get_data(force=True)).status == "RECEIVED":
             await invoice.accept_full(self.allocation)
             await invoice.get_data(force=True)
 
     async def on_debit_note(self, event: NewResource) -> None:
         debit_note = event.resource
         assert isinstance(debit_note, DebitNote)
-        if (await debit_note.get_data(force=True)).status == 'RECEIVED':
+        if (await debit_note.get_data(force=True)).status == "RECEIVED":
             await debit_note.accept_full(self.allocation)
             await debit_note.get_data(force=True)
 
     async def terminate_agreements(self) -> None:
-        """Terminate all agreements and activities. This is intended to be used just before :any:`wait_for_invoices`."""
+        """Terminate all agreements and activities.
+
+        This is intended to be used just before :any:`wait_for_invoices`.
+        """
         await asyncio.gather(*[agreement.close_all() for agreement in self._agreements])
 
     async def wait_for_invoices(self, timeout: float = 5) -> None:
@@ -80,12 +85,16 @@ class DefaultPaymentManager:
         """
         stop = datetime.now() + timedelta(seconds=timeout)
         while datetime.now() < stop and any(
-            agreement.invoice is None or agreement.invoice.data.status == 'RECEIVED'
+            agreement.invoice is None or agreement.invoice.data.status == "RECEIVED"
             for agreement in self._agreements
         ):
             await asyncio.sleep(0.1)
 
-        missing_invoices = [agreement for agreement in self._agreements if agreement.invoice is None]
+        missing_invoices = [
+            agreement for agreement in self._agreements if agreement.invoice is None
+        ]
         if missing_invoices:
             missing_invoices_str = ", ".join([str(agreement) for agreement in missing_invoices])
-            print(f"wait_for_invoices timed out, agreements without invoices: {missing_invoices_str}")
+            print(
+                f"wait_for_invoices timed out, agreements without invoices: {missing_invoices_str}"
+            )

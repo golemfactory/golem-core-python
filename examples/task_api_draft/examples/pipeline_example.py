@@ -6,16 +6,15 @@ from typing import AsyncIterator, Callable, Tuple
 from examples.task_api_draft.task_api.activity_pool import ActivityPool
 from golem_core.core.activity_api import Activity, commands
 from golem_core.core.golem_node import GolemNode
-from golem_core.core.market_api import RepositoryVmPayload, Proposal
-from golem_core.managers import DefaultPaymentManager
-from golem_core.pipeline import (
-    Buffer, Chain, Map, Zip, Sort,
-)
-from golem_core.core.market_api.pipeline import (
-    default_negotiate,
-    default_create_agreement,
+from golem_core.core.market_api import (
+    Proposal,
+    RepositoryVmPayload,
     default_create_activity,
+    default_create_agreement,
+    default_negotiate,
 )
+from golem_core.managers import DefaultPaymentManager
+from golem_core.pipeline import Buffer, Chain, Map, Sort, Zip
 from golem_core.utils.logging import DefaultLogger
 
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
@@ -32,7 +31,9 @@ async def prepare_activity(activity: Activity) -> Activity:
         commands.Run(["/bin/echo", "-n", f"ACTIVITY {activity.id} IS READY"]),
     )
     await batch.wait(timeout=10)
-    assert batch.events[-1].stdout is not None and "IS READY" in batch.events[-1].stdout, "Prepare activity failed"
+    assert (
+        batch.events[-1].stdout is not None and "IS READY" in batch.events[-1].stdout
+    ), "Prepare activity failed"
     print(batch.events[-1].stdout)
     return activity
 
@@ -44,7 +45,9 @@ async def execute_task(activity: Activity, task_data: int) -> str:
     await batch.wait(timeout=3)
 
     result = batch.events[-1].stdout
-    assert result is not None and "Executed task" in result, f"Got an incorrect result for {task_data}: {result}"
+    assert (
+        result is not None and "Executed task" in result
+    ), f"Got an incorrect result for {task_data}: {result}"
 
     if random() > 0.9:
         1 / 0
@@ -107,7 +110,7 @@ async def main() -> None:
         await payment_manager.wait_for_invoices()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     task = loop.create_task(main())
     try:

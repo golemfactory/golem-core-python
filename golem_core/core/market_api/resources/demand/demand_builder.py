@@ -1,8 +1,11 @@
 import abc
-from typing import List, Dict, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List
 
-from golem_core.core.market_api.resources.demand.demand_offer_base.model import DemandOfferBaseModel, join_str_constraints
 from golem_core.core.market_api.resources.demand.demand import Demand
+from golem_core.core.market_api.resources.demand.demand_offer_base.model import (
+    DemandOfferBaseModel,
+    join_str_constraints,
+)
 
 if TYPE_CHECKING:  # pragma: no cover
     from golem_core.core.golem_node import GolemNode
@@ -34,10 +37,7 @@ class DemandBuilder:
         self._constraints: List[str] = []
 
     def __repr__(self):
-        return repr({
-            "properties": self._properties,
-            "constraints": self._constraints
-        })
+        return repr({"properties": self._properties, "constraints": self._constraints})
 
     @property
     def properties(self) -> Dict:
@@ -74,9 +74,7 @@ class DemandBuilder:
     async def create_demand(self, node: "GolemNode") -> "Demand":
         """Create demand and subscribe to its events."""
         return await Demand.create_from_properties_constraints(
-            node,
-            self.properties,
-            self.constraints
+            node, self.properties, self.constraints
         )
 
 

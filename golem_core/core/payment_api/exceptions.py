@@ -4,8 +4,11 @@ from golem_core.core.exceptions import BaseCoreException
 class BasePaymentApiException(BaseCoreException):
     pass
 
+
 class NoMatchingAccount(BasePaymentApiException):
-    """Raised when a new :any:`Allocation` is created for a (network_api, driver) pair without matching `yagna` account."""
+    """Raised when a new :any:`Allocation` is created for a (network_api, driver) pair without \
+    matching `yagna` account."""
+
     def __init__(self, network: str, driver: str):
         self._network = network
         self._driver = driver

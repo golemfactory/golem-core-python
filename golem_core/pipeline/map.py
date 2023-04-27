@@ -1,6 +1,6 @@
 import asyncio
 import inspect
-from typing import AsyncIterator, Awaitable, Generic, TypeVar, Callable, Tuple, Union
+from typing import AsyncIterator, Awaitable, Callable, Generic, Tuple, TypeVar, Union
 
 from golem_core.pipeline.exceptions import InputStreamExhausted
 
@@ -14,8 +14,7 @@ async def default_on_exception(func: Callable, args: Tuple, orig_exc: Exception)
 
 
 class Map(Generic[InType, OutType]):
-    """
-    Turns one async iterator into another async iterator using a provided mapping function.
+    """Turns one async iterator into another async iterator using a provided mapping function.
 
     Sample usage::
 
@@ -32,13 +31,13 @@ class Map(Generic[InType, OutType]):
             #   4
 
     Caveats:
-    *   Always yields awaitables
-    *   It doesn't matter if source iterator yields `X` or `Awaitable[X]`, which has two consequences:
+    * Always yields awaitables
+    * It doesn't matter if source iterator yields `X` or `Awaitable[X]`, which has two consequences:
 
-        *   (good) Maps can be stacked one after another in a :any:`Chain`
-        *   (bad) Mapping functions that accept an awaitable as an argument should be avoided.
+       * (good) Maps can be stacked one after another in a :any:`Chain`
+       * (bad) Mapping functions that accept an awaitable as an argument should be avoided.
 
-    *   If input stream yields tuples, they will be passed to mapping function unpacked
+    * If input stream yields tuples, they will be passed to mapping function unpacked
 
     """
 
@@ -46,11 +45,16 @@ class Map(Generic[InType, OutType]):
         self,
         func: Callable[[InType], Awaitable[OutType]],
         *,
-        on_exception: Callable[[Callable, Tuple, Exception], Awaitable[None]] = default_on_exception,
+        on_exception: Callable[
+            [Callable, Tuple, Exception], Awaitable[None]
+        ] = default_on_exception,
     ):
-        """
-        :param func: An async function that will be executed on every element of the stream passed to :any:`__call__`.
-        :param on_exception: An async function that will be executed whenever main function raises an exception.
+        """Init Map.
+
+        :param func: An async function that will be executed on every element of the stream passed
+            to :any:`__call__`.
+        :param on_exception: An async function that will be executed whenever main function raises
+            an exception.
             Defaults to a function that prints the exception.
         """
         self.func = func
@@ -60,14 +64,17 @@ class Map(Generic[InType, OutType]):
         self,
         in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]],
     ) -> AsyncIterator[Awaitable[OutType]]:
-        """
+        """Call Map.
+
         :param in_stream: An async stream of either func args or args-returning awaitables.
         """
         self._in_stream_lock = asyncio.Lock()
         while True:
             yield asyncio.create_task(self._next_value(in_stream))
 
-    async def _next_value(self, in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]]) -> OutType:
+    async def _next_value(
+        self, in_stream: Union[AsyncIterator[InType], AsyncIterator[Awaitable[InType]]]
+    ) -> OutType:
         while True:
             async with self._in_stream_lock:
                 try:

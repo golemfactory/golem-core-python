@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Optional, Final, Any, no_type_check, Type, get_args, TypeVar, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Final, Optional, Type, TypeVar, get_args, no_type_check
 
 import ya_activity
 import ya_market
@@ -43,23 +43,31 @@ class ApiConfig:
             Uses YAGNA_ACTIVITY_URL environment variable
     """
 
-    app_key: str = field(default_factory=partial(os.getenv, "YAGNA_APPKEY"))  # type: ignore[assignment]
-    api_url: str = field(default_factory=partial(os.getenv, "YAGNA_API_URL", DEFAULT_YAGNA_API_URL))  # type: ignore[assignment]
-    market_url: str = field(default_factory=partial(os.getenv, "YAGNA_MARKET_URL"))  # type: ignore[assignment]
-    payment_url: str = field(default_factory=partial(os.getenv, "YAGNA_PAYMENT_URL"))  # type: ignore[assignment]
-    net_url: str = field(default_factory=partial(os.getenv, "YAGNA_NET_URL"))  # type: ignore[assignment]
-    activity_url: str = field(default_factory=partial(os.getenv, "YAGNA_ACTIVITY_URL"))  # type: ignore[assignment]
+    app_key: str = field(
+        default_factory=partial(os.getenv, "YAGNA_APPKEY")
+    )  # type: ignore[assignment]
+    api_url: str = field(
+        default_factory=partial(os.getenv, "YAGNA_API_URL", DEFAULT_YAGNA_API_URL)
+    )  # type: ignore[assignment]
+    market_url: str = field(
+        default_factory=partial(os.getenv, "YAGNA_MARKET_URL")
+    )  # type: ignore[assignment]
+    payment_url: str = field(
+        default_factory=partial(os.getenv, "YAGNA_PAYMENT_URL")
+    )  # type: ignore[assignment]
+    net_url: str = field(
+        default_factory=partial(os.getenv, "YAGNA_NET_URL")
+    )  # type: ignore[assignment]
+    activity_url: str = field(
+        default_factory=partial(os.getenv, "YAGNA_ACTIVITY_URL")
+    )  # type: ignore[assignment]
 
     def __post_init__(self) -> None:
         if self.app_key is None:
-            raise MissingConfiguration(
-                key="YAGNA_APPKEY", description="API authentication token"
-            )
+            raise MissingConfiguration(key="YAGNA_APPKEY", description="API authentication token")
         self.market_url: str = self.__resolve_url(self.market_url, "/market-api/v1")
         self.payment_url: str = self.__resolve_url(self.payment_url, "/payment-api/v1")
-        self.activity_url: str = self.__resolve_url(
-            self.activity_url, "/activity-api/v1"
-        )
+        self.activity_url: str = self.__resolve_url(self.activity_url, "/activity-api/v1")
         self.net_url: str = self.__resolve_url(self.net_url, "/net-api/v1")
 
     def __resolve_url(self, given_url: Optional[str], prefix: str) -> str:
@@ -118,13 +126,16 @@ class ApiFactory(object):
 
 
 class ActivityApi:
-    """The purpose of this class is to have a single ActivityApi, just like Payment/Demand/Network,
+    """Wrapper for Activity Control and State classes.
+
+    The purpose of this class is to have a single ActivityApi, just like Payment/Demand/Network,
     without "estetic" split to Control/State.
 
     Q: Why?
     A: Because we want to keep internal interface as unified as possible, at least for now -
        - we might want to change this in the future.
     """
+
     def __init__(self, ya_activity_api: ya_activity.ApiClient):
         self.__control_api = ya_activity.RequestorControlApi(ya_activity_api)
         self.__state_api = ya_activity.RequestorStateApi(ya_activity_api)

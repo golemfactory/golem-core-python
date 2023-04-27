@@ -5,19 +5,14 @@ from typing import Callable, Dict, Optional, Tuple
 from golem_core.core.activity_api import Activity, commands
 from golem_core.core.golem_node import GolemNode
 from golem_core.core.market_api import (
-    RepositoryVmPayload,
     Proposal,
+    RepositoryVmPayload,
+    default_create_activity,
+    default_create_agreement,
     default_negotiate,
-    default_create_agreement, default_create_activity,
 )
 from golem_core.managers import DefaultPaymentManager
-from golem_core.pipeline import (
-    Buffer,
-    Chain,
-    Map,
-    Limit,
-    Sort,
-)
+from golem_core.pipeline import Buffer, Chain, Limit, Map, Sort
 from golem_core.utils.logging import DefaultLogger
 
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
@@ -67,10 +62,11 @@ async def select_proposal(proposal: Proposal) -> Optional[float]:
     data = await proposal.get_data()
     if data.issuer_id is None:
         return None
-    
+
     score = PROVIDER_SCORES.get(data.issuer_id, None)
     print(
-        f"Scoring {score} proposal from {data.properties.get('golem.node.id.name')} - {data.issuer_id}"
+        f"Scoring {score} proposal from {data.properties.get('golem.node.id.name')}"
+        f" - {data.issuer_id}"
     )
     return score
 

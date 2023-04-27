@@ -1,12 +1,11 @@
-from datetime import datetime, timezone, timedelta
-from typing import Tuple, List, TYPE_CHECKING
+from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING, List, Tuple
 
 from _decimal import Decimal
-
 from ya_payment import RequestorApi, models
 
 from golem_core.core.payment_api.exceptions import NoMatchingAccount
-from golem_core.core.resources import Resource, ResourceClosed, api_call_wrapper, _NULL
+from golem_core.core.resources import _NULL, Resource, ResourceClosed, api_call_wrapper
 
 if TYPE_CHECKING:
     from golem_core.core.golem_node import GolemNode
@@ -17,6 +16,7 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
 
     Created with one of the :class:`Allocation`-returning methods of the :any:`GolemNode`.
     """
+
     @api_call_wrapper(ignore=[404, 410])
     async def release(self) -> None:
         """Release the allocation.
@@ -29,7 +29,11 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
 
     @classmethod
     async def create_any_account(
-        cls, node: "GolemNode", amount: Decimal, network: str, driver: str,
+        cls,
+        node: "GolemNode",
+        amount: Decimal,
+        network: str,
+        driver: str,
     ) -> "Allocation":
         for account in await cls._get_api(node).get_requestor_accounts():
             if (
@@ -58,10 +62,8 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
             total_amount=str(amount),
             timestamp=timestamp,
             timeout=timeout,
-
             #   This will probably be removed one day (consent-related thing)
             make_deposit=False,
-
             #   We must set this here because of the ya_client interface
             allocation_id="",
             spent_amount="",

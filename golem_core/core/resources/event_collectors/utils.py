@@ -28,9 +28,7 @@ def is_intermittent_error(e: Exception) -> bool:
 
 
 def is_gsb_endpoint_not_found_error(
-    err: Union[
-        ya_activity.ApiException, ya_market.ApiException, ya_payment.ApiException
-    ]
+    err: Union[ya_activity.ApiException, ya_market.ApiException, ya_payment.ApiException]
 ) -> bool:
     """Check if `err` is caused by "Endpoint address not found" GSB error."""
 

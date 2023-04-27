@@ -10,4 +10,4 @@ class ConstraintException(BaseDemandOfferBaseException):
 
 
 class InvalidPropertiesError(BaseDemandOfferBaseException):
-    """Raised by `DemandOfferBaseModel.from_properties(cls, properties)` when given invalid `properties`."""
+    """`properties` given to `DemandOfferBaseModel.from_properties(cls, properties)` are invalid."""

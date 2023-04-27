@@ -1,26 +1,24 @@
-from typing import AsyncIterator, Awaitable, Callable, Iterable, Optional, Tuple, TypeVar
-from random import random
 from datetime import timedelta
+from random import random
+from typing import AsyncIterator, Awaitable, Callable, Iterable, Optional, Tuple, TypeVar
 
 from golem_core.core.activity_api import Activity, default_prepare_activity
 from golem_core.core.golem_node import GolemNode
-from golem_core.managers import DefaultPaymentManager
-from golem_core.pipeline import (
-    Buffer, Chain, Map, Zip, Sort,
-)
 from golem_core.core.market_api import (
-    default_negotiate,
-    default_create_agreement,
-    default_create_activity,
-    Proposal,
     Demand,
     Payload,
+    Proposal,
+    default_create_activity,
+    default_create_agreement,
+    default_negotiate,
 )
+from golem_core.managers import DefaultPaymentManager
+from golem_core.pipeline import Buffer, Chain, Map, Sort, Zip
 from golem_core.utils.logging import DefaultLogger
-from .activity_pool import ActivityPool
 
-from .task_data_stream import TaskDataStream
+from .activity_pool import ActivityPool
 from .redundance_manager import RedundanceManager
+from .task_data_stream import TaskDataStream
 
 TaskData = TypeVar("TaskData")
 TaskResult = TypeVar("TaskResult")
@@ -31,17 +29,18 @@ async def random_score(proposal: Proposal) -> float:
 
 
 def close_agreement_repeat_task(
-    task_stream: TaskDataStream[TaskData]
+    task_stream: TaskDataStream[TaskData],
 ) -> Callable[[Callable, Tuple[Activity, TaskData], Exception], Awaitable[None]]:
     async def on_exception(
         func: Callable[[Activity, TaskData], Awaitable[TaskResult]],
         args: Tuple[Activity, TaskData],
-        e: Exception
+        e: Exception,
     ) -> None:
         activity, in_data = args
         task_stream.put(in_data)
         print(f"Repeating task {in_data} because of {e}")
         await activity.parent.close_all()
+
     return on_exception
 
 
@@ -65,12 +64,17 @@ def get_chain(
             Map(prepare_activity),
             ActivityPool(max_size=max_workers),
             Zip(task_stream),
-            Map(execute_task, on_exception=close_agreement_repeat_task(task_stream)),  # type: ignore  # unfixable (?)
+            Map(
+                execute_task,  # type: ignore[arg-type]
+                on_exception=close_agreement_repeat_task(task_stream),  # type: ignore[arg-type]
+            ),
             Buffer(size=max_workers),
         )
     else:
         min_repeat, min_success = redundance
-        redundance_manager = RedundanceManager(execute_task, task_stream, min_repeat, min_success, max_workers)
+        redundance_manager = RedundanceManager(
+            execute_task, task_stream, min_repeat, min_success, max_workers
+        )
 
         chain = Chain(
             demand.initial_proposals(),
@@ -92,11 +96,9 @@ async def execute_tasks(
     payload: Payload,
     task_data: Iterable[TaskData],
     execute_task: Callable[[Activity, TaskData], Awaitable[TaskResult]],
-
     max_workers: int = 1,
     prepare_activity: Callable[[Activity], Awaitable[Activity]] = default_prepare_activity,
     score_proposal: Callable[[Proposal], Awaitable[float]] = random_score,
-
     redundance: Optional[Tuple[int, float]] = None,
 ) -> AsyncIterator[TaskResult]:
     """High-level entrypoint POC. Interface is expected to change in the near future.
@@ -105,17 +107,20 @@ async def execute_tasks(
 
     :param budget: Amount that will be reserved in an :any:`Allocation`.
     :param payload: Specification of the :any:`Demand`.
-    :param task_data: Iterable with task input data. In the future, async iterable will also be accepted.
+    :param task_data: Iterable with task input data. In the future, async iterable will also be
+        accepted.
         If `redundance` is not None there are two restrictions (both are TODO):
 
             *   Task data must be hashable
             *   Iterator will be exhausted immediately, so no fancy variable-size iterators
                 will work.
-    :param execute_task: Async function that will be executed with an :any:`Activity` (based on a given `payload`)
-        and a single item from the `task_data` as arguments. Result will be returned.
+    :param execute_task: Async function that will be executed with an :any:`Activity` (based on a
+        given `payload`) and a single item from the `task_data` as arguments. Result will be
+        returned.
     :param max_workers: How many tasks should be processed at the same time.
-    :param prepare_activity: Async function that will be executed once on every :any:`Activity` before it will be used
-        for processing `task_data`. Defaults to :any:`default_prepare_activity`.
+    :param prepare_activity: Async function that will be executed once on every :any:`Activity`
+        before it will be used for processing `task_data`. Defaults to
+        :any:`default_prepare_activity`.
     :param score_proposal: Scoring function that will be passed to :any:`Sort`. Defaults to random.
     :param redundance: Optional tuple (min_provider_cnt, ratio). If passed:
 

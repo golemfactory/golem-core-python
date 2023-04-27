@@ -3,16 +3,16 @@ from abc import ABC
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import List, Literal, Optional, Final, Tuple, Dict, Any
+from typing import Any, Dict, Final, List, Literal, Optional, Tuple
 
 from dns.exception import DNSException
 from srvresolver.srv_record import SRVRecord
 from srvresolver.srv_resolver import SRVResolver
 
-from golem_core.utils.http import make_http_get_request, make_http_head_request
 from golem_core.core.market_api.resources.demand.demand_offer_base import defaults
 from golem_core.core.market_api.resources.demand.demand_offer_base.model import constraint, prop
 from golem_core.core.market_api.resources.demand.demand_offer_base.payload.base import Payload
+from golem_core.utils.http import make_http_get_request, make_http_head_request
 
 DEFAULT_REPO_URL_SRV: Final[str] = "_girepo._tcp.dev.golem.network"
 DEFAULT_REPO_URL_FALLBACK: Final[str] = "http://girepo.dev.golem.network:8000"
@@ -61,7 +61,6 @@ class _VmPayload(Payload, ABC):
 @dataclass
 class VmPayload(BaseVmPayload, _VmPayload):
     """Declarative description of payload for "vm" runtime."""
-    pass
 
 
 @dataclass
@@ -78,7 +77,6 @@ class _ManifestVmPayload(Payload, ABC):
 @dataclass
 class ManifestVmPayload(BaseVmPayload, _ManifestVmPayload):
     """Declarative description of payload for "vm" runtime, with Computation Manifest flavor."""
-    pass
 
 
 @dataclass
@@ -131,7 +129,7 @@ async def resolve_repository_url(
                 timeout=int(timeout.total_seconds()),
             )
         except DNSException as e:
-            raise VmPayloadException(f"Could not resolve Golem package repository address!") from e
+            raise VmPayloadException("Could not resolve Golem package repository address!") from e
 
         if not srv:
             raise VmPayloadException("Golem package repository is currently unavailable!")

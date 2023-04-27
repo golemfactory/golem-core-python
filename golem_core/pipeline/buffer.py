@@ -36,21 +36,26 @@ class Buffer(Generic[DataType]):
     """
 
     def __init__(self, size: int = 1):
-        """
+        """Init Buffer.
+
         :param size: How many elements of the input stream will be concurrently awaited.
             Default size=1 is identical to a single `await` statement.
             In most Golem-specific scenarios buffer size will correspond to things like
             "how many agreements are negotiated at the same time", so usually the higher the size:
 
             * The faster we'll be able to create and utilize resources
-            * The higher chance for "useless" resources (e.g. we might be creating multiple agreements
-              even when there is only a single task left)
-            * The higher workload for the local machine (more asyncio tasks) and yagna (more requests)
+            * The higher chance for "useless" resources (e.g. we might be creating multiple
+              agreements even when there is only a single task left)
+            * The higher workload for the local machine (more asyncio tasks) and yagna
+              (more requests)
         """
         self.size = size
 
-    async def __call__(self, in_stream: AsyncIterator[Union[DataType, Awaitable[DataType]]]) -> AsyncIterator[DataType]:
-        """
+    async def __call__(
+        self, in_stream: AsyncIterator[Union[DataType, Awaitable[DataType]]]
+    ) -> AsyncIterator[DataType]:
+        """Call Buffer.
+
         :param in_stream: A stream of awaitables.
         """
         self._tasks: List[asyncio.Task] = []
@@ -71,7 +76,9 @@ class Buffer(Generic[DataType]):
                 yield get_result_task.result()
                 self._semaphore.release()
 
-    async def _process_in_stream(self, in_stream: AsyncIterator[Union[DataType, Awaitable[DataType]]]) -> None:
+    async def _process_in_stream(
+        self, in_stream: AsyncIterator[Union[DataType, Awaitable[DataType]]]
+    ) -> None:
         while True:
             await self._semaphore.acquire()
             try:
@@ -99,8 +106,9 @@ class Buffer(Generic[DataType]):
                 print("Exception in Buffer", e)
                 return
         else:
-            #   NOTE: Buffer is useful only with awaitables, so this scenario doesn't make much sense.
-            #         But maybe stream sometimes returns awaitables and sometimes already awaited values?
+            #   NOTE: Buffer is useful only with awaitables, so this scenario doesn't make much
+            #         sense. But maybe stream sometimes returns awaitables and sometimes already
+            #         awaited values?
             awaited = in_val  # type: ignore
 
         self._result_queue.put_nowait(awaited)

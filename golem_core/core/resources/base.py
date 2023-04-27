@@ -1,23 +1,38 @@
 import asyncio
-from abc import ABC, ABCMeta
 import re
+from abc import ABC, ABCMeta
 from functools import wraps
-from typing import TypeVar, AsyncIterator, Awaitable, Callable, Generic, List, Optional, TYPE_CHECKING, Type
-from typing_extensions import ParamSpec
+from typing import (
+    TYPE_CHECKING,
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Generic,
+    List,
+    Optional,
+    Type,
+    TypeVar,
+)
 
-from ya_payment import ApiException as PaymentApiException
-from ya_market import ApiException as MarketApiException
+from typing_extensions import ParamSpec
 from ya_activity import ApiException as ActivityApiException
+from ya_market import ApiException as MarketApiException
 from ya_net import ApiException as NetApiException
+from ya_payment import ApiException as PaymentApiException
 
 from golem_core.core.resources.events import NewResource, ResourceDataChanged
 from golem_core.core.resources.exceptions import ResourceNotFound
-from golem_core.core.resources.low import get_requestor_api, TRequestorApi
+from golem_core.core.resources.low import TRequestorApi, get_requestor_api
 
 if TYPE_CHECKING:
     from golem_core.core.golem_node.golem_node import GolemNode
 
-all_api_exceptions = (PaymentApiException, MarketApiException, ActivityApiException, NetApiException)
+all_api_exceptions = (
+    PaymentApiException,
+    MarketApiException,
+    ActivityApiException,
+    NetApiException,
+)
 P = ParamSpec("P")
 R = TypeVar("R")
 
@@ -31,11 +46,12 @@ TEvent = TypeVar("TEvent")
 class _NULL:
     """Set this as a type to tell the typechecker that call is just invalid.
 
-    This might be ugly, but keeps Resource inheritance tree simple."""
+    This might be ugly, but keeps Resource inheritance tree simple.
+    """
 
 
 def api_call_wrapper(
-    ignore: List[int] = []
+    ignore: List[int] = [],
 ) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
     def outer_wrapper(f: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
         @wraps(f)
@@ -50,12 +66,17 @@ def api_call_wrapper(
                     raise ResourceNotFound(self)  # type: ignore
                 else:
                     raise
+
         return wrapper  # type: ignore  # I don't understand this :/
+
     return outer_wrapper
 
 
 class ResourceMeta(ABCMeta):
-    """Resources metaclass. Ensures a single instance per resource id. Emits the NewResource event."""
+    """Resources metaclass.
+
+    Ensures a single instance per resource id. Emits the NewResource event.
+    """
 
     def __call__(cls, node: "GolemNode", id_: str, *args, **kwargs):
         assert isinstance(cls, type(Resource))  # mypy
@@ -71,9 +92,7 @@ class ResourceMeta(ABCMeta):
 
 
 class Resource(
-    ABC,
-    Generic[TRequestorApi, TModel, TParent, TChild, TEvent],
-    metaclass=ResourceMeta
+    ABC, Generic[TRequestorApi, TModel, TParent, TChild, TEvent], metaclass=ResourceMeta
 ):
     """Base class of all core-level objects.
 
@@ -84,6 +103,7 @@ class Resource(
     should be described on subclasses, but this doesn't make much sense before the previous TODO.
     Related issue: https://github.com/golemfactory/golem-core-python/issues/26
     """
+
     def __init__(self, node: "GolemNode", id_: str, data: Optional[TModel] = None):
         self._node = node
         self._id = id_
@@ -131,7 +151,8 @@ class Resource(
         return self._children.copy()
 
     async def child_aiter(self) -> AsyncIterator[TChild]:
-        """Yields children. Stops when :class:`Resource` knows there will be no more children."""
+        """Yield children. Stops when :class:`Resource` knows there will be no more children."""
+
         async def no_more_children() -> None:  # missing return statement?
             await self._no_more_children
 
@@ -162,7 +183,7 @@ class Resource(
         return self._events.copy()
 
     def set_no_more_children(self) -> None:
-        """This resource will have no more children. This stops :any:`child_aiter` iterator.
+        """Stop :any:`child_aiter` iterator marking as this resource will have no more children.
 
         This can be called either from iside the resource (e.g. Proposal sets this when it receives
         a ProposalRejected event), or from outside (e.g. on shutdown).
@@ -197,16 +218,16 @@ class Resource(
 
     @property
     def node(self) -> "GolemNode":
-        """:any:`GolemNode` that defines the context of this :class:`Resource`"""
+        """:any:`GolemNode` that defines the context of this :class:`Resource`."""
         return self._node
 
     ####################
     #   DATA LOADING
     async def get_data(self, force: bool = False) -> TModel:
-        """Returns details of this resource.
+        """Return details of this resource.
 
-        :param force: False -> returns the cached data (or fetches data from `yagna` if there is no cached version).
-            True -> always fetches the new data (and updates the cache).
+        :param force: False -> returns the cached data (or fetches data from `yagna` if there is no
+            cached version). True -> always fetches the new data (and updates the cache).
 
         """
         async with self._get_data_lock:
@@ -247,21 +268,21 @@ class Resource(
     @property
     def _get_method_name(self) -> str:
         """Name of the single GET ya_client method, e.g. get_allocation."""
-        return f'get_{self._snake_case_name()}'
+        return f"get_{self._snake_case_name()}"
 
     @classmethod
     def _get_all_method_name(cls) -> str:
         """Name of the collection GET ya_client method, e.g. get_allocations."""
-        return f'get_{cls._snake_case_name()}s'
+        return f"get_{cls._snake_case_name()}s"
 
     @classmethod
     def _id_field_name(cls) -> str:
-        return f'{cls._snake_case_name()}_id'
+        return f"{cls._snake_case_name()}_id"
 
     @classmethod
     def _snake_case_name(cls) -> str:
-        replaced = re.sub('([A-Z]+)', r'_\1', cls.__name__).lower()
+        replaced = re.sub("([A-Z]+)", r"_\1", cls.__name__).lower()
         return replaced[1:]
 
     def __repr__(self) -> str:
-        return f'{type(self).__name__}({self._id})'
+        return f"{type(self).__name__}({self._id})"

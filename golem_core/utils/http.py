@@ -1,6 +1,8 @@
 import aiohttp
 
-# TODO: Implement Port/Adapter pattern and make aiohttp dependency optional for http requests for more decoupling
+# TODO: Implement Port/Adapter pattern and make aiohttp dependency optional for http requests for
+#   more decoupling
+
 
 async def make_http_get_request(url: str, raise_exceptions: bool = False) -> str:
     async with aiohttp.ClientSession() as client:

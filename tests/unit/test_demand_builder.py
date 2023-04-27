@@ -2,7 +2,14 @@ from dataclasses import dataclass
 
 import pytest
 
-from golem_core.core.market_api import DemandBuilder, DemandBuilderDecorator, DemandOfferBaseModel, prop, constraint
+from golem_core.core.market_api import (
+    DemandBuilder,
+    DemandBuilderDecorator,
+    DemandOfferBaseModel,
+    constraint,
+    prop,
+)
+
 
 @dataclass
 class ExampleModel(DemandOfferBaseModel):
@@ -14,13 +21,12 @@ class ExampleModel(DemandOfferBaseModel):
 
 class ExampleBuilderDecorator(DemandBuilderDecorator):
     async def decorate_demand_builder(self, demand_builder: DemandBuilder) -> None:
-        demand_builder.add_properties({
-            'some.fancy.field': 'was just added by demand decorator'
-        })
+        demand_builder.add_properties({"some.fancy.field": "was just added by demand decorator"})
+
 
 class AnotherExampleBuilderDecorator(DemandBuilderDecorator):
     async def decorate_demand_builder(self, demand_builder: DemandBuilder) -> None:
-        demand_builder.add_constraints('field=added')
+        demand_builder.add_constraints("field=added")
 
 
 @pytest.mark.asyncio
@@ -32,11 +38,12 @@ async def test_add():
     await demand_builder.add(model)
 
     assert demand_builder.properties == {
-        'some.prop1.path': 1,
-        'some.prop2.path': 2,
+        "some.prop1.path": 1,
+        "some.prop2.path": 2,
     }
 
-    assert demand_builder.constraints == '(&(some.con1.path=3)\n\t(some.con2.path<=4))'
+    assert demand_builder.constraints == "(&(some.con1.path=3)\n\t(some.con2.path<=4))"
+
 
 def test_repr():
     assert str(DemandBuilder()) == "{'properties': {}, 'constraints': []}"
@@ -47,13 +54,14 @@ async def test_create_demand(mocker):
     demand_builder = DemandBuilder()
 
     mocked_node = mocker.Mock()
-    mocked_demand = mocker.patch('golem_core.core.market_api.resources.demand.demand_builder.Demand', **{
-        'create_from_properties_constraints': mocker.AsyncMock(return_value='foobar')
-    })
+    mocked_demand = mocker.patch(
+        "golem_core.core.market_api.resources.demand.demand_builder.Demand",
+        **{"create_from_properties_constraints": mocker.AsyncMock(return_value="foobar")},
+    )
 
     result = await demand_builder.create_demand(mocked_node)
 
-    assert result == 'foobar'
+    assert result == "foobar"
 
     mocked_demand.create_from_properties_constraints.assert_called_with(
         mocked_node,
@@ -61,17 +69,18 @@ async def test_create_demand(mocker):
         demand_builder.constraints,
     )
 
+
 @pytest.mark.asyncio
 async def test_decorate():
     demand_builder = DemandBuilder()
 
     assert demand_builder.properties == {}
-    assert demand_builder.constraints == '(&)'
+    assert demand_builder.constraints == "(&)"
 
     await demand_builder.decorate(ExampleBuilderDecorator(), AnotherExampleBuilderDecorator())
 
     assert demand_builder.properties == {
-        'some.fancy.field': 'was just added by demand decorator',
+        "some.fancy.field": "was just added by demand decorator",
     }
 
-    assert demand_builder.constraints == 'field=added'
+    assert demand_builder.constraints == "field=added"

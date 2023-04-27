@@ -1,19 +1,26 @@
 import asyncio
 from contextlib import asynccontextmanager
-from tempfile import TemporaryDirectory
 from os import path
+from tempfile import TemporaryDirectory
 from typing import AsyncGenerator, Optional
 
-from golem_core.core.activity_api import Activity, commands, Script, CommandFailed, CommandCancelled, BatchError
+from golem_core.core.activity_api import (
+    Activity,
+    BatchError,
+    CommandCancelled,
+    CommandFailed,
+    Script,
+    commands,
+)
 from golem_core.core.golem_node import GolemNode
 from golem_core.core.market_api import RepositoryVmPayload
-from golem_core.core.resources import ResourceEvent, NewResource, ResourceClosed
+from golem_core.core.resources import NewResource, ResourceClosed, ResourceEvent
 
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
 
 async def example_1(allocation_id: str, demand_id: str, proposal_id: str) -> None:
-    """Show existing allocation/demand/proposal"""
+    """Show existing allocation/demand/proposal."""
     golem = GolemNode()
 
     allocation = golem.allocation(allocation_id)
@@ -40,7 +47,7 @@ async def example_1(allocation_id: str, demand_id: str, proposal_id: str) -> Non
 
 
 async def example_2() -> None:
-    """Show all current allocations/demands"""
+    """Show all current allocations/demands."""
     golem = GolemNode()
     async with golem:
         for allocation in await golem.allocations():
@@ -51,7 +58,7 @@ async def example_2() -> None:
 
 
 async def example_3() -> None:
-    """Create new allocation, demand, fetch a single proposal, cleanup"""
+    """Create new allocation, demand, fetch a single proposal, cleanup."""
     golem = GolemNode()
 
     async with golem:
@@ -96,7 +103,7 @@ async def example_4() -> None:
         await their_response.reject()
         await their_response.get_data(force=True)
         assert their_response.data.state == "Rejected"
-        print(f"... and we rejected it")
+        print("... and we rejected it")
 
         #   The proposal tree
         assert their_response.parent is our_response
@@ -105,7 +112,7 @@ async def example_4() -> None:
 
 
 async def example_5() -> None:
-    """EventBus usage example"""
+    """Show EventBus usage."""
     golem = GolemNode()
     got_events = []
 
@@ -125,7 +132,7 @@ async def example_5() -> None:
 
 
 async def example_6() -> None:
-    """Print most recent invoice and debit note received by this node"""
+    """Print most recent invoice and debit note received by this node."""
     golem = GolemNode()
     async with golem:
         invoice = (await golem.invoices())[-1]
@@ -139,7 +146,7 @@ async def example_6() -> None:
 
 @asynccontextmanager
 async def get_activity(golem: Optional[GolemNode] = None) -> AsyncGenerator[Activity, None]:
-    """Create a single activity"""
+    """Create a single activity."""
     if golem is None:
         golem = GolemNode()
 
@@ -175,7 +182,7 @@ async def get_activity(golem: Optional[GolemNode] = None) -> AsyncGenerator[Acti
 
 
 async def example_7() -> None:
-    """Use the direct interface of the activity"""
+    """Use the direct interface of the activity."""
     async with get_activity() as activity:
         assert activity.idle
         batch = await activity.execute_commands(
@@ -195,7 +202,7 @@ async def example_7() -> None:
 
 
 async def example_8() -> None:
-    """Send a batch using the Script interface"""
+    """Send a batch using the Script interface."""
     async with get_activity() as activity:
         script = Script()
         script.add_command(commands.Deploy())
@@ -214,7 +221,7 @@ async def example_8() -> None:
 
 
 async def example_9() -> None:
-    """Send an invalid batch using the Script interface"""
+    """Send an invalid batch using the Script interface."""
     async with get_activity() as activity:
         script = Script()
         script.add_command(commands.Deploy())
@@ -240,17 +247,17 @@ async def example_9() -> None:
             print(f"Previous command failed: {e}")
 
         last_event = batch.events[-1]
-        assert last_event.result == 'Error'
+        assert last_event.result == "Error"
 
 
 async def example_10() -> None:
-    """Send a file"""
+    """Send a file."""
     async with get_activity() as activity:
         with TemporaryDirectory() as tmpdir:
             local_fname = path.join(tmpdir, "in_file.txt")
             in_file_text = "Hello world inside a file"
 
-            with open(local_fname, 'w') as f:
+            with open(local_fname, "w") as f:
                 f.write(in_file_text)
 
             remote_fname = "/golem/resource/in_file.txt"
@@ -265,7 +272,7 @@ async def example_10() -> None:
 
 
 async def example_11() -> None:
-    """Download a file"""
+    """Download a file."""
     async with get_activity() as activity:
         with TemporaryDirectory() as tmpdir:
             local_fname = path.join(tmpdir, "out_file.txt")
@@ -278,17 +285,15 @@ async def example_11() -> None:
                 commands.DownloadFile(remote_fname, local_fname),
             )
             await batch.wait(5)
-            with open(local_fname, 'r') as f:
+            with open(local_fname, "r") as f:
                 assert f.read() == out_file_text
 
 
 async def example_12() -> None:
-    """Batch.wait() with/without ignore_errors"""
+    """Batch.wait() with/without ignore_errors."""
     async with get_activity() as activity:
         batch = await activity.execute_commands(
-            commands.Deploy(),
-            commands.Start(),
-            commands.Run("/invalid/command")
+            commands.Deploy(), commands.Start(), commands.Run("/invalid/command")
         )
 
         #   Wait, raise errors
@@ -306,7 +311,8 @@ async def main() -> None:
     # NOTE: this example assumes correct allocation/demand/proposal IDs
     # print("\n---------- EXAMPLE 1 -------------\n")
     # allocation_id = "b7bf70f9-529b-4901-9bb9-70080e97dbed"
-    # demand_id = "01e23b27c3f34d99a2156b15796a8315-0c2cc2fb3200f6bd389811a29fe94d03ddd44949df9360b68fcef9da3fa1009b"
+    # demand_id = "01e23b27c3f34d99a2156b15796a8315-0c2cc2fb3200f6bd389811a29fe94d03ddd4494" \
+    #             "9df9360b68fcef9da3fa1009b"
     # proposal_id = "R-8da944668deeade9d59dfe451656419e68fb04cf88c78c02ad905a7b0276ded6"
     # await example_1(allocation_id, demand_id, proposal_id)
 
@@ -344,5 +350,5 @@ async def main() -> None:
     await example_12()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.get_event_loop().run_until_complete(main())

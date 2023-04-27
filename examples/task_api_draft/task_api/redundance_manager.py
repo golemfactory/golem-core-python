@@ -1,9 +1,20 @@
 import asyncio
-from typing import AsyncIterator, Awaitable, Callable, DefaultDict, List, Optional, Set, Tuple, TypeVar
 from collections import Counter, defaultdict
+from typing import (
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    DefaultDict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+)
 
 from golem_core.core.activity_api import Activity
 from golem_core.core.market_api import Proposal
+
 from .task_data_stream import TaskDataStream
 
 TaskData = TypeVar("TaskData")
@@ -34,13 +45,16 @@ class RedundanceManager:
         self._workers: List[asyncio.Task] = []
         self._results_queue: asyncio.Queue[TaskResult] = asyncio.Queue()
 
-    async def filter_providers(self, proposal_stream: AsyncIterator[Proposal]) -> AsyncIterator[Proposal]:
+    async def filter_providers(
+        self, proposal_stream: AsyncIterator[Proposal]
+    ) -> AsyncIterator[Proposal]:
         """Filter out proposals from providers who already processed all remaining tasks."""
         while self.remaining_tasks:
             proposal = await proposal_stream.__anext__()
             provider_id = (await proposal.get_data()).issuer_id
             if provider_id in self._useless_providers:
-                #   Skipping proposal from {provider_id} because they have already processed all the tasks
+                # Skipping proposal from {provider_id} because they have already processed all the
+                # tasks
                 pass
             else:
                 yield proposal
@@ -53,7 +67,9 @@ class RedundanceManager:
     async def execute_tasks(
         self, activity_stream: AsyncIterator[Awaitable[Activity]]
     ) -> AsyncIterator[TaskResult]:
-        self._workers = [asyncio.create_task(self._worker_task(activity_stream)) for _ in range(self.worker_cnt)]
+        self._workers = [
+            asyncio.create_task(self._worker_task(activity_stream)) for _ in range(self.worker_cnt)
+        ]
         for task_data in self.remaining_tasks.copy():
             yield await self._results_queue.get()  # type: ignore  # mypy, why?
 
@@ -90,13 +106,17 @@ class RedundanceManager:
     def _process_task_result(self, this_task_data: TaskData, this_task_result: TaskResult) -> None:
         if this_task_data not in self.remaining_tasks:
             #   We processed this task more times than necessary.
-            #   This is possible because now in _task_for_provider we don't care if given task is already being
-            #   processed in some other worker or not. Also: this might help speed things up, so is not really
-            #   a bug/problem, but rather a decision.
+            #   This is possible because now in _task_for_provider we don't care if given task is
+            #   already being processed in some other worker or not. Also: this might help speed
+            #   things up, so is not really a bug/problem, but rather a decision.
             return
 
         self._partial_results.append((this_task_data, this_task_result))
-        task_results = [task_result for task_data, task_result in self._partial_results if task_data == this_task_data]
+        task_results = [
+            task_result
+            for task_data, task_result in self._partial_results
+            if task_data == this_task_data
+        ]
 
         print(f"Current task {this_task_data} results: {Counter(task_results).most_common()}")
 

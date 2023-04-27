@@ -1,11 +1,11 @@
 import asyncio
-from typing import Dict, List, Optional, Union, TYPE_CHECKING, TypedDict
+from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_network
+from typing import TYPE_CHECKING, Dict, List, Optional, TypedDict, Union
 
-from ipaddress import ip_network, IPv4Address, IPv6Address, IPv4Network, IPv6Network
 from ya_net import RequestorApi, models
 
 from golem_core.core.network_api.exceptions import NetworkFull
-from golem_core.core.resources import Resource, api_call_wrapper, _NULL, ResourceClosed
+from golem_core.core.resources import _NULL, Resource, ResourceClosed, api_call_wrapper
 
 if TYPE_CHECKING:
     from golem_core.core.golem_node import GolemNode
@@ -56,7 +56,9 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
 
     @classmethod
     @api_call_wrapper()
-    async def create(cls, golem_node: "GolemNode", ip: str, mask: Optional[str], gateway: Optional[str]) -> "Network":
+    async def create(
+        cls, golem_node: "GolemNode", ip: str, mask: Optional[str], gateway: Optional[str]
+    ) -> "Network":
         api = cls._get_api(golem_node)
         in_data = models.Network(ip=ip, mask=mask, gateway=gateway)
         created_data = await api.create_network(in_data)
@@ -78,12 +80,12 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
         :return: IP of the node in the network.
         """
         #   Q: Why is there no `Node` class?
-        #   A: Mostly because yagna nodes don't have proper IDs (they are just provider_ids), and this
-        #      is strongly against the current golem_core object model (e.g. what if we want to have the
-        #      same provider in muliple networks? Nodes would share the same id, but are totally diferent objects).
-        #      We could bypass this by having some internal ids (e.g. network_id-provider_id, or just uuid),
-        #      but this would not be pretty and there's no gain from having a Node object either way.
-        #      This might change in the future.
+        #   A: Mostly because yagna nodes don't have proper IDs (they are just provider_ids), and
+        #      this is strongly against the current golem_core object model (e.g. what if we want to
+        #      have the same provider in muliple networks? Nodes would share the same id, but are
+        #      totally diferent objects). We could bypass this by having some internal ids
+        #      (e.g. network_id-provider_id, or just uuid), but this would not be pretty and there's
+        #      no gain from having a Node object either way. This might change in the future.
         async with self._create_node_lock:
             if node_ip is None:
                 node_ip = self._next_free_ip()
@@ -97,7 +99,10 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
 
     @api_call_wrapper()
     async def refresh_nodes(self) -> None:
-        """Propagates the information about created nodes to the network (TODO: more precise explanation maybe?)."""
+        """Propagates the information about created nodes to the network.
+
+        TODO: more precise explanation maybe?
+        """
         tasks = []
         for ip, provider_id in self._nodes.items():
             data = models.Node(id=provider_id, ip=ip)  # type: ignore  # mypy, why?
@@ -105,7 +110,9 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
         await asyncio.gather(*tasks)
 
     def deploy_args(self, ip: str) -> DeployArgsType:
-        """A data structure that should be passed to :any:`Deploy` to make an :any:`Activity` a part of the network.
+        """Get a data structure that should be passed to :any:`Deploy`.
+
+        This makes an :any:`Activity` a part of the network.
 
         :param ip: IP of the previously created network node.
 

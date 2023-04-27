@@ -10,7 +10,6 @@ import pytest
 from golem_core.utils.storage import gftp
 
 
-
 @pytest.fixture(scope="function")
 def test_dir():
     """Create a temporary directory containing test files.

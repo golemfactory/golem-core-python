@@ -1,19 +1,25 @@
 import asyncio
-from collections import defaultdict
 import os
-from typing import Any, DefaultDict, Dict, Iterable, Optional, List, Set, Type, Union
-from uuid import uuid4
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Set, Type, Union
+from uuid import uuid4
 
-from golem_core.core.activity_api import PoolingBatch, Activity
+from golem_core.core.activity_api import Activity, PoolingBatch
 from golem_core.core.events import EventBus
-from golem_core.core.golem_node.events import SessionStarted, ShutdownStarted, ShutdownFinished
-from golem_core.core.market_api import Demand, Agreement, DemandBuilder, Payload, Proposal
+from golem_core.core.golem_node.events import SessionStarted, ShutdownFinished, ShutdownStarted
+from golem_core.core.market_api import Agreement, Demand, DemandBuilder, Payload, Proposal
 from golem_core.core.market_api.resources.demand.demand_offer_base import defaults as dobm_defaults
-from golem_core.core.resources import ApiConfig, ApiFactory, TResource, Resource
-from golem_core.core.payment_api import DebitNoteEventCollector, InvoiceEventCollector, Allocation, DebitNote, Invoice
 from golem_core.core.network_api import Network
+from golem_core.core.payment_api import (
+    Allocation,
+    DebitNote,
+    DebitNoteEventCollector,
+    Invoice,
+    InvoiceEventCollector,
+)
+from golem_core.core.resources import ApiConfig, ApiFactory, Resource, TResource
 
 PAYMENT_DRIVER: str = os.getenv("YAGNA_PAYMENT_DRIVER", "erc20").lower()
 PAYMENT_NETWORK: str = os.getenv("YAGNA_PAYMENT_NETWORK", "rinkeby").lower()
@@ -25,12 +31,14 @@ DEFAULT_EXPIRATION_TIMEOUT = timedelta(minutes=30)
 class _RandomSessionId:
     pass
 
+
 class GolemNode:
     """Main entrypoint to the python Golem API, communicates with `yagna`.
 
     GolemNode object corresponds to a single identity and a single running `yagna` instance
-    (--> it's identified by a (APPKEY, YAGNA_URL) pair) and can operate on different subnets / networks.
-    Multiple GolemNode instances can be used to access different identities / `yagna` instances.
+    (--> it's identified by a (APPKEY, YAGNA_URL) pair) and can operate on different
+    subnets / networks. Multiple GolemNode instances can be used to access different
+    identities / `yagna` instances.
 
     Usage::
 
@@ -48,17 +56,19 @@ class GolemNode:
         collect_payment_events: bool = True,
         app_session_id: Optional[Union[str, Type[_RandomSessionId]]] = _RandomSessionId,
     ):
-        """
+        """Init GolemNode.
+
         :param app_key: App key used as an authentication token for all `yagna` calls.
                         Defaults to the `YAGNA_APPKEY` env variable.
         :param base_url: Base url for all `yagna` APIs. Defaults to `YAGNA_API_URL` env
                          variable or http://127.0.0.1:7465.
-        :param collect_payment_events: If True, GolemNode will watch for incoming debit notes/invoices
-                                       and create corresponding objects (--> :any:`NewResource` events will be emitted).
-        :param app_session_id: A correlation/session identifier. :any:`GolemNode` objects with the same `app_session_id`
-                               will receive the same debit note/invoice/agreement events.
-                               Defaults to a random sting. If set to `None`, this GolemNode will receive all events
-                               regardless of their corresponding session ids.
+        :param collect_payment_events: If True, GolemNode will watch for incoming
+            debit notes/invoices and create corresponding objects (--> :any:`NewResource` events
+            will be emitted).
+        :param app_session_id: A correlation/session identifier. :any:`GolemNode` objects with the
+            same `app_session_id` will receive the same debit note/invoice/agreement events.
+            Defaults to a random sting. If set to `None`, this GolemNode will receive all events
+            regardless of their corresponding session ids.
         """
         config_kwargs = {
             param: value
@@ -90,7 +100,11 @@ class GolemNode:
         return self
 
     async def __aexit__(self, *exc_info: Any) -> None:
-        """Shutdown. Stop collecting yagna events, close all resources created with autoclose=True, close APIs etc."""
+        """Shutdown.
+
+        Stop collecting yagna events, close all resources created with autoclose=True, close
+        APIs etc.
+        """
         await self.aclose()
 
     async def start(self) -> None:
@@ -141,9 +155,15 @@ class GolemNode:
     async def _close_autoclose_resources(self) -> None:
         agreement_msg = "Work finished"
         activity_tasks = [r.destroy() for r in self._autoclose_resources if isinstance(r, Activity)]
-        agreement_tasks = [r.terminate(agreement_msg) for r in self._autoclose_resources if isinstance(r, Agreement)]
+        agreement_tasks = [
+            r.terminate(agreement_msg)
+            for r in self._autoclose_resources
+            if isinstance(r, Agreement)
+        ]
         demand_tasks = [r.unsubscribe() for r in self._autoclose_resources if isinstance(r, Demand)]
-        allocation_tasks = [r.release() for r in self._autoclose_resources if isinstance(r, Allocation)]
+        allocation_tasks = [
+            r.release() for r in self._autoclose_resources if isinstance(r, Allocation)
+        ]
         network_tasks = [r.remove() for r in self._autoclose_resources if isinstance(r, Network)]
         if activity_tasks:
             await asyncio.gather(*activity_tasks)
@@ -193,12 +213,13 @@ class GolemNode:
 
         :param payload: Details of the demand
         :param subnet: Subnet tag
-        :param expiration: Timestamp when all agreements based on this demand will expire (TODO: is this correct?)
+        :param expiration: Timestamp when all agreements based on this demand will expire
+            TODO: is this correct?
         :param allocations: Allocations that will be included in the description of this demand.
         :param autoclose: Unsubscribe demand on :func:`__aexit__`
         :param autostart: Immediately start collecting yagna events for this :any:`Demand`.
-                          Without autostart events for this demand will start being collected after a call to
-                          :func:`Demand.start_collecting_events`.
+            Without autostart events for this demand will start being collected after a call to
+            :func:`Demand.start_collecting_events`.
         """
         if expiration is None:
             expiration = datetime.now(timezone.utc) + DEFAULT_EXPIRATION_TIMEOUT
@@ -210,7 +231,9 @@ class GolemNode:
         await builder.add(payload)
         await self._add_builder_allocations(builder, allocations)
 
-        demand = await Demand.create_from_properties_constraints(self, builder.properties, builder.constraints)
+        demand = await Demand.create_from_properties_constraints(
+            self, builder.properties, builder.constraints
+        )
 
         if autostart:
             demand.start_collecting_events()
@@ -234,10 +257,10 @@ class GolemNode:
         :param gateway: Optional gateway address for the network.
         :param autoclose: Remove network on :func:`__aexit__`
         :param add_requestor: If True, adds requestor with ip `requestor_ip` to the network.
-                              If False, requestor will be able to interact with other nodes only
-                              after an additional call to :func:`add_to_network`.
-        :param requestor_ip: Ip of the requestor node in the network. Ignored if not `add_requestor`.
-                             If `None`, next free ip will be assigned.
+            If False, requestor will be able to interact with other nodes only
+            after an additional call to :func:`add_to_network`.
+        :param requestor_ip: Ip of the requestor node in the network. Ignored if not
+            `add_requestor`. If `None`, next free ip will be assigned.
         """
         network = await Network.create(self, ip, mask, gateway)
         if autoclose:
@@ -246,7 +269,9 @@ class GolemNode:
             await self.add_to_network(network, requestor_ip)
         return network
 
-    async def _add_builder_allocations(self, builder: DemandBuilder, allocations: Iterable[Allocation]) -> None:
+    async def _add_builder_allocations(
+        self, builder: DemandBuilder, allocations: Iterable[Allocation]
+    ) -> None:
         for allocation in allocations:
             properties, constraints = await allocation.demand_properties_constraints()
             builder.add_constraints(*constraints)
@@ -257,83 +282,96 @@ class GolemNode:
     ###########################
     #   Single-resource factories for already existing resources
     def allocation(self, allocation_id: str) -> Allocation:
-        """Returns an :any:`Allocation` with a given id (assumed to be correct, there is no validation)."""
+        """Return an :any:`Allocation` with a given id (assumed to be correct, there is no \
+        validation)."""
         return Allocation(self, allocation_id)
 
     def debit_note(self, debit_note_id: str) -> DebitNote:
-        """Returns an :any:`DebitNote` with a given id (assumed to be correct, there is no validation)."""
+        """Return an :any:`DebitNote` with a given id (assumed to be correct, there is no \
+        validation)."""
         return DebitNote(self, debit_note_id)
 
     def invoice(self, invoice_id: str) -> Invoice:
-        """Returns an :any:`Invoice` with a given id (assumed to be correct, there is no validation)."""
+        """Return an :any:`Invoice` with a given id (assumed to be correct, there is no \
+        validation)."""
         return Invoice(self, invoice_id)
 
     def demand(self, demand_id: str) -> Demand:
-        """Returns a :any:`Demand` with a given id (assumed to be correct, there is no validation)."""
+        """Return a :any:`Demand` with a given id (assumed to be correct, there is no \
+        validation)."""
         return Demand(self, demand_id)
 
     def proposal(self, proposal_id: str, demand_id: str) -> Proposal:
-        """Returns a :any:`Proposal` with a given id (assumed to be correct, there is no validation).
+        """Return a :any:`Proposal` with a given id (assumed to be correct, there is no validation).
 
         Id of a proposal has a meaning only in the context of a demand,
-        so demand_id is also necessary (and also not validated)."""
+        so demand_id is also necessary (and also not validated).
+        """
         demand = self.demand(demand_id)
         return demand.proposal(proposal_id)
 
     def agreement(self, agreement_id: str) -> Agreement:
-        """Returns an :any:`Agreement` with a given id (assumed to be correct, there is no validation)."""
+        """Return an :any:`Agreement` with a given id (assumed to be correct, there is no \
+        validation)."""
         return Agreement(self, agreement_id)
 
     def activity(self, activity_id: str) -> Activity:
-        """Returns an :any:`Activity` with a given id (assumed to be correct, there is no validation)."""
+        """Return an :any:`Activity` with a given id (assumed to be correct, there is no \
+        validation)."""
         return Activity(self, activity_id)
 
     def batch(self, batch_id: str, activity_id: str) -> PoolingBatch:
-        """Returns a :any:`PoolingBatch` with a given id (assumed to be correct, there is no validation).
+        """Return a :any:`PoolingBatch` with a given id (assumed to be correct, there is no \
+        validation).
 
         Id of a batch has a meaning only in the context of an activity,
-        so activity_id is also necessary (and also not validated)."""
+        so activity_id is also necessary (and also not validated).
+        """
         activity = self.activity(activity_id)
         return activity.batch(batch_id)
 
     ##########################
     #   Multi-resource factories for already existing resources
     async def allocations(self) -> List[Allocation]:
-        """Returns a list of :any:`Allocation` objects corresponding to all current allocations.
+        """Return a list of :any:`Allocation` objects corresponding to all current allocations.
 
-        These are all allocations related to the current APP_KEY - it doesn't matter if they were created
-        with this :class:`GolemNode` instance (or if :class:`GolemNode` was used at all).
+        These are all allocations related to the current APP_KEY - it doesn't matter if they were
+        created with this :class:`GolemNode` instance (or if :class:`GolemNode` was used at all).
         """
         return await Allocation.get_all(self)
 
     async def demands(self) -> List[Demand]:
-        """Returns a list of :any:`Demand` objects corresponding to all current demands.
+        """Return a list of :any:`Demand` objects corresponding to all current demands.
 
-        These are all demands subscribed with the current APP_KEY - it doesn't matter if they were created
-        with this :class:`GolemNode` instance (or if :class:`GolemNode` was used at all).
+        These are all demands subscribed with the current APP_KEY - it doesn't matter if they were
+        created with this :class:`GolemNode` instance (or if :class:`GolemNode` was used at all).
         """
         return await Demand.get_all(self)
 
     async def invoices(self) -> List[Invoice]:
-        """Returns a list of :any:`Invoice` objects corresponding to all invoices received by this node."""
+        """Return a list of :any:`Invoice` objects corresponding to all invoices received by this \
+        node."""
         return await Invoice.get_all(self)
 
     async def debit_notes(self) -> List[DebitNote]:
-        """Returns a list of :any:`DebitNote` objects corresponding to all debit notes received by this node."""
+        """Return a list of :any:`DebitNote` objects corresponding to all debit notes received by \
+        this node."""
         return await DebitNote.get_all(self)
 
     async def networks(self) -> List[Network]:
-        """Returns a list of :any:`Network` objects corresponding to all networks created by this node.
+        """Return a list of :any:`Network` objects corresponding to all networks created by this \
+        node.
 
-        These are all networks created with the current APP_KEY - it doesn't matter if they were created
-        with this :class:`GolemNode` instance (or if :class:`GolemNode` was used at all)."""
+        These are all networks created with the current APP_KEY - it doesn't matter if they were
+        created with this :class:`GolemNode` instance (or if :class:`GolemNode` was used at all).
+        """
         return await Network.get_all(self)
 
     ##########################
     #   Events
     @property
     def event_bus(self) -> EventBus:
-        """Returns the :any:`EventBus` used by this :class:`GolemNode`.
+        """Return the :any:`EventBus` used by this :class:`GolemNode`.
 
         Any :any:`Event` triggered by this :class:`GolemNode` or any related object
         will be sent there and passed to registered listeners.
@@ -348,9 +386,10 @@ class GolemNode:
         :param network: A :any:`Network` we're adding the requestor to.
         :param ip: IP of the requestor node, defaults to a new free IP in the network.
 
-        This is only necessary if we either called :func:`create_network` with `add_requestor=False`,
-        or we want the requestor to have multiple IPs in the network
-        (TODO: is there a scenario where this makes sense?)."""
+        This is only necessary if we either called :func:`create_network` with
+        `add_requestor=False`, or we want the requestor to have multiple IPs in the network
+        (TODO: is there a scenario where this makes sense?).
+        """
         await network.add_requestor_ip(ip)
 
     def add_autoclose_resource(
@@ -359,7 +398,7 @@ class GolemNode:
         self._autoclose_resources.add(resource)
 
     def all_resources(self, cls: Type[TResource]) -> List[TResource]:
-        """Returns all known resources of a given type"""
+        """Return all known resources of a given type."""
         return list(self._resources[cls].values())  # type: ignore
 
     def __str__(self) -> str:
@@ -371,6 +410,6 @@ class GolemNode:
             f"  payment_url = {self._api_config.payment_url},",
             f"  activity_url = {self._api_config.activity_url},",
             f"  net_url = {self._api_config.net_url},",
-            f")",
+            ")",
         ]
         return "\n".join(lines)
