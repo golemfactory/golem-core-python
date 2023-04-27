@@ -3,7 +3,6 @@ import inspect
 from typing import AsyncIterator, Awaitable, List, Union
 
 from golem_core.core.activity_api import Activity
-
 from golem_core.pipeline.exceptions import InputStreamExhausted
 
 
@@ -39,8 +38,8 @@ class ActivityPool:
 
     Caveats:
         *   Assumes input stream never ends (this is a TODO)
-        *   :any:`Activity` is again considered idle (and thus eligible for yielding) after a single batch
-            was executed. This has two important consequences:
+        *   :any:`Activity` is again considered idle (and thus eligible for yielding) after a
+            single batch was executed. This has two important consequences:
 
             *   :any:`Activity` will not be yielded again if it was not used at all
             *   Yielded :any:`Activity` should not be used for more than a single batch
@@ -50,10 +49,11 @@ class ActivityPool:
     """
 
     def __init__(self, max_size: int = 1):
-        """
-        :param max_size: Maximal size of the ActivityPool. Actual size can be lower - it grows only when
-            ActivityPool is asked for an activity and there is no idle activity that can be returned
-            immediately.
+        """Initialize ActivityPool.
+
+        :param max_size: Maximal size of the ActivityPool. Actual size can be lower - it grows only
+            when ActivityPool is asked for an activity and there is no idle activity that can be
+            returned immediately.
         """
         self.max_size = max_size
 
@@ -69,7 +69,8 @@ class ActivityPool:
     async def __call__(
         self, activity_stream: AsyncIterator[Union[Activity, Awaitable[Activity]]]
     ) -> AsyncIterator[Awaitable[Activity]]:
-        """
+        """Call main entry point to ActivityPool.
+
         :param activity_stream: Stream of either :any:`Activity` or Awaitable[Activity].
             It is assumed all obtained activities start idle.
         """

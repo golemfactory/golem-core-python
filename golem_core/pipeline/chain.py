@@ -1,7 +1,7 @@
 from typing import Any, AsyncIterator, Callable
 
 
-class Chain():
+class Chain:
     """Wrapper class for mid-level components that utilize the pipes and filters pattern.
 
     Sample usage::
@@ -45,7 +45,11 @@ class Chain():
 
     """
 
-    def __init__(self, chain_start: AsyncIterator[Any], *pipes: Callable[[AsyncIterator[Any]], AsyncIterator[Any]]):
+    def __init__(
+        self,
+        chain_start: AsyncIterator[Any],
+        *pipes: Callable[[AsyncIterator[Any]], AsyncIterator[Any]],
+    ):
         aiter = chain_start
 
         for pipe in pipes:

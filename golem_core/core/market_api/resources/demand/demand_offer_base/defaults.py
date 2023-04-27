@@ -1,17 +1,18 @@
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from dataclasses import dataclass
+from golem_core.core.market_api.resources.demand.demand_offer_base.model import (
+    DemandOfferBaseModel,
+    prop,
+)
 
-from golem_core.core.market_api.resources.demand.demand_offer_base.model import DemandOfferBaseModel, prop
-
-
-RUNTIME_NAME = 'golem.runtime.name'
-RUNTIME_CAPABILITIES = 'golem.runtime.capabilities'
-INF_CPU_THREADS = 'golem.inf.cpu.threads'
-INF_MEM = 'golem.inf.mem.gib'
-INF_STORAGE = 'golem.inf.storage.gib'
+RUNTIME_NAME = "golem.runtime.name"
+RUNTIME_CAPABILITIES = "golem.runtime.capabilities"
+INF_CPU_THREADS = "golem.inf.cpu.threads"
+INF_MEM = "golem.inf.mem.gib"
+INF_STORAGE = "golem.inf.storage.gib"
 
 
 @dataclass

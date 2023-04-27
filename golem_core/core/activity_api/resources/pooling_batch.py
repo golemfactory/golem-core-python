@@ -1,21 +1,26 @@
 import asyncio
-from typing import Callable, Dict, List, Optional, TYPE_CHECKING, Union
 from datetime import timedelta
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 from ya_activity import models
 
-from golem_core.core.activity_api.exceptions import BatchError, CommandFailed, CommandCancelled, BatchTimeoutError
 from golem_core.core.activity_api.events import BatchFinished
-from golem_core.core.resources import ActivityApi, YagnaEventCollector, Resource, _NULL
+from golem_core.core.activity_api.exceptions import (
+    BatchError,
+    BatchTimeoutError,
+    CommandCancelled,
+    CommandFailed,
+)
+from golem_core.core.resources import _NULL, ActivityApi, Resource, YagnaEventCollector
 
 if TYPE_CHECKING:
-    from golem_core.core.activity_api.resources.activity import Activity
+    from golem_core.core.activity_api.resources.activity import Activity  # noqa
     from golem_core.core.golem_node import GolemNode
 
 
 class PoolingBatch(
     Resource[ActivityApi, _NULL, "Activity", _NULL, models.ExeScriptCommandResult],
-    YagnaEventCollector
+    YagnaEventCollector,
 ):
     """A single batch of commands.
 
@@ -26,6 +31,7 @@ class PoolingBatch(
         for event in batch.events:
             print(event.stdout)
     """
+
     _event_collecting_task: Optional[asyncio.Task] = None
 
     def __init__(self, node: "GolemNode", id_: str):
@@ -41,7 +47,8 @@ class PoolingBatch(
 
     @property
     def success(self) -> bool:
-        """True if this batch finished without errors. Raises `AttributeError` if batch is not :any:`done`."""
+        """True if this batch finished without errors. Raises `AttributeError` if batch is not \
+        :any:`done`."""
         if not self.done:
             raise AttributeError("Success can be determined only for finished batches")
         if not self.events:
@@ -52,14 +59,16 @@ class PoolingBatch(
         return self.events[-1].result == "Ok"
 
     async def wait(
-        self, timeout: Optional[Union[timedelta, float]] = None, ignore_errors: bool = False,
+        self,
+        timeout: Optional[Union[timedelta, float]] = None,
+        ignore_errors: bool = False,
     ) -> List[models.ExeScriptCommandResult]:
         """Wait until the batch is :any:`done`.
 
-        :param timeout: If not None, :any:`BatchTimeoutError` will be raised if the batch runs longer.
-            This exception doesn't stop the execution of the batch.
-        :param ignore_errors: When True, :func:`wait` doesn't care if the end of the batch is a :any:`success` or not.
-            If False, :any:`BatchError` will be raised for failed batches.
+        :param timeout: If not None, :any:`BatchTimeoutError` will be raised if the batch runs
+            longer. This exception doesn't stop the execution of the batch.
+        :param ignore_errors: When True, :func:`wait` doesn't care if the end of the batch is a
+            :any:`success` or not. If False, :any:`BatchError` will be raised for failed batches.
         """
         timeout_seconds: Optional[float]
         if timeout is None:
@@ -123,9 +132,9 @@ class PoolingBatch(
         self.add_event(event)
 
         if self._futures is not None:
-            if event.result == 'Error':
+            if event.result == "Error":
                 self._futures[event.index].set_exception(CommandFailed(self))
-                for fut in self._futures[event.index + 1:]:
+                for fut in self._futures[event.index + 1 :]:
                     fut.set_exception(CommandCancelled(self))
             else:
                 self._futures[event.index].set_result(event)
@@ -138,5 +147,3 @@ class PoolingBatch(
         self.finished_event.set()
         self.parent.running_batch_counter -= 1
         self.stop_collecting_events()
-
-

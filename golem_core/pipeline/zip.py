@@ -1,6 +1,5 @@
 import asyncio
 import inspect
-
 from typing import AsyncIterator, Awaitable, Tuple, TypeVar, Union
 
 X = TypeVar("X")
@@ -13,7 +12,8 @@ class Zip:
     If value from any of the iterators is an awaitable, yielded value is a
     tuple-returning awaitable. If all values are non-awaitables, yielded value is a tuple.
 
-    If streams have different lengths, there will be as many pairs as there are items in the shorter one.
+    If streams have different lengths, there will be as many pairs as there are items in the shorter
+    one.
 
     Sample usage::
 

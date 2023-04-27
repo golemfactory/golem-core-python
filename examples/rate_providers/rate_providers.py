@@ -4,22 +4,18 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Dict, Optional, Tuple
 
+from golem_core.core.activity_api import Activity, commands
 from golem_core.core.golem_node import GolemNode
-from golem_core.utils.logging import DefaultLogger
-from golem_core.managers import DefaultPaymentManager
-from golem_core.core.activity_api import commands, Activity
-from golem_core.pipeline import (
-    Buffer,
-    Chain,
-    Limit,
-    Map,
-)
 from golem_core.core.market_api import (
-    default_negotiate,
-    default_create_agreement,
+    Proposal,
+    RepositoryVmPayload,
     default_create_activity,
-    RepositoryVmPayload, Proposal,
+    default_create_agreement,
+    default_negotiate,
 )
+from golem_core.managers import DefaultPaymentManager
+from golem_core.pipeline import Buffer, Chain, Limit, Map
+from golem_core.utils.logging import DefaultLogger
 
 FRAME_CONFIG_TEMPLATE = json.loads(Path(__file__).with_name("frame_params.json").read_text())
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
@@ -48,7 +44,9 @@ async def prepare_activity(activity: Activity) -> Activity:
     batch = await activity.execute_commands(
         commands.Deploy(),
         commands.Start(),
-        commands.SendFile(str(Path(__file__).with_name("cubes.blend")), "/golem/resource/scene.blend"),
+        commands.SendFile(
+            str(Path(__file__).with_name("cubes.blend")), "/golem/resource/scene.blend"
+        ),
     )
     await batch.wait(timeout=120)
     return activity
@@ -91,7 +89,8 @@ async def main() -> None:
         payment_manager = DefaultPaymentManager(golem, allocation)
         demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
-        # `set_no_more_children` has to be called so `initial_proposals` will eventually stop yielding
+        # `set_no_more_children` has to be called so `initial_proposals` will eventually stop
+        # yielding
         asyncio.create_task(delay(timedelta(seconds=5), demand.set_no_more_children))
 
         chain = Chain(
@@ -111,9 +110,7 @@ async def main() -> None:
             print("We have following ratings:")
             print(f"{[(s, scores[s]) for s in scores if scores[s] is not None]}")
 
-        print(
-            f"TASK DONE"
-        )
+        print("TASK DONE")
         await payment_manager.terminate_agreements()
         await payment_manager.wait_for_invoices()
 

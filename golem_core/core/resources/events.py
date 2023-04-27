@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Dict, Tuple, TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, Tuple, TypeVar
 
 from golem_core.core.events.event import Event
 
@@ -12,6 +12,7 @@ TResourceEvent = TypeVar("TResourceEvent", bound="ResourceEvent")
 
 class ResourceEvent(Event, ABC):
     """Base class for all events related to a particular :any:`Resource`."""
+
     def __init__(self, resource: "Resource"):
         self._resource = resource
 
@@ -21,7 +22,7 @@ class ResourceEvent(Event, ABC):
         return self._resource
 
     def __repr__(self) -> str:
-        return f'{type(self).__name__}({self.resource})'
+        return f"{type(self).__name__}({self.resource})"
 
 
 class NewResource(ResourceEvent):
@@ -43,12 +44,14 @@ class ResourceDataChanged(ResourceEvent):
 
     This event is **not** emitted when the data "would have changed if we
     requested new data, but we didn't request it". In other words, we don't listen for
-    `yagna`-side changes, only react to changes already noticed in the context of a :any:`GolemNode`.
+    `yagna`-side changes, only react to changes already noticed in the context of a
+    :any:`GolemNode`.
 
     Second argument is the old data (before the change), so comparing
     `event.resource.data` with `event.old_data` shows what changed.
 
-    NULL (i.e. empty) change doesn't trigger the change, even if we explicitly sent a resource-changing call.
+    NULL (i.e. empty) change doesn't trigger the change, even if we explicitly sent a
+    resource-changing call.
     """
 
     def __init__(self, resource: "Resource", old_data: Any):
@@ -64,7 +67,7 @@ class ResourceDataChanged(ResourceEvent):
         return self._old_data
 
     def diff(self) -> Dict[str, Tuple[Any, Any]]:
-        """Returns a dictionary {property_name: (old_val, new_val)} with all values that changed."""
+        """Return a dictionary {property_name: (old_val, new_val)} with all values that changed."""
         old_dict = self.old_data.to_dict()
         new_dict = self.resource.data.to_dict()
         diff_dict = {}
@@ -80,9 +83,9 @@ class ResourceDataChanged(ResourceEvent):
     def __repr__(self) -> str:
         diff = []
         for key, (old_val, new_val) in self.diff().items():
-            diff.append(f'{key}: {old_val} -> {new_val}')
+            diff.append(f"{key}: {old_val} -> {new_val}")
         diff_str = ", ".join(diff)
-        return f'{type(self).__name__}({self.resource}, {diff_str})'
+        return f"{type(self).__name__}({self.resource}, {diff_str})"
 
 
 class ResourceClosed(ResourceEvent):

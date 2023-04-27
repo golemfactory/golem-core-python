@@ -30,6 +30,7 @@ class TaskDataStream(Generic[TaskData]):
         assert returned == task_cnt
         print(processed)
     """
+
     #   TODO: https://github.com/golemfactory/golem-core-python/issues/16
     def __init__(self, in_stream: Iterable[TaskData]):
         self.in_stream = iter(in_stream)
@@ -57,8 +58,8 @@ class TaskDataStream(Generic[TaskData]):
 
     async def __anext__(self) -> TaskData:
         #   Q: Why this way? Looks weird?
-        #   A: The goal is to have self.in_stream_empty == True once we return the last element from the in_stream.
-        #      This is an important part of the interface.
+        #   A: The goal is to have self.in_stream_empty == True once we return the last element
+        #      from the in_stream. This is an important part of the interface.
         #
         #   Note that we don't want to ever raise StopAsyncIteration - a call to `put` can
         #   happen at any time.

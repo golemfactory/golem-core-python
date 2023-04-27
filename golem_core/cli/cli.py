@@ -3,12 +3,15 @@ from typing import Optional
 
 import click
 
-
-from golem_core.core.golem_node import GolemNode, SUBNET, PAYMENT_DRIVER, PAYMENT_NETWORK
 from golem_core.cli.utils import (
-    format_allocations, format_demands, format_proposals,
-    CliPayload, async_golem_wrapper, parse_timedelta_str
+    CliPayload,
+    async_golem_wrapper,
+    format_allocations,
+    format_demands,
+    format_proposals,
+    parse_timedelta_str,
 )
+from golem_core.core.golem_node import PAYMENT_DRIVER, PAYMENT_NETWORK, SUBNET, GolemNode
 
 
 @click.group()
@@ -76,7 +79,9 @@ async def status(golem: GolemNode) -> None:
 @click.option("--subnet", type=str, default=SUBNET)
 @click.option("--timeout", "timeout_str", type=str, required=False)
 @async_golem_wrapper
-async def find_node(golem: GolemNode, runtime: str, subnet: str, timeout_str: Optional[str]) -> None:
+async def find_node(
+    golem: GolemNode, runtime: str, subnet: str, timeout_str: Optional[str]
+) -> None:
     timeout = parse_timedelta_str(timeout_str) if timeout_str is not None else None
     cnt = 0
 

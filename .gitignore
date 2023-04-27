@@ -163,3 +163,6 @@ build/
 *.png
 
 .envs/
+
+# licheck artifacts
+.requrements.txt

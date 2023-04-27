@@ -129,9 +129,7 @@ class __Process(jsonrpc_base.Server):
         ret_code = await p.wait()
         _logger.debug("GFTP server closed, code=%d", ret_code)
 
-    def __log_debug(
-        self, msg_dir: Literal["in", "out"], msg: Union[bytes, str]
-    ) -> None:
+    def __log_debug(self, msg_dir: Literal["in", "out"], msg: Union[bytes, str]) -> None:
         if self._debug:
             if isinstance(msg, bytes):
                 msg = msg.decode(encoding="utf-8")
@@ -139,7 +137,7 @@ class __Process(jsonrpc_base.Server):
             stderr.write("\n <= " if msg_dir == "in" else "\n => ")
             stderr.write(msg)
             stderr.flush()
-    
+
     async def send_message(self, message):
         async with self._lock:
             assert self._proc is not None
@@ -314,9 +312,7 @@ class GftpProvider(StorageProvider, AsyncContextManager[StorageProvider]):
     async def __aenter__(self) -> StorageProvider:
         if not self._temp_dir:
             self._temp_dir = Path(
-                self.__exit_stack.enter_context(
-                    tempfile.TemporaryDirectory(prefix="sdk-gftp-")
-                )
+                self.__exit_stack.enter_context(tempfile.TemporaryDirectory(prefix="sdk-gftp-"))
             )
             _logger.debug("Creating a temporary directory %s", self._temp_dir)
         process = await self.__get_process()
@@ -365,9 +361,7 @@ class GftpProvider(StorageProvider, AsyncContextManager[StorageProvider]):
 
     async def __get_process(self) -> GftpDriver:
         _debug = bool(os.getenv("DEBUG_GFTP"))
-        process = self._process or (
-            await self.__exit_stack.enter_async_context(service(_debug))
-        )
+        process = self._process or (await self.__exit_stack.enter_async_context(service(_debug)))
         if not self._process:
             self._process = process
         return process
@@ -420,9 +414,7 @@ class GftpProvider(StorageProvider, AsyncContextManager[StorageProvider]):
 
     async def release_source(self, source: Source) -> None:
         if not isinstance(source, GftpSource):
-            raise ValueError(
-                f"Expected an instance of GftpSource, got {type(source)} instead"
-            )
+            raise ValueError(f"Expected an instance of GftpSource, got {type(source)} instead")
 
         url = source.download_url
         _logger.debug("Releasing file %s with URL = %s ...", source.path, url)
@@ -453,15 +445,11 @@ class GftpProvider(StorageProvider, AsyncContextManager[StorageProvider]):
 
                 del self._published_sources[url]
 
-    async def new_destination(
-        self, destination_file: Optional[PathLike] = None
-    ) -> Destination:
+    async def new_destination(self, destination_file: Optional[PathLike] = None) -> Destination:
         if destination_file:
             if Path(destination_file).exists():
                 destination_file = None
-        output_file = (
-            str(destination_file) if destination_file else str(self.__new_file())
-        )
+        output_file = str(destination_file) if destination_file else str(self.__new_file())
         process = await self.__get_process()
         link = await process.receive(output_file=output_file)
         return GftpDestination(process, link)

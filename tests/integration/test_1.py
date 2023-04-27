@@ -1,8 +1,9 @@
 # mypy: allow-untyped-defs
 
+from random import random
+
 import pytest
 import pytest_asyncio
-from random import random
 
 from golem_core.core.golem_node import GolemNode
 from golem_core.core.market_api import RepositoryVmPayload
@@ -28,9 +29,13 @@ async def golem():
 @pytest.mark.asyncio
 async def test_singletons(golem):
     async with golem:
-        assert golem.allocation('foo') is golem.allocation('foo')
-        assert golem.demand('foo') is golem.demand('foo')
-        assert golem.proposal('foo', 'bar') is golem.proposal('foo', 'bar') is golem.demand('bar').proposal('foo')
+        assert golem.allocation("foo") is golem.allocation("foo")
+        assert golem.demand("foo") is golem.demand("foo")
+        assert (
+            golem.proposal("foo", "bar")
+            is golem.proposal("foo", "bar")
+            is golem.demand("bar").proposal("foo")
+        )
 
         allocation = await golem.create_allocation(1)
         assert allocation is golem.allocation(allocation.id)
@@ -52,7 +57,7 @@ async def test_allocation(golem):
             await allocation.get_data(force=True)
 
         with pytest.raises(NoMatchingAccount):
-            await golem.create_allocation(1, 'no_such_network_oops')
+            await golem.create_allocation(1, "no_such_network_oops")
 
 
 @pytest.mark.asyncio

@@ -1,7 +1,6 @@
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from golem_core.core.exceptions import BaseCoreException
-
 
 if TYPE_CHECKING:
     from golem_core.core.activity_api.resources import PoolingBatch
@@ -13,6 +12,7 @@ class BaseActivityApiException(BaseCoreException):
 
 class BatchError(BaseActivityApiException):
     """Unspecified exception related to the execution of a batch."""
+
     def __init__(self, batch: "PoolingBatch", msg: Optional[str] = None):
         self._batch = batch
 
@@ -32,6 +32,7 @@ class BatchError(BaseActivityApiException):
 
 class CommandFailed(BatchError):
     """Raised when awaiting for a result of a command that failed."""
+
     def __init__(self, batch: "PoolingBatch"):
         event = batch.events[-1]
         msg = f"Command {event.index} in batch {batch} failed: {event.message}"
@@ -39,7 +40,9 @@ class CommandFailed(BatchError):
 
 
 class CommandCancelled(BatchError):
-    """Raised when awaiting for a result of a command that was not executed at all because a previous command failed."""
+    """Raised when awaiting for a result of a command that was not executed at all because a \
+    previous command failed."""
+
     def __init__(self, batch: "PoolingBatch"):
         event = batch.events[-1]
         msg = (
@@ -51,6 +54,7 @@ class CommandCancelled(BatchError):
 
 class BatchTimeoutError(BaseActivityApiException):
     """Raised in :any:`PoolingBatch.wait()` when the batch execution timed out."""
+
     def __init__(self, batch: "PoolingBatch", timeout: float):
         self._batch = batch
         self._timeout = timeout

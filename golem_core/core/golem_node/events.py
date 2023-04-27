@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 
 class GolemNodeEvent(Event, ABC):
     """Base class for all events related to a particular :any:`GolemNode` only."""
+
     def __init__(self, node: "GolemNode"):
         self._node = node
 
@@ -17,7 +18,10 @@ class GolemNodeEvent(Event, ABC):
         return self._node
 
     def __repr__(self) -> str:
-        return f'{type(self).__name__}({self.node.app_key}, app_session_id: {self.node.app_session_id})'
+        return (
+            f"{type(self).__name__}({self.node.app_key},"
+            f" app_session_id: {self.node.app_session_id})"
+        )
 
 
 class SessionStarted(GolemNodeEvent):

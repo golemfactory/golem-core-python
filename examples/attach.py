@@ -27,14 +27,12 @@ async def main() -> None:
     async with golem:
         activity = golem.activity(ACTIVITY_ID)
         while True:
-            batch = await activity.execute_commands(
-                commands.Run("date")
-            )
+            batch = await activity.execute_commands(commands.Run("date"))
             await batch.wait(5)
             assert batch.events[-1].stdout is not None
             print(f"Current date on {activity} is {batch.events[-1].stdout.strip()}")
             await asyncio.sleep(3)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

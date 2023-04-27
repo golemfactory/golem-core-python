@@ -18,7 +18,7 @@ async def execute_task(activity: Activity, task_data: int) -> str:
         result = batch.events[-1].stdout
         assert result is not None  # mainnet providers sometimes return None
     else:
-        result = 'BAD_RESULT'
+        result = "BAD_RESULT"
 
     return result
 
@@ -36,7 +36,8 @@ async def main() -> None:
 
     print("DONE")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     task = loop.create_task(main())
     try:

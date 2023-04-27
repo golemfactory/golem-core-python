@@ -5,6 +5,7 @@ from golem_core.core.exceptions import BaseCoreException
 if TYPE_CHECKING:
     from golem_core.core.resources.base import Resource
 
+
 class BaseResourceException(BaseCoreException):
     pass
 
@@ -32,7 +33,8 @@ class ResourceNotFound(BaseResourceException):
                 print(f"Agreement with id {e.resource.id} doesn't exist")
 
 
-        """
+    """
+
     def __init__(self, resource: "Resource"):
         self._resource = resource
 

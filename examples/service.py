@@ -2,27 +2,26 @@ import asyncio
 import random
 import string
 from typing import Awaitable, Callable, Tuple
-from uuid import uuid4
 from urllib.parse import urlparse
+from uuid import uuid4
 
 from golem_core.core.activity_api import Activity, commands
 from golem_core.core.golem_node import GolemNode
-from golem_core.core.market_api import RepositoryVmPayload
-from golem_core.core.network_api import Network
-from golem_core.pipeline import (
-    Buffer, Chain, Limit, Map
-)
-from golem_core.core.market_api.pipeline import (
-    default_negotiate,
-    default_create_agreement,
+from golem_core.core.market_api import (
+    RepositoryVmPayload,
     default_create_activity,
+    default_create_agreement,
+    default_negotiate,
 )
+from golem_core.core.network_api import Network
+from golem_core.pipeline import Buffer, Chain, Limit, Map
 from golem_core.utils.logging import DefaultLogger
 
 PAYLOAD = RepositoryVmPayload(
     "1e06505997e8bd1b9e1a00bd10d255fc6a390905e4d6840a22a79902",
     capabilities=["vpn"],
 )
+
 
 def create_ssh_connection(network: Network) -> Callable[[Activity], Awaitable[Tuple[str, str]]]:
     async def _create_ssh_connection(activity: Activity) -> Tuple[str, str]:
@@ -51,6 +50,7 @@ def create_ssh_connection(network: Network) -> Callable[[Activity], Awaitable[Tu
         connection_uri = f"{net_api_ws}/net/{network.id}/tcp/{ip}/22"
 
         return connection_uri, password
+
     return _create_ssh_connection
 
 
@@ -81,14 +81,14 @@ async def main() -> None:
             print(
                 "Connect with:\n"
                 f"  ssh -o ProxyCommand='websocat asyncstdio: {uri} --binary "
-                f"-H=Authorization:\"Bearer {golem._api_config.app_key}\"' root@{uuid4().hex} "
+                f'-H=Authorization:"Bearer {golem._api_config.app_key}"\' root@{uuid4().hex} '
                 f"\n  password: {password}"
             )
 
         await asyncio.Future()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     task = loop.create_task(main())
     try:

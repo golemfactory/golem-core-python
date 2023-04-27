@@ -1,19 +1,18 @@
 import asyncio
 import json
 from datetime import timedelta
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from ya_activity import models
 
 from golem_core.core.activity_api.commands import Command, Script
-from golem_core.core.activity_api.resources import PoolingBatch
+from golem_core.core.activity_api.resources.pooling_batch import PoolingBatch
 from golem_core.core.payment_api import DebitNote
-from golem_core.core.resources import ResourceClosed, ActivityApi, Resource, api_call_wrapper, _NULL
-
+from golem_core.core.resources import _NULL, ActivityApi, Resource, ResourceClosed, api_call_wrapper
 
 if TYPE_CHECKING:
     from golem_core.core.golem_node.golem_node import GolemNode
-    from golem_core.core.market_api import Agreement
+    from golem_core.core.market_api import Agreement  # noqa
 
 
 class Activity(Resource[ActivityApi, _NULL, "Agreement", PoolingBatch, _NULL]):
@@ -82,7 +81,8 @@ class Activity(Resource[ActivityApi, _NULL, "Agreement", PoolingBatch, _NULL]):
 
     @api_call_wrapper()
     async def destroy(self) -> None:
-        """Destroy this :any:`Activity`. This is final, destroyed activities can no longer be used."""
+        """Destroy this :any:`Activity`. This is final, destroyed activities can no longer be \
+        used."""
         await self.api.destroy_activity(self.id)
         self._destroyed_event.set()
         self.node.event_bus.emit(ResourceClosed(self))
@@ -109,7 +109,6 @@ class Activity(Resource[ActivityApi, _NULL, "Agreement", PoolingBatch, _NULL]):
             await batch.wait()
             print(batch.events[-1].stdout)  # "hello world"
         """
-
         await asyncio.gather(*[c.before() for c in commands])
         commands_str = json.dumps([c.text() for c in commands])
         batch = await self.execute(models.ExeScriptRequest(text=commands_str))
@@ -124,7 +123,8 @@ class Activity(Resource[ActivityApi, _NULL, "Agreement", PoolingBatch, _NULL]):
     async def execute_script(self, script: "Script") -> PoolingBatch:
         """Create a new batch that executes commands from a given :any:`Script` in the exe unit.
 
-        This is an alternative to :func:`execute_commands` that provides a more granular access to the results.
+        This is an alternative to :func:`execute_commands` that provides a more granular access to
+        the results.
 
         Sample usage::
 
@@ -144,7 +144,10 @@ class Activity(Resource[ActivityApi, _NULL, "Agreement", PoolingBatch, _NULL]):
         return batch
 
     def batch(self, batch_id: str) -> PoolingBatch:
-        """Returns a :any:`PoolingBatch` with a given id (assumed to be correct, there is no validation)."""
+        """Return a :any:`PoolingBatch` with a given id.
+
+        Id is assume to be correct, there is no validation.
+        """
         batch = PoolingBatch(self.node, batch_id)
         if batch._parent is None:
             self.add_child(batch)

@@ -1,11 +1,12 @@
-from datetime import timedelta, datetime, timezone
-from typing import Union, Optional, AsyncIterator, TYPE_CHECKING
+from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING, AsyncIterator, Optional, Union
 
-from ya_market import RequestorApi, models as models
+from ya_market import RequestorApi
+from ya_market import models as models
 
+from golem_core.core.market_api.resources.agreement import Agreement
 from golem_core.core.resources import Resource
 from golem_core.core.resources.base import api_call_wrapper
-from golem_core.core.market_api.resources.agreement import Agreement
 
 if TYPE_CHECKING:
     from golem_core.core.golem_node import GolemNode
@@ -18,7 +19,7 @@ class Proposal(
         models.Proposal,
         Union["Demand", "Proposal"],
         Union["Proposal", Agreement],
-        Union[models.ProposalEvent, models.ProposalRejectedEvent]
+        Union[models.ProposalEvent, models.ProposalRejectedEvent],
     ]
 ):
     """A single proposal on the Golem Network.
@@ -36,6 +37,7 @@ class Proposal(
         else:
             print("Our counter-proposal was rejected :(")
     """
+
     _demand: Optional["Demand"] = None
 
     ##############################
@@ -49,13 +51,13 @@ class Proposal(
     def draft(self) -> bool:
         """True for proposals that are responses to other proposals."""
         assert self.data is not None
-        return self.data.state == 'Draft'
+        return self.data.state == "Draft"
 
     @property
     def rejected(self) -> bool:
         """True for rejected proposals. They will have no more :func:`responses`."""
         assert self.data is not None
-        return self.data.state == 'Rejected'
+        return self.data.state == "Rejected"
 
     ###########################
     #   Tree-related methods
@@ -79,7 +81,9 @@ class Proposal(
     @demand.setter
     def demand(self, demand: "Demand") -> None:
         assert self._demand is None
-        assert self._parent is None  # Sanity check (there's no scenario where we have a parent and demand is set)
+        assert (
+            self._parent is None
+        )  # Sanity check (there's no scenario where we have a parent and demand is set)
         self._demand = demand
 
     def add_event(self, event: Union[models.ProposalEvent, models.ProposalRejectedEvent]) -> None:
@@ -88,7 +92,7 @@ class Proposal(
             self.set_no_more_children()
 
     async def responses(self) -> AsyncIterator["Proposal"]:
-        """Yields responses to this proposal.
+        """Yield responses to this proposal.
 
         Stops when the proposal is rejected.
         """
@@ -99,7 +103,9 @@ class Proposal(
     ############################
     #   Negotiations
     @api_call_wrapper()
-    async def create_agreement(self, autoclose: bool = True, timeout: timedelta = timedelta(seconds=60)) -> "Agreement":
+    async def create_agreement(
+        self, autoclose: bool = True, timeout: timedelta = timedelta(seconds=60)
+    ) -> "Agreement":
         """Promote this proposal to an agreement.
 
         :param autoclose: Terminate the agreement when the :any:`GolemNode` closes.
@@ -107,7 +113,8 @@ class Proposal(
         """
         proposal = models.AgreementProposal(
             proposal_id=self.id,
-            valid_to=datetime.now(timezone.utc) + timeout,  # type: ignore  # TODO: what is AgreementValidTo?
+            # TODO: what is AgreementValidTo?
+            valid_to=datetime.now(timezone.utc) + timeout,  # type: ignore
         )
         agreement_id = await self.api.create_agreement(proposal)
         agreement = Agreement(self.node, agreement_id)
@@ -118,7 +125,7 @@ class Proposal(
         return agreement
 
     @api_call_wrapper()
-    async def reject(self, reason: str = '') -> None:
+    async def reject(self, reason: str = "") -> None:
         """Reject the proposal - inform the provider that we won't send any more counter-proposals.
 
         :param reason: An optional information for the provider describing rejection reasons.
@@ -142,7 +149,9 @@ class Proposal(
         """
 
         data = await self._response_data()
-        new_proposal_id = await self.api.counter_proposal_demand(self.demand.id, self.id, data, _request_timeout=5)
+        new_proposal_id = await self.api.counter_proposal_demand(
+            self.demand.id, self.id, data, _request_timeout=5
+        )
 
         new_proposal = type(self)(self.node, new_proposal_id)
         self.add_child(new_proposal)
@@ -152,7 +161,9 @@ class Proposal(
     async def _response_data(self) -> models.DemandOfferBase:
         # FIXME: this is a mock
         demand_data = await self.demand.get_data()
-        data = models.DemandOfferBase(properties=demand_data.properties, constraints=demand_data.constraints)
+        data = models.DemandOfferBase(
+            properties=demand_data.properties, constraints=demand_data.constraints
+        )
         return data
 
     ##########################

@@ -1,13 +1,13 @@
 import asyncio
+import shlex
 from abc import ABC, abstractmethod
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
-from pathlib import Path
-import shlex
 
 from ya_activity import models
 
-from golem_core.utils.storage import Destination, Source, GftpProvider
+from golem_core.utils.storage import Destination, GftpProvider, Source
 
 ArgsDict = Mapping[str, Union[str, List, Dict[str, Any]]]
 
@@ -32,7 +32,11 @@ class Command(ABC):
 
 
 class Script:
-    """A helper class for executing multiple commands in a single batch. Details: :any:`execute_script`."""
+    """A helper class for executing multiple commands in a single batch.
+
+    Details: :any:`execute_script`.
+    """
+
     def __init__(self) -> None:
         self._commands: List[Command] = []
         self._futures: List[asyncio.Future[models.ExeScriptCommandResult]] = []
@@ -63,6 +67,7 @@ class Script:
 
 class Deploy(Command):
     """Executes `deploy()` in the exeunit."""
+
     def __init__(self, args_dict: Optional[ArgsDict] = None):
         self._args_dict = args_dict or {}
 
@@ -72,14 +77,23 @@ class Deploy(Command):
 
 class Start(Command):
     """Executes `start()` in the exeunit."""
+
     def args_dict(self) -> ArgsDict:
         return {}
 
 
 class Run(Command):
     """Executes `run()` in the exeunit."""
-    def __init__(self, command: Union[str, List[str]], *, shell: Optional[bool] = None, shell_cmd: str = "/bin/sh"):
-        """
+
+    def __init__(
+        self,
+        command: Union[str, List[str]],
+        *,
+        shell: Optional[bool] = None,
+        shell_cmd: str = "/bin/sh",
+    ):
+        """Init Run.
+
         :param command: Either a list `[entry_point, *args]` or a string.
         :param shell: If True, command will be passed as a string to "/bin/sh -c".
             Default value is True if `command` is a string and False if it is a list.
@@ -91,7 +105,8 @@ class Run(Command):
             Run("echo foo")                                 # /bin/sh -c "echo foo"
             Run(["echo", "foo"], shell=True)                # /bin/sh -c "echo foo"
             Run(["/bin/echo", "foo", ">", "/my_volume/x"])  # /bin/echo "foo" ">" "/my_volume/x"
-                                                            # (NOTE: this is usually **not** the intended effect)
+                                                            # (NOTE: this is usually **not** the
+                                                            # intended effect)
             Run("echo foo > /my_volume/x")                  # /bin/sh -c "echo foo > /my_volume/x"
                                                             # (This is better)
         """
@@ -108,7 +123,7 @@ class Run(Command):
                 "stderr": {
                     "stream": {},
                 },
-            }
+            },
         }
 
     @staticmethod
@@ -134,10 +149,12 @@ class Run(Command):
 
 class SendFile(Command):
     """Sends a local file to the exeunit."""
-    command_name = 'transfer'
+
+    command_name = "transfer"
 
     def __init__(self, src_path: str, dst_path: str):
-        """
+        """Init SendFile.
+
         :param src_path: Name of the local file.
         :param dst_path: Remote (provider-side) path where the file will be saved.
             Usually this path should be under a directory specified as a VOLUME in the image.
@@ -166,10 +183,12 @@ class SendFile(Command):
 
 class DownloadFile(Command):
     """Downloads a file from the exeunit."""
-    command_name = 'transfer'
+
+    command_name = "transfer"
 
     def __init__(self, src_path: str, dst_path: str):
-        """
+        """Init DownloadFile.
+
         :param src_path: Remote (provider-side) name of the file.
         :param dst_path: Path in the local filesystem where the file will be saved.
         """
@@ -193,4 +212,3 @@ class DownloadFile(Command):
             "from": f"container:{self.src_path}",
             "to": self._destination.upload_url,
         }
-

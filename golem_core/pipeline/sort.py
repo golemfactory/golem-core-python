@@ -1,11 +1,10 @@
 import asyncio
+import heapq
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-import heapq
+from typing import AsyncIterator, Awaitable, Callable, Generic, List, Optional, Tuple, TypeVar
 
-from typing import AsyncIterator, Awaitable, Callable, List, Optional, Tuple, Any, TypeVar, Generic
-
-TElement = TypeVar('TElement')
+TElement = TypeVar("TElement")
 
 
 @dataclass(order=True)
@@ -26,11 +25,13 @@ class Sort:
         max_wait: Optional[timedelta] = None,
         min_wait: Optional[timedelta] = None,
     ):
-        """
+        """Init Sort.
+
         :param score_function: Element-scoring function. Higher score -> better element.
             Score `None` indicates an unacceptable element - it will be ignored by the Sort.
         :param min_elements: If not None, :func:`__call__` will not yield anything until
-            Sort gathers at least that many elements with a non-None score (but `max_wait` overrides this).
+            Sort gathers at least that many elements with a non-None score (but `max_wait` overrides
+            this).
         :param max_wait: If not None, we'll not wait for `min_elements` longer than that.
         :param min_wait: If not None, we'll wait for at least that.
         """
@@ -42,11 +43,13 @@ class Sort:
         self._scored_elements: List[ScoredElement] = []
 
     async def __call__(self, elements: AsyncIterator[TElement]) -> AsyncIterator[TElement]:
-        """Consumes incoming elements as fast as possible. Always yields a element with the highest score.
+        """Consumes incoming elements as fast as possible. Always yields a element with the \
+        highest score.
 
         :param elements: Stream of element to be reordered.
             In fact, this could be stream of whatever, as long as this whatever matches
-            the scoring function, and this whatever would be yielded (TODO - maybe turn this into a general Sort?
+            the scoring function, and this whatever would be yielded (TODO - maybe turn this into a
+            general Sort?
             https://github.com/golemfactory/golem-core-python/issues/11).
         """
         self._no_more_elements = False
