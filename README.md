@@ -67,7 +67,7 @@ Unit tests:
 $ poetry run poe tests_unit
 ```
 
-Integration tests (requires running local `yagna` in requestor mode):
+Integration tests (requires running local `yagna` in requestor mode or `goth` in interactive mode):
 
 ```bash
 $ poetry run poe tests_integration
