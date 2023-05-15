@@ -89,22 +89,27 @@ class SingleUseActivityManager:
 
         return result
 
-
-    def do_work(self, work: 'Callable', on_activity_begin: 'Callable' = None, on_activity_end: 'Callable' = None) -> 'WorkResult':
+    def _do_work(self, work, on_activity_begin: 'Callable' = None, on_activity_end: 'Callable' = None) -> 'WorkResult':
         activity = self.get_activity()
 
         if on_activity_begin:
             activity.do(on_activity_begin)
 
-        decorated_do = self.apply_activity_decorators(activity.do, work)
-
         try:
-            return decorated_do(work)
+            result = activity.do(work)
         except Exception:
             pass
 
         if on_activity_end:
             activity.do(on_activity_end)
+
+        return result
+
+    def do_work(self, work: 'Callable', on_activity_begin: 'Callable' = None, on_activity_end: 'Callable' = None) -> 'WorkResult':
+        decorated_do = self.apply_activity_decorators(self._do_work, work)
+
+        return decorated_do(work, on_activity_begin, on_activity_end)
+
 
     def do_work_list(self, work_list: 'List[Callable]', on_activity_begin: 'Callable' = None, on_activity_end: 'Callable' = None) -> 'List[WorkResult]':
         results = []
@@ -172,11 +177,13 @@ def default_on_begin(context):
     context.deploy()
     context.start()
 
+    # After this function call we should have check if activity is actually started
+
 
 def default_on_end(context):
     context.terminate()
 
-    # After this function call we should have check for activity termination
+    # After this function call we should have check if activity is actually terminated
 
 
 def activity_decorator(dec, *args, **kwargs):
@@ -193,6 +200,7 @@ def activity_decorator(dec, *args, **kwargs):
 
 @activity_decorator(redundancy_cancel_others_on_first_done(size=5))
 @activity_decorator(retry(tries=5))
+# activity run here
 def work(context):
     context.run('echo hello world')
 
