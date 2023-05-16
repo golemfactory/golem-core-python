@@ -38,6 +38,49 @@ class ConfirmAllNegotiationManager:
             confirmed = pending.confirm()
             self._event_bus.register(ProposalConfirmed(demand=self._demand, proposal=confirmed))
 
+def filter_blacklist(proposal: 'Proposal') -> bool:
+    providers_blacklist: List[str] = ...
+    return proposal.provider_id in providers_blacklist
+
+class FilterNegotiationManager:
+    INITIAL="INITIAL"
+    PENDING="PENDING"
+
+    def __init__(self, get_allocation: 'Callable', payload, event_bus):
+        self._event_bus = event_bus
+        self._get_allocation = get_allocation
+        self._allocation = self._get_allocation()
+        self._payload = payload
+        demand_builder = DemandBuilder()
+        demand_builder.add(self._payload)
+        demand_builder.add(self._allocation)
+        self._demand = demand_builder.create_demand()
+        self._filters = {
+            self.INITIAL: [],
+            self.PENDING: [],
+        }
+    
+    def add_filter(self, filter: 'Filter', type: str):
+        self._filters[type].append(filter)
+    
+    def _filter(self, initial: 'Proposal', type: str) -> bool:
+        for f in self._filters[type]:
+            if f(initial):
+                return True
+        return False
+
+    def negotiate(self):
+        for initial in self._demand.get_proposals(): # infinite loop
+            if self._filter(initial, self.INITIAL):
+                continue
+
+            pending = initial.respond()
+            if self._filter(pending, self.PENDING):
+                pending.reject()
+                continue
+            
+            confirmed = pending.confirm()
+            self._event_bus.register(ProposalConfirmed(demand=self._demand, proposal=confirmed))
 
 class LifoOfferManager:
     _offers: List['Offer']
@@ -242,9 +285,10 @@ def main():
 
     payment_manager = PayAllPaymentManager(budget, event_bus)
 
-    negotiation_manager = ConfirmAllNegotiationManager(
+    negotiation_manager = FilterNegotiationManager(
         payment_manager.get_allocation, payload, event_bus
     )
+    negotiation_manager.add_filter(filter_blacklist, negotiation_manager.INITIAL)
     negotiation_manager.negotiate() # run in async, this will generate ProposalConfirmed events
 
     offer_manager = LifoOfferManager(event_bus) # listen to ProposalConfirmed
