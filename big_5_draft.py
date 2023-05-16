@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 
 class PayAllPaymentManager:
@@ -81,6 +81,69 @@ class FilterNegotiationManager:
             
             confirmed = pending.confirm()
             self._event_bus.register(ProposalConfirmed(demand=self._demand, proposal=confirmed))
+
+            
+class AcceptableRangeNegotiationManager:
+    def __init__(self, get_allocation: 'Callable', payload, event_bus):
+        self._event_bus = event_bus
+        self._get_allocation = get_allocation
+        self._allocation = self._get_allocation()
+        self._payload = payload
+        demand_builder = DemandBuilder()
+        demand_builder.add(self._payload)
+        demand_builder.add(self._allocation)
+        self._demand = demand_builder.create_demand()
+
+    def negotiate(self):
+        for initial in self._demand.get_proposals(): # infinite loop
+            pending = self._negotiate_for_accepted_range(initial)
+            if pending is None:
+                continue
+            confirmed = pending.confirm()
+            self._event_bus.register(ProposalConfirmed(demand=self._demand, proposal=confirmed))
+
+    def _validate_values(self, proposal: 'Proposal') -> bool:
+        """Checks if proposal's values are in accepted range
+
+        e.g. 
+        True
+        x_accepted range: [2,10]
+        proposal.x: 9
+
+        False
+        x_accepted range: [2,10]
+        proposal.x: 11
+        """
+    
+    def _middle_values(self, our: 'Proposal', their: 'Proposal') -> Optional['Proposal']:
+        """Create new proposal with new values in accepted range based on given proposals.
+        
+        If middle values are outside of accepted range return None
+
+        e.g. 
+        New proposal
+        x_accepted range: [2,10]
+        our.x: 5
+        their.x : 13
+        new: (5+13)//2 -> 9
+
+        None
+        x_accepted range: [2,10]
+        our.x: 9
+        their.x : 13
+        new: (9+13)//2 -> 11 -> None
+        """
+    
+    def _negotiate_for_accepted_range(self, our: 'Proposal'):
+        their = our.respond()
+        while True:
+            if self._validate_values(their):
+                return their
+            our = self._middle_values(our, their)
+            if our is None:
+                return None
+            their = their.respond_with(our)
+
 
 class LifoOfferManager:
     _offers: List['Offer']
