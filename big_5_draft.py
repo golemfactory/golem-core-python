@@ -1,3 +1,6 @@
+from typing import List
+
+
 class PayAllPaymentManager:
     def __init__(self, budget, event_bus):
         self._budget = budget
@@ -18,39 +21,42 @@ class PayAllPaymentManager:
         debit_note.pay()
 
 
-class FifoOfferManager:
-    def __init__(self, get_allocation: 'Callable', event_bus):
+class ConfirmAllNegotiationManager:
+    def __init__(self, get_allocation: 'Callable', payload, event_bus):
         self._event_bus = event_bus
-        self._proposals = []
-        self.get_allocation = get_allocation
-
-    def collect_proposals_for(self, payload) -> None:
-        allocation = self.get_allocation()
-
+        self._get_allocation = get_allocation
+        self._allocation = self._get_allocation()
+        self._payload = payload
         demand_builder = DemandBuilder()
-        demand_builder.add(payload)
-        demand_builder.add(allocation)
-        demand = demand_builder.create_demand()
-        self._proposals = demand.initial_proposals()
+        demand_builder.add(self._payload)
+        demand_builder.add(self._allocation)
+        self._demand = demand_builder.create_demand()
 
-        self._event_bus.register(ProposalReceived(demand=demand), self.on_new_proposal)
+    def negotiate(self):
+        for initial in self._demand.get_proposals(): # infinite loop
+            pending = initial.respond()
+            confirmed = pending.confirm()
+            self._event_bus.register(ProposalConfirmed(demand=self._demand, proposal=confirmed))
 
-    def on_new_proposal(self, proposal: 'Proposal') -> None:
-        self._proposals.append(proposal)
 
-    def get_proposal(self) -> 'Proposal':
-        return self._proposals.pop()
+class LifoOfferManager:
+    _offers: List['Offer']
+
+    def __init__(self, event_bus) -> None:
+        self._event_bus = event_bus
+        self._event_bus.resource_listen(self.on_new_offer, ProposalConfirmed)
+
+    def on_new_offer(self, offer: 'Offer') -> None:
+        self._offers.append(offer)
 
     def get_offer(self) -> 'Offer':
         while True:
-            provider_proposal = self.get_proposal()
-            our_response = provider_proposal.respond()
-
             try:
-                return our_response.wait_accept()
-            except Exception:
+                return self._offers.pop()
+            except IndexError:
+                # wait for offers
+                # await sleep
                 pass
-
 
 class FifoAgreementManager:
     def __init__(self, get_offer: 'Callable'):
@@ -236,8 +242,12 @@ def main():
 
     payment_manager = PayAllPaymentManager(budget, event_bus)
 
-    offer_manager = FifoOfferManager(payment_manager.get_allocation, event_bus)
-    offer_manager.collect_proposals_for(payload)
+    negotiation_manager = ConfirmAllNegotiationManager(
+        payment_manager.get_allocation, payload, event_bus
+    )
+    negotiation_manager.negotiate() # run in async, this will generate ProposalConfirmed events
+
+    offer_manager = LifoOfferManager(event_bus) # listen to ProposalConfirmed
 
     agreement_manager = FifoAgreementManager(
         blacklist_offers(['banned_node_id'])(offer_manager.get_offer)
