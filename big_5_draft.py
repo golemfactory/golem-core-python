@@ -244,6 +244,8 @@ class FifoAgreementManager:
             except Exception:
                 pass
 
+        # TODO: Close agreement
+
 
 class SingleUseActivityManager:
     def __init__(self, get_agreement: 'Callable', on_activity_begin: Optional[Work] = None, on_activity_end: Optional[Work] = None):
@@ -281,18 +283,18 @@ class SequentialWorkManager:
     def __init__(self, do_work: DoWorkCallable):
         self._do_work = do_work
 
-    def apply_activity_decorators(self, func: Callable[[Work], Awaitable[WorkResult]], work: Work) -> Callable[[Work], Awaitable[WorkResult]]:
+    def apply_work_decorators(self, do_work: DoWorkCallable, work: Work) -> DoWorkCallable:
         if not hasattr(work, '_work_decorators'):
-            return func
+            return do_work
 
-        result = func
+        result = do_work
         for dec in work._work_decorators:
             result = partial(dec, result)
 
         return result
 
     async def do_work(self, work: Work) -> WorkResult:
-        decorated_do_work = self.apply_activity_decorators(self._do_work, work)
+        decorated_do_work = self.apply_work_decorators(self._do_work, work)
 
         return await decorated_do_work(work)
 
