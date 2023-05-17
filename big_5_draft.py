@@ -1,5 +1,58 @@
-from typing import List, Optional
+import asyncio
+from abc import ABC
+from functools import partial, wraps
+from typing import List, Optional, Callable, Awaitable
 
+from golem_core.core.market_api import RepositoryVmPayload
+
+
+class Batch:
+    def deploy(self):
+        pass
+
+    def start(self):
+        pass
+
+    def terminate(self):
+        pass
+
+    def run(self, command: str):
+        pass
+
+    async def __call__(self):
+        pass
+
+
+class WorkContext:
+    async def deploy(self):
+        pass
+
+    async def start(self):
+        pass
+
+    async def terminate(self):
+        pass
+
+    async def run(self, command: str):
+        pass
+
+    async def create_batch(self) -> Batch:
+        pass
+
+
+class WorkResult:
+    pass
+
+
+WorkDecorator = Callable[['DoWorkCallable'], 'DoWorkCallable']
+
+class Work(ABC):
+    _work_decorators: Optional[List[WorkDecorator]]
+
+    def __call__(self, context: WorkContext) -> Optional[WorkResult]:
+        pass
+
+DoWorkCallable = Callable[[Work], Awaitable[WorkResult]]
 
 class PayAllPaymentManager:
     def __init__(self, budget, event_bus):
@@ -59,10 +112,10 @@ class FilterNegotiationManager:
             self.INITIAL: [],
             self.PENDING: [],
         }
-    
+
     def add_filter(self, filter: 'Filter', type: str):
         self._filters[type].append(filter)
-    
+
     def _filter(self, initial: 'Proposal', type: str) -> bool:
         for f in self._filters[type]:
             if f(initial):
@@ -78,11 +131,11 @@ class FilterNegotiationManager:
             if self._filter(pending, self.PENDING):
                 pending.reject()
                 continue
-            
+
             confirmed = pending.confirm()
             self._event_bus.register(ProposalConfirmed(demand=self._demand, proposal=confirmed))
 
-            
+
 class AcceptableRangeNegotiationManager:
     def __init__(self, get_allocation: 'Callable', payload, event_bus):
         self._event_bus = event_bus
@@ -105,7 +158,7 @@ class AcceptableRangeNegotiationManager:
     def _validate_values(self, proposal: 'Proposal') -> bool:
         """Checks if proposal's values are in accepted range
 
-        e.g. 
+        e.g.
         True
         x_accepted range: [2,10]
         proposal.x: 9
@@ -114,13 +167,13 @@ class AcceptableRangeNegotiationManager:
         x_accepted range: [2,10]
         proposal.x: 11
         """
-    
+
     def _middle_values(self, our: 'Proposal', their: 'Proposal') -> Optional['Proposal']:
         """Create new proposal with new values in accepted range based on given proposals.
-        
+
         If middle values are outside of accepted range return None
 
-        e.g. 
+        e.g.
         New proposal
         x_accepted range: [2,10]
         our.x: 5
@@ -133,7 +186,7 @@ class AcceptableRangeNegotiationManager:
         their.x : 13
         new: (9+13)//2 -> 11 -> None
         """
-    
+
     def _negotiate_for_accepted_range(self, our: 'Proposal'):
         their = our.respond()
         while True:
@@ -144,6 +197,20 @@ class AcceptableRangeNegotiationManager:
                 return None
             their = their.respond_with(our)
 
+
+
+def blacklist_offers(blacklist: 'List'):
+    def _blacklist_offers(func):
+        def wrapper(*args, **kwargs):
+            while True:
+                offer = func()
+
+                if offer not in blacklist:
+                    return offer
+
+        return wrapper
+
+    return _blacklist_offers
 
 class LifoOfferManager:
     _offers: List['Offer']
@@ -179,84 +246,78 @@ class FifoAgreementManager:
 
 
 class SingleUseActivityManager:
-    def __init__(self, get_agreement: 'Callable'):
-        self.get_agreement = get_agreement
+    def __init__(self, get_agreement: 'Callable', on_activity_begin: Optional[Work] = None, on_activity_end: Optional[Work] = None):
+        self._get_agreement = get_agreement
+        self._on_activity_begin = on_activity_begin
+        self._on_activity_end = on_activity_end
 
-    def get_activity(self) -> 'Activity':
+    async def get_activity(self) -> 'Activity':
         while True:
             # We need to release agreement if is not used
-            agreement = self.get_agreement()
+            agreement = await self._get_agreement()
             try:
-                return agreement.create_activity()
+                return await agreement.create_activity()
             except Exception:
                 pass
 
-    def apply_activity_decorators(self, func, work):
-        if not hasattr(work, '_activity_decorators'):
+    async def do_work(self, work) -> WorkResult:
+        activity = await self.get_activity()
+
+        if self._on_activity_begin:
+            await activity.do(self._on_activity_begin)
+
+        try:
+            result = await activity.do(work)
+        except Exception as e:
+            result = WorkResult(exception=e)
+
+        if self._on_activity_end:
+            await activity.do(self._on_activity_end)
+
+        return result
+
+
+class SequentialWorkManager:
+    def __init__(self, do_work: DoWorkCallable):
+        self._do_work = do_work
+
+    def apply_activity_decorators(self, func: Callable[[Work], Awaitable[WorkResult]], work: Work) -> Callable[[Work], Awaitable[WorkResult]]:
+        if not hasattr(work, '_work_decorators'):
             return func
 
         result = func
-        for dec in work._activity_decorators:
+        for dec in work._work_decorators:
             result = partial(dec, result)
 
         return result
 
-    def _do_work(self, work, on_activity_begin: 'Callable' = None, on_activity_end: 'Callable' = None) -> 'WorkResult':
-        activity = self.get_activity()
+    async def do_work(self, work: Work) -> WorkResult:
+        decorated_do_work = self.apply_activity_decorators(self._do_work, work)
 
-        if on_activity_begin:
-            activity.do(on_activity_begin)
-
-        try:
-            result = activity.do(work)
-        except Exception:
-            pass
-
-        if on_activity_end:
-            activity.do(on_activity_end)
-
-        return result
-
-    def do_work(self, work: 'Callable', on_activity_begin: 'Callable' = None, on_activity_end: 'Callable' = None) -> 'WorkResult':
-        decorated_do = self.apply_activity_decorators(self._do_work, work)
-
-        return decorated_do(work, on_activity_begin, on_activity_end)
+        return await decorated_do_work(work)
 
 
-    def do_work_list(self, work_list: 'List[Callable]', on_activity_begin: 'Callable' = None, on_activity_end: 'Callable' = None) -> 'List[WorkResult]':
+    async def do_work_list(self, work_list: List[Work]) -> List[WorkResult]:
         results = []
 
         for work in work_list:
             results.append(
-                self.do_work(work, on_activity_begin, on_activity_end)
+                await self.do_work(work)
             )
 
         return results
 
 
-def blacklist_offers(blacklist: 'List'):
-    def _blacklist_offers(func):
-        def wrapper(*args, **kwargs):
-            while True:
-                offer = func()
-
-                if offer not in blacklist:
-                    return offer
-
-        return wrapper
-
-    return _blacklist_offers
-
-
 def retry(tries: int = 3):
-    def _retry(func):
-        def wrapper(work) -> 'WorkResult':
+    def _retry(do_work: DoWorkCallable) -> DoWorkCallable:
+        @wraps(do_work)
+        async def wrapper(work: Work) -> WorkResult:
             count = 0
             errors = []
 
             while count <= tries:
                 try:
-                    return func(work)
+                    return await do_work(work)
                 except Exception as err:
                     count += 1
                     errors.append(err)
@@ -269,75 +330,84 @@ def retry(tries: int = 3):
 
 
 def redundancy_cancel_others_on_first_done(size: int = 3):
-    def _redundancy(func):
-        def wrapper(work):
-            tasks = [func(work) for _ in range(size)]
+    def _redundancy(do_work: DoWorkCallable):
+        @wraps(do_work)
+        async def wrapper(work: Work) -> WorkResult:
+            tasks = [do_work(work) for _ in range(size)]
 
-            task_done, tasks_in_progress = return_on_first_done(tasks)
+            tasks_done, tasks_pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 
-            for task in tasks_in_progress:
+            for task in tasks_pending:
                 task.cancel()
 
-            return task_done
+            for task in tasks_pending:
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+
+            return tasks_done.pop().result()
 
         return wrapper
 
     return _redundancy
 
 
-def default_on_begin(context):
-    context.deploy()
-    context.start()
+async def default_on_activity_begin(context: WorkContext):
+    batch = await context.create_batch()
+    batch.deploy()
+    batch.start()
+    await batch()
 
     # After this function call we should have check if activity is actually started
 
 
-def default_on_end(context):
-    context.terminate()
+async def default_on_activity_end(context: WorkContext):
+    await context.terminate()
 
     # After this function call we should have check if activity is actually terminated
 
 
-def activity_decorator(dec, *args, **kwargs):
-    def _activity_decorator(func):
-        if not hasattr(func, '_activity_decorators'):
-            func._activity_decorators = []
+def work_decorator(decorator: WorkDecorator):
+    def _work_decorator(work: Work):
+        if not hasattr(work, '_work_decorators'):
+            work._work_decorators = []
 
-        func._activity_decorators.append(dec)
+        work._work_decorators.append(decorator)
 
-        return func
+        return work
 
-    return _activity_decorator
-
-
-@activity_decorator(redundancy_cancel_others_on_first_done(size=5))
-@activity_decorator(retry(tries=5))
-# activity run here
-def work(context):
-    context.run('echo hello world')
+    return _work_decorator
 
 
-async def work_service(context):
-    context.run('app --daemon')
+@work_decorator(redundancy_cancel_others_on_first_done(size=5))
+@work_decorator(retry(tries=5))
+async def work(context: WorkContext):
+    await context.run('echo hello world')
 
 
-async def work_service_fetch(context):
-    context.run('app --daemon &')
-
-    while context.run('app check-if-running'):
-        sleep(1)
+async def work_service(context: WorkContext):
+    await context.run('app --daemon')
 
 
-async def work_batch(context):
-    script = context.create_batch()
-    script.add_run('echo 1')
-    script.add_run('echo 2')
-    script.add_run('echo 3')
-    await script.run()
+async def work_service_fetch(context: WorkContext):
+    await context.run('app --daemon &')
+
+    while await context.run('app check-if-running'):
+        await asyncio.sleep(1)
+
+
+async def work_batch(context: WorkContext):
+    batch = await context.create_batch()
+    batch.run('echo 1')
+    batch.run('echo 2')
+    batch.run('echo 3')
+
+    await batch()
 
 
 def main():
-    payload = RepositoryVmPayload(image_url='...')
+    payload = RepositoryVmPayload(image_hash='...')
     budget = 1.0
     work_list = [
         work,
@@ -360,9 +430,11 @@ def main():
         blacklist_offers(['banned_node_id'])(offer_manager.get_offer)
     )
 
-    activity_manager = SingleUseActivityManager(agreement_manager.get_agreement)
-    activity_manager.do_work_list(
-        work_list,
-        on_activity_begin=default_on_begin,
-        on_activity_end=default_on_end
+    activity_manager = SingleUseActivityManager(
+        agreement_manager.get_agreement,
+        on_activity_begin=default_on_activity_begin,
+        on_activity_end=default_on_activity_end,
     )
+
+    work_manager = SequentialWorkManager(activity_manager.do_work)
+    await work_manager.do_work_list(work_list)
