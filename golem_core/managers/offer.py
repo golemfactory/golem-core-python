@@ -25,4 +25,3 @@ class StackOfferManager:
             except IndexError:
                 # wait for offers
                 await asyncio.sleep(1)
-                pass
