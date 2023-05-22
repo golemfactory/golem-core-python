@@ -21,10 +21,10 @@ async def main():
         negotiation_manager = AlfaNegotiationManager(golem, get_allocation_factory(golem))
         await negotiation_manager.start_negotiation(payload)
 
-        for _ in range(20):
+        for i in range(1, 16):
+            print(f"Got offer {i}: {(await offer_manager.get_offer()).id}...")
             print(f"{datetime.utcnow()} sleeping...")
             await asyncio.sleep(1)
-            print((await offer_manager.get_offer()).id)
         print(f"{datetime.utcnow()} stopping negotiations...")
         await negotiation_manager.stop_negotiation()
 

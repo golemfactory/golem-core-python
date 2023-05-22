@@ -52,6 +52,10 @@ class BaseVmPayload(Payload, ABC):
     )
 
 
+    def __hash__(self) -> int:
+        return super().__hash__()
+
+
 @dataclass
 class _VmPayload(Payload, ABC):
     package_url: str = prop("golem.srv.comp.task_package")
@@ -107,6 +111,10 @@ class RepositoryVmPayload(BaseVmPayload, _RepositoryVmPayload):
             await self._resolve_package_url()
 
         return await super(RepositoryVmPayload, self).serialize()
+
+
+    def __hash__(self) -> int:
+        return super().__hash__()
 
 
 async def resolve_repository_url(

@@ -37,3 +37,6 @@ class Payload(DemandOfferBaseModel, ABC):
 
         {'properties': {'golem.srv.app.myprop': 'othervalue'}, 'constraints': ['(&(golem.runtime.name=my-runtime)\n\t(golem.inf.mem.gib>=32)\n\t(golem.inf.storage.gib>=1024))']}
     """  # noqa: E501
+
+    def __hash__(self) -> int:
+        return hash((str(self._serialize_properties()), self._serialize_constraints()))
