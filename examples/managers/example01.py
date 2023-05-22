@@ -24,6 +24,7 @@ async def main():
         for _ in range(20):
             print(f"{datetime.utcnow()} sleeping...")
             await asyncio.sleep(1)
+            print((await offer_manager.get_offer()).id)
         print(f"{datetime.utcnow()} stopping negotiations...")
         await negotiation_manager.stop_negotiation()
 
