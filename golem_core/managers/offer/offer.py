@@ -1,21 +1,28 @@
 import asyncio
 from typing import List
 
-from golem_core.core.golem_node import GolemNode
 from golem_core.core.market_api import Proposal
-from golem_core.core.resources import ResourceEvent
 
 Offer = Proposal
 
 
 class StackOfferManager:
-    def __init__(self, golem: GolemNode) -> None:
+    def __init__(self, get_offer) -> None:
+        self._get_offer = get_offer
         self._offers: List[Offer] = []
-        self._event_bus = golem.event_bus
-        self._event_bus.resource_listen(self._on_new_offer, (ResourceEvent,), (Offer,))
+        self._tasks: List[asyncio.Task] = []
 
-    async def _on_new_offer(self, offer_event: ResourceEvent) -> None:
-        self._offers.append(offer_event.resource)
+    async def start_consuming_offers(self) -> None:
+        self._tasks.append(asyncio.create_task(self._consume_offers()))
+
+    async def stop_consuming_offers(self) -> None:
+        for task in self._tasks:
+            task.cancel()
+
+    async def _consume_offers(self) -> None:
+        while True:
+            self._offers.append(await self._get_offer())
+            await asyncio.sleep(1)
 
     async def get_offer(self) -> Offer:
         # TODO add some timeout

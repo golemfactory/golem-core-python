@@ -51,7 +51,6 @@ class BaseVmPayload(Payload, ABC):
         "golem.srv.comp.vm.package_format", default=VmPackageFormat.GVMKIT_SQUASH
     )
 
-
     def __hash__(self) -> int:
         return super().__hash__()
 
@@ -111,7 +110,6 @@ class RepositoryVmPayload(BaseVmPayload, _RepositoryVmPayload):
             await self._resolve_package_url()
 
         return await super(RepositoryVmPayload, self).serialize()
-
 
     def __hash__(self) -> int:
         return super().__hash__()
