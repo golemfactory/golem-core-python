@@ -5,19 +5,14 @@ from golem_core.core.golem_node.golem_node import GolemNode
 from golem_core.core.market_api import RepositoryVmPayload
 from golem_core.managers.negotiation import AlfaNegotiationManager
 from golem_core.managers.offer import StackOfferManager
-
-
-def get_allocation_factory(golem: GolemNode):
-    async def _get_allocation():
-        return await golem.create_allocation(1)
-
-    return _get_allocation
+from golem_core.managers.payment.pay_all import PayAllPaymentManager
 
 
 async def main():
     payload = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
     async with GolemNode() as golem:
-        negotiation_manager = AlfaNegotiationManager(golem, get_allocation_factory(golem))
+        payment_manager = PayAllPaymentManager(golem, budget=1.0)
+        negotiation_manager = AlfaNegotiationManager(golem, payment_manager.get_allocation)
         offer_manager = StackOfferManager(negotiation_manager.get_offer)
         await negotiation_manager.start_negotiation(payload)
         await offer_manager.start_consuming_offers()

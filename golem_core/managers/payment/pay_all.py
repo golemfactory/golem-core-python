@@ -1,23 +1,54 @@
+from decimal import Decimal
+from typing import Optional
+
+from golem_core.core.golem_node.golem_node import PAYMENT_DRIVER, PAYMENT_NETWORK, GolemNode
+from golem_core.core.payment_api.resources.allocation import Allocation
+from golem_core.core.payment_api.resources.debit_note import DebitNote
+from golem_core.core.payment_api.resources.invoice import Invoice
+from golem_core.core.resources.events import NewResource
 from golem_core.managers.base import PaymentManager
 
 
 class PayAllPaymentManager(PaymentManager):
-    def __init__(self, budget, event_bus):
+    def __init__(
+        self,
+        golem: GolemNode,
+        budget: float,
+        network: str = PAYMENT_NETWORK,
+        driver: str = PAYMENT_DRIVER,
+    ):
+        self._golem = golem
         self._budget = budget
-        self._event_bus = event_bus
+        self._network = network
+        self._driver = driver
 
-        self._allocation = Allocation.create(budget=self._budget)
+        self._allocation: Optional[Allocation] = None
 
-        event_bus.register(InvoiceReceived(allocation=self._allocation), self.on_invoice_received)
-        event_bus.register(
-            DebitNoteReceived(allocation=self._allocation), self.on_debit_note_received
+        self._golem.event_bus.resource_listen(self.on_invoice_received, [NewResource], [Invoice])
+        self._golem.event_bus.resource_listen(
+            self.on_debit_note_received, [NewResource], [DebitNote]
         )
 
-    def get_allocation(self) -> "Allocation":
+    async def get_allocation(self) -> "Allocation":
+        if self._allocation is None:
+            self._allocation = await Allocation.create_any_account(
+                self._golem, Decimal(self._budget), self._network, self._driver
+            )
+            self._golem.add_autoclose_resource(self._allocation)
         return self._allocation
 
-    def on_invoice_received(self, invoice: "Invoice") -> None:
-        invoice.pay()
+    async def on_invoice_received(self, invoice_event: NewResource) -> None:
+        invoice = invoice_event.resource
+        assert isinstance(invoice, Invoice)
+        if (await invoice.get_data(force=True)).status == "RECEIVED":
+            assert self._allocation is not None  # TODO think of a better way
+            await invoice.accept_full(self._allocation)
+            await invoice.get_data(force=True)
 
-    def on_debit_note_received(self, debit_note: "DebitNote") -> None:
-        debit_note.pay()
+    async def on_debit_note_received(self, debit_note_event: NewResource) -> None:
+        debit_note = debit_note_event.resource
+        assert isinstance(debit_note, DebitNote)
+        if (await debit_note.get_data(force=True)).status == "RECEIVED":
+            assert self._allocation is not None  # TODO think of a better way
+            await debit_note.accept_full(self._allocation)
+            await debit_note.get_data(force=True)

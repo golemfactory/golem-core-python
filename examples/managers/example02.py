@@ -46,7 +46,6 @@ async def create_agreement():
             # yield agreement
             # return
 
-
 async def work1(context: WorkContext):
     r = await context.run("echo 1")
     await r.wait()
@@ -69,10 +68,17 @@ async def work3(context: WorkContext):
 
 
 async def main():
+<<<<<<< HEAD
     async with create_offer() as offer:
 
         async def get_offer():
             return offer
+=======
+    async with create_agreement() as agreement:
+
+        async def get_agreement():
+            return agreement
+>>>>>>> 3389159 (Add Payment Manager)
 
         work_list = [
             work1,
