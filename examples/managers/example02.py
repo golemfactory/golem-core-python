@@ -46,6 +46,7 @@ async def create_agreement():
             # yield agreement
             # return
 
+
 async def work1(context: WorkContext):
     r = await context.run("echo 1")
     await r.wait()
@@ -72,7 +73,7 @@ async def main():
 
         async def get_offer():
             return offer
-        
+
         work_list = [
             work1,
             work2,
