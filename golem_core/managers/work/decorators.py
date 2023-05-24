@@ -22,15 +22,23 @@ def retry(tries: int = 3):
         async def wrapper(work: Work) -> WorkResult:
             count = 0
             errors = []
+            work_result = WorkResult()
 
             while count <= tries:
-                try:
-                    return await do_work(work)
-                except Exception as err:
-                    count += 1
-                    errors.append(err)
+                work_result = await do_work(work)
 
-            raise errors  # List[Exception] to Exception
+                if work_result.exception is None:
+                    break
+
+                count += 1
+                errors.append(work_result.exception)
+
+            work_result.extras['retry'] = {
+                'tries': count,
+                'errors': errors,
+            }
+
+            return work_result
 
         return wrapper
 

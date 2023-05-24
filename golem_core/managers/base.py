@@ -1,43 +1,67 @@
 from abc import ABC, abstractmethod
-from typing import Awaitable, Callable, List, Optional
+from dataclasses import dataclass
+from typing import Awaitable, Callable, List, Optional, Any, Dict, Union
+
+from golem_core.core.activity_api import commands, Activity, Script
 
 
 class Batch:
+    def __init__(self, activity) -> None:
+        self._script = Script()
+        self._activity = activity
+
     def deploy(self):
-        ...
+        self._script.add_command(commands.Deploy())
 
     def start(self):
-        ...
+        self._script.add_command(commands.Start())
 
-    def terminate(self):
-        ...
-
-    def run(self, command: str):
-        ...
+    def run(
+        self,
+        command: Union[str, List[str]],
+        *,
+        shell: Optional[bool] = None,
+        shell_cmd: str = "/bin/sh"
+    ):
+        self._script.add_command(commands.Run(command, shell=shell, shell_cmd=shell_cmd))
 
     async def __call__(self):
-        ...
-
+        pooling_batch = await self._activity.execute_script(self._script)
+        return await pooling_batch.wait()
 
 class WorkContext:
+    def __init__(self, activity: Activity):
+        self._activity = activity
+
     async def deploy(self):
-        ...
+        pooling_batch = await self._activity.execute_commands(commands.Deploy())
+        await pooling_batch.wait()
 
     async def start(self):
-        ...
+        pooling_batch = await self._activity.execute_commands(commands.Start())
+        await pooling_batch.wait()
 
     async def terminate(self):
-        ...
+        await self._activity.destroy()
 
-    async def run(self, command: str):
-        ...
+    async def run(
+        self,
+        command: Union[str, List[str]],
+        *,
+        shell: Optional[bool] = None,
+        shell_cmd: str = "/bin/sh"
+    ):
+        return await self._activity.execute_commands(commands.Run(command, shell=shell, shell_cmd=shell_cmd))
 
     async def create_batch(self) -> Batch:
-        ...
+        return Batch(self._activity)
 
 
+@dataclass
 class WorkResult:
-    ...
+    result: Optional[Any] = None
+    exception: Optional[Exception] = None
+    extras: Optional[Dict] = None
 
 
 WorkDecorator = Callable[["DoWorkCallable"], "DoWorkCallable"]
@@ -46,7 +70,7 @@ WorkDecorator = Callable[["DoWorkCallable"], "DoWorkCallable"]
 class Work(ABC):
     _work_decorators: Optional[List[WorkDecorator]]
 
-    def __call__(self, context: WorkContext) -> Optional[WorkResult]:
+    def __call__(self, context: WorkContext) -> Awaitable[Optional[WorkResult]]:
         ...
 
 
