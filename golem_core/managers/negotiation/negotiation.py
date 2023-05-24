@@ -16,14 +16,10 @@ class AlfaNegotiationManager(NegotiationManager):
         self._golem = golem
         self._get_allocation = get_allocation
         self._negotiations: List[asyncio.Task] = []
-        self._ready_offers: List[Proposal] = []
+        self._ready_offers: asyncio.Queue[Proposal] = asyncio.Queue()
 
     async def get_offer(self) -> Proposal:
-        while True:
-            try:
-                return self._ready_offers.pop(0)
-            except IndexError:
-                await asyncio.sleep(1)
+        return await self._ready_offers.get()
 
     async def start_negotiation(self, payload: Payload) -> None:
         self._negotiations.append(asyncio.create_task(self._negotiate_task(payload)))
@@ -36,7 +32,7 @@ class AlfaNegotiationManager(NegotiationManager):
         allocation = await self._get_allocation()
         demand = await self._build_demand(allocation, payload)
         async for offer in self._negotiate(demand):
-            self._ready_offers.append(offer)
+            await self._ready_offers.put(offer)
 
     async def _build_demand(self, allocation: Allocation, payload: Payload) -> Demand:
         demand_builder = DemandBuilder()

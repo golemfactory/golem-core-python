@@ -9,7 +9,7 @@ Offer = Proposal
 class StackOfferManager:
     def __init__(self, get_offer) -> None:
         self._get_offer = get_offer
-        self._offers: List[Offer] = []
+        self._offers: asyncio.Queue[Proposal] = asyncio.Queue()
         self._tasks: List[asyncio.Task] = []
 
     async def start_consuming_offers(self) -> None:
@@ -21,14 +21,7 @@ class StackOfferManager:
 
     async def _consume_offers(self) -> None:
         while True:
-            self._offers.append(await self._get_offer())
-            await asyncio.sleep(1)
+            await self._offers.put(await self._get_offer())
 
     async def get_offer(self) -> Offer:
-        # TODO add some timeout
-        while True:
-            try:
-                return self._offers.pop()
-            except IndexError:
-                # wait for offers
-                await asyncio.sleep(1)
+        return await self._offers.get()
