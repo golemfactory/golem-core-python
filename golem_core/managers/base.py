@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Awaitable, Callable, List, Optional, Any, Dict, Union
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
-from golem_core.core.activity_api import commands, Activity, Script
+from golem_core.core.activity_api import Activity, Script, commands
 
 
 class Batch:
@@ -21,13 +21,14 @@ class Batch:
         command: Union[str, List[str]],
         *,
         shell: Optional[bool] = None,
-        shell_cmd: str = "/bin/sh"
+        shell_cmd: str = "/bin/sh",
     ):
         self._script.add_command(commands.Run(command, shell=shell, shell_cmd=shell_cmd))
 
     async def __call__(self):
         pooling_batch = await self._activity.execute_script(self._script)
         return await pooling_batch.wait()
+
 
 class WorkContext:
     def __init__(self, activity: Activity):
@@ -49,9 +50,11 @@ class WorkContext:
         command: Union[str, List[str]],
         *,
         shell: Optional[bool] = None,
-        shell_cmd: str = "/bin/sh"
+        shell_cmd: str = "/bin/sh",
     ):
-        return await self._activity.execute_commands(commands.Run(command, shell=shell, shell_cmd=shell_cmd))
+        return await self._activity.execute_commands(
+            commands.Run(command, shell=shell, shell_cmd=shell_cmd)
+        )
 
     async def create_batch(self) -> Batch:
         return Batch(self._activity)

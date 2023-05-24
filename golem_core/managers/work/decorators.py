@@ -33,9 +33,9 @@ def retry(tries: int = 3):
                 count += 1
                 errors.append(work_result.exception)
 
-            work_result.extras['retry'] = {
-                'tries': count,
-                'errors': errors,
+            work_result.extras["retry"] = {
+                "tries": count,
+                "errors": errors,
             }
 
             return work_result

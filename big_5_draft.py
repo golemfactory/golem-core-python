@@ -3,7 +3,7 @@ from typing import Callable, List, Optional
 
 from golem_core.core.market_api import RepositoryVmPayload
 from golem_core.managers.activity.single_use import SingleUseActivityManager
-from golem_core.managers.agreement.queue import QueueAgreementManager
+from golem_core.managers.agreement.single_use import SingleUseAgreementManager
 from golem_core.managers.base import WorkContext
 from golem_core.managers.payment.pay_all import PayAllPaymentManager
 from golem_core.managers.work.decorators import (
@@ -12,20 +12,6 @@ from golem_core.managers.work.decorators import (
     work_decorator,
 )
 from golem_core.managers.work.sequential import SequentialWorkManager
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 class ConfirmAllNegotiationManager:
@@ -188,18 +174,6 @@ class LifoOfferManager:
                 pass
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 @work_decorator(redundancy_cancel_others_on_first_done(size=5))
 @work_decorator(retry(tries=5))
 async def work(context: WorkContext):
@@ -246,7 +220,7 @@ async def main():
 
     offer_manager = LifoOfferManager(event_bus)  # listen to ProposalConfirmed
 
-    agreement_manager = QueueAgreementManager(
+    agreement_manager = SingleUseAgreementManager(
         blacklist_offers(["banned_node_id"])(offer_manager.get_offer)
     )
 
