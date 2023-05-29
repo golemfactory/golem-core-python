@@ -46,16 +46,14 @@ async def main():
         payment_manager = PayAllPaymentManager(golem, budget=1.0)
         negotiation_manager = AlfaNegotiationManager(golem, payment_manager.get_allocation)
         offer_manager = StackOfferManager(negotiation_manager.get_offer)
+        agreement_manager = SingleUseAgreementManager(offer_manager.get_offer, golem.event_bus)
+        activity_manager = SingleUseActivityManager(
+            agreement_manager.get_agreement, golem.event_bus
+        )
+        work_manager = SequentialWorkManager(activity_manager.do_work)
+
         await negotiation_manager.start_negotiation(payload)
         await offer_manager.start_consuming_offers()
-
-        agreement_manager = SingleUseAgreementManager(offer_manager.get_offer)
-
-        activity_manager = SingleUseActivityManager(
-            agreement_manager.get_agreement,
-        )
-
-        work_manager = SequentialWorkManager(activity_manager.do_work)
 
         print("starting to work...")
         results = await work_manager.do_work_list(work_list)
