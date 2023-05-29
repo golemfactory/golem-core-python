@@ -19,7 +19,7 @@ async def work1(context: WorkContext):
     await r.wait()
     result = ""
     for event in r.events:
-        print(event.stdout)
+        print(f"Work1 got: {event.stdout}")
         result += event.stdout
     return result
 
@@ -27,15 +27,21 @@ async def work1(context: WorkContext):
 async def work2(context: WorkContext):
     r = await context.run("echo 2")
     await r.wait()
+    result = ""
     for event in r.events:
-        print(event.stdout)
+        print(f"Work2 got: {event.stdout}")
+        result += event.stdout
+    return result
 
 
 async def work3(context: WorkContext):
     r = await context.run("echo 3")
     await r.wait()
+    result = ""
     for event in r.events:
-        print(event.stdout)
+        print(f"Work3 got: {event.stdout}")
+        result += event.stdout
+    return result
 
 
 async def main():
@@ -44,8 +50,8 @@ async def main():
 
     work_list = [
         work1,
-        # work2,
-        # work3,
+        work2,
+        work3,
     ]
 
     async with GolemNode() as golem:
@@ -57,22 +63,16 @@ async def main():
             agreement_manager.get_agreement, golem.event_bus
         )
         work_manager = SequentialWorkManager(activity_manager.do_work)
-
+        
         await negotiation_manager.start_negotiation(payload)
         await offer_manager.start_consuming_offers()
 
-        print("starting to work...")
         results = await work_manager.do_work_list(work_list)
-        print("work done")
-        print(results)
+        print(f"work done: {results}")
 
-        print(f"{datetime.utcnow()} stopping example...")
         await offer_manager.stop_consuming_offers()
         await negotiation_manager.stop_negotiation()
-
-        # TODO wait for invoices and debit notes
-        for _ in range(20):
-            await asyncio.sleep(1)
+        await payment_manager.wait_for_invoices()
 
 
 if __name__ == "__main__":

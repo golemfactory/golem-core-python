@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from decimal import Decimal
 from typing import Optional
@@ -59,3 +60,6 @@ class PayAllPaymentManager(PaymentManager):
             assert self._allocation is not None  # TODO think of a better way
             await debit_note.accept_full(self._allocation)
             await debit_note.get_data(force=True)
+
+    async def wait_for_invoices(self):
+        await asyncio.sleep(30)
