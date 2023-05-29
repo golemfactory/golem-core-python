@@ -7,23 +7,23 @@ from golem_core.core.golem_node.golem_node import DEFAULT_EXPIRATION_TIMEOUT, SU
 from golem_core.core.market_api import Demand, DemandBuilder, Payload, Proposal
 from golem_core.core.market_api.resources.demand.demand_offer_base import defaults as dobm_defaults
 from golem_core.core.payment_api import Allocation
-from golem_core.managers.base import NegotiationManager
+from golem_core.managers.base import ProposalNegotiationManager
 
 logger = logging.getLogger(__name__)
 
 
-class AlfaNegotiationManager(NegotiationManager):
+class AcceptAllNegotiationManager(ProposalNegotiationManager):
     def __init__(
         self, golem: GolemNode, get_allocation: Callable[[], Awaitable[Allocation]]
     ) -> None:
         self._golem = golem
         self._get_allocation = get_allocation
         self._negotiations: List[asyncio.Task] = []
-        self._ready_offers: asyncio.Queue[Proposal] = asyncio.Queue()
+        self._eligible_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
 
-    async def get_offer(self) -> Proposal:
-        logger.debug("Returning offer")
-        return await self._ready_offers.get()
+    async def get_proposal(self) -> Proposal:
+        logger.debug("Returning proposal")
+        return await self._eligible_proposals.get()
 
     async def start_negotiation(self, payload: Payload) -> None:
         logger.debug("Starting negotiations")
@@ -37,8 +37,8 @@ class AlfaNegotiationManager(NegotiationManager):
     async def _negotiate_task(self, payload: Payload) -> None:
         allocation = await self._get_allocation()
         demand = await self._build_demand(allocation, payload)
-        async for offer in self._negotiate(demand):
-            await self._ready_offers.put(offer)
+        async for proposal in self._negotiate(demand):
+            await self._eligible_proposals.put(proposal)
 
     async def _build_demand(self, allocation: Allocation, payload: Payload) -> Demand:
         logger.debug("Creating demand")
@@ -70,7 +70,7 @@ class AlfaNegotiationManager(NegotiationManager):
             async for initial in demand.initial_proposals():
                 logger.debug("Got initial proposal")
                 try:
-                    pending = await initial.respond()
+                    demand_proposal = await initial.respond()
                 except Exception as err:
                     logger.debug(
                         f"Unable to respond to initialproposal {initial.id}. Got {type(err)}\n{err}"
@@ -79,10 +79,10 @@ class AlfaNegotiationManager(NegotiationManager):
 
                 try:
                     # TODO IDK how to call `confirm` on a proposal in golem-core
-                    confirmed = await pending.responses().__anext__()
+                    offer_proposal = await demand_proposal.responses().__anext__()
                 except StopAsyncIteration:
                     continue
 
-                yield confirmed
+                yield offer_proposal
         finally:
             self._golem.add_autoclose_resource(demand)

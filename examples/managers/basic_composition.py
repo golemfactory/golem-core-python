@@ -1,15 +1,14 @@
 import asyncio
 import logging.config
-from datetime import datetime
 
 from golem_core.core.golem_node.golem_node import GolemNode
 from golem_core.core.market_api import RepositoryVmPayload
 from golem_core.managers.activity.single_use import SingleUseActivityManager
 from golem_core.managers.agreement.single_use import SingleUseAgreementManager
 from golem_core.managers.base import WorkContext
-from golem_core.managers.negotiation import AlfaNegotiationManager
-from golem_core.managers.offer import StackOfferManager
+from golem_core.managers.negotiation import AcceptAllNegotiationManager
 from golem_core.managers.payment.pay_all import PayAllPaymentManager
+from golem_core.managers.proposal import StackProposalManager
 from golem_core.managers.work.sequential import SequentialWorkManager
 from golem_core.utils.logging import DEFAULT_LOGGING
 
@@ -56,21 +55,23 @@ async def main():
 
     async with GolemNode() as golem:
         payment_manager = PayAllPaymentManager(golem, budget=1.0)
-        negotiation_manager = AlfaNegotiationManager(golem, payment_manager.get_allocation)
-        offer_manager = StackOfferManager(negotiation_manager.get_offer)
-        agreement_manager = SingleUseAgreementManager(offer_manager.get_offer, golem.event_bus)
+        negotiation_manager = AcceptAllNegotiationManager(golem, payment_manager.get_allocation)
+        proposal_manager = StackProposalManager(negotiation_manager.get_proposal)
+        agreement_manager = SingleUseAgreementManager(
+            proposal_manager.get_proposal, golem.event_bus
+        )
         activity_manager = SingleUseActivityManager(
             agreement_manager.get_agreement, golem.event_bus
         )
         work_manager = SequentialWorkManager(activity_manager.do_work)
-        
+
         await negotiation_manager.start_negotiation(payload)
-        await offer_manager.start_consuming_offers()
+        await proposal_manager.start_consuming_proposals()
 
         results = await work_manager.do_work_list(work_list)
         print(f"work done: {results}")
 
-        await offer_manager.stop_consuming_offers()
+        await proposal_manager.stop_consuming_proposals()
         await negotiation_manager.stop_negotiation()
         await payment_manager.wait_for_invoices()
 

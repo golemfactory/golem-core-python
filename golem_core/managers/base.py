@@ -97,15 +97,15 @@ class PaymentManager(Manager, ABC):
         ...
 
 
-class NegotiationManager(Manager, ABC):
+class ProposalNegotiationManager(Manager, ABC):
     @abstractmethod
-    async def get_offer(self) -> Proposal:
+    async def get_proposal(self) -> Proposal:
         ...
 
 
-class OfferManager(Manager, ABC):
+class ProposalAggregationManager(Manager, ABC):
     @abstractmethod
-    async def get_offer(self) -> Proposal:
+    async def get_proposal(self) -> Proposal:
         ...
 
 
