@@ -13,7 +13,6 @@ from golem_core.managers.agreement import AgreementReleased
 from golem_core.managers.base import ActivityManager, Work, WorkContext, WorkResult
 
 logger = logging.getLogger(__name__)
-print(logger)
 
 
 class SingleUseActivityManager(ActivityManager):
@@ -35,7 +34,7 @@ class SingleUseActivityManager(ActivityManager):
 
     @asynccontextmanager
     async def _prepare_activity(self) -> Activity:
-        logger.debug("Calling `_prepare_activity`...")
+        logger.debug("Preparing activity...")
 
         while True:
             logger.debug(f"Getting agreement...")
@@ -49,7 +48,7 @@ class SingleUseActivityManager(ActivityManager):
 
                 activity = await agreement.create_activity()
 
-                logger.debug(f"Creating activity done")
+                logger.debug(f"Creating activity done with `{activity}`")
 
                 logger.debug(f"Yielding activity...")
 
@@ -60,7 +59,7 @@ class SingleUseActivityManager(ActivityManager):
                 break
             except Exception as e:
                 logger.debug(
-                    f"Creating activity failed with {e}, but will be retried with new agreement"
+                    f"Creating activity failed with `{e}`, but will be retried with new agreement"
                 )
             finally:
                 event = AgreementReleased(agreement)
@@ -71,10 +70,10 @@ class SingleUseActivityManager(ActivityManager):
 
                 logger.debug(f"Releasing agreement by emitting `{event}` done")
 
-        logger.debug("Calling `_prepare_activity` done")
+        logger.debug("Preparing done")
 
     async def do_work(self, work: Work) -> WorkResult:
-        logger.debug("Calling `do_work`...")
+        logger.debug("Doing work...")
 
         async with self._prepare_activity() as activity:
             work_context = WorkContext(activity)
@@ -114,6 +113,6 @@ class SingleUseActivityManager(ActivityManager):
                     " `context.terminate()` in custom `on_activity_end` callback."
                 )
 
-        logger.debug("Calling `do_work` done")
+        logger.debug("Doing work done")
 
         return work_result
