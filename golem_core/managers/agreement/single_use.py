@@ -47,10 +47,10 @@ class SingleUseAgreementManager(AgreementManager):
                 logger.debug(f'Getting agreement done with {agreement}')
                 return agreement
 
-    async def _on_agreement_released(self, event) -> None:
+    async def _on_agreement_released(self, event: AgreementReleased) -> None:
         logger.debug('Calling `_on_agreement_released`...')
 
-        agreement = event.agreement
+        agreement: Agreement = event.resource
         await agreement.terminate()
 
         logger.debug('Calling `_on_agreement_released` done')
