@@ -8,29 +8,24 @@ if TYPE_CHECKING:
 
 DEFAULT_LOGGING = {
     "version": 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'default': {
-            'format': '[%(asctime)s %(levelname)s %(name)s] %(message)s',
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "format": "[%(asctime)s %(levelname)s %(name)s] %(message)s",
         },
     },
-    'handlers': {
-        'console': {
-            'formatter': 'default',
-            'class': 'logging.StreamHandler'
-        }
-    },
-    'loggers': {
-        '': {
-            'level': 'INFO',
-            'handlers': [
-                'console',
-            ]
+    "handlers": {"console": {"formatter": "default", "class": "logging.StreamHandler"}},
+    "loggers": {
+        "": {
+            "level": "INFO",
+            "handlers": [
+                "console",
+            ],
         },
-        'golem_core': {
-            'level': 'DEBUG',
-        }
-    }
+        "golem_core": {
+            "level": "DEBUG",
+        },
+    },
 }
 
 

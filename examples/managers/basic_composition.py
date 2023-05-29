@@ -1,6 +1,6 @@
 import asyncio
-from datetime import datetime
 import logging.config
+from datetime import datetime
 
 from golem_core.core.golem_node.golem_node import GolemNode
 from golem_core.core.market_api import RepositoryVmPayload
