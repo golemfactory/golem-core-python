@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from datetime import datetime, timezone
 from typing import AsyncIterator, Awaitable, Callable, List
 
@@ -7,6 +8,8 @@ from golem_core.core.market_api import Demand, DemandBuilder, Payload, Proposal
 from golem_core.core.market_api.resources.demand.demand_offer_base import defaults as dobm_defaults
 from golem_core.core.payment_api import Allocation
 from golem_core.managers.base import NegotiationManager
+
+logger = logging.getLogger(__name__)
 
 
 class AlfaNegotiationManager(NegotiationManager):
@@ -19,13 +22,16 @@ class AlfaNegotiationManager(NegotiationManager):
         self._ready_offers: asyncio.Queue[Proposal] = asyncio.Queue()
 
     async def get_offer(self) -> Proposal:
+        logger.debug("Returning offer")
         return await self._ready_offers.get()
 
     async def start_negotiation(self, payload: Payload) -> None:
+        logger.debug("Starting negotiations")
         self._negotiations.append(asyncio.create_task(self._negotiate_task(payload)))
 
     async def stop_negotiation(self) -> None:
         for task in self._negotiations:
+            logger.debug("Stopping negotiations")
             task.cancel()
 
     async def _negotiate_task(self, payload: Payload) -> None:
@@ -35,6 +41,7 @@ class AlfaNegotiationManager(NegotiationManager):
             await self._ready_offers.put(offer)
 
     async def _build_demand(self, allocation: Allocation, payload: Payload) -> Demand:
+        logger.debug("Creating demand")
         demand_builder = DemandBuilder()
 
         await demand_builder.add(
@@ -61,11 +68,11 @@ class AlfaNegotiationManager(NegotiationManager):
     async def _negotiate(self, demand: Demand) -> AsyncIterator[Proposal]:
         try:
             async for initial in demand.initial_proposals():
-                print("Got initial...")
+                logger.debug("Got initial proposal")
                 try:
                     pending = await initial.respond()
                 except Exception as err:
-                    print(
+                    logger.debug(
                         f"Unable to respond to initialproposal {initial.id}. Got {type(err)}\n{err}"
                     )
                     continue

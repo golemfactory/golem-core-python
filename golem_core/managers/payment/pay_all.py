@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal
 from typing import Optional
 
@@ -7,6 +8,8 @@ from golem_core.core.payment_api.resources.debit_note import DebitNote
 from golem_core.core.payment_api.resources.invoice import Invoice
 from golem_core.core.resources.events import NewResource
 from golem_core.managers.base import PaymentManager
+
+logger = logging.getLogger(__name__)
 
 
 class PayAllPaymentManager(PaymentManager):
@@ -31,13 +34,16 @@ class PayAllPaymentManager(PaymentManager):
 
     async def get_allocation(self) -> "Allocation":
         if self._allocation is None:
+            logger.debug("Creating allocation")
             self._allocation = await Allocation.create_any_account(
                 self._golem, Decimal(self._budget), self._network, self._driver
             )
             self._golem.add_autoclose_resource(self._allocation)
+        logger.debug("Returning allocation")
         return self._allocation
 
     async def on_invoice_received(self, invoice_event: NewResource) -> None:
+        logger.debug("Got invoice")
         invoice = invoice_event.resource
         assert isinstance(invoice, Invoice)
         if (await invoice.get_data(force=True)).status == "RECEIVED":
@@ -46,6 +52,7 @@ class PayAllPaymentManager(PaymentManager):
             await invoice.get_data(force=True)
 
     async def on_debit_note_received(self, debit_note_event: NewResource) -> None:
+        logger.debug("Got debit note")
         debit_note = debit_note_event.resource
         assert isinstance(debit_note, DebitNote)
         if (await debit_note.get_data(force=True)).status == "RECEIVED":
