@@ -13,6 +13,7 @@ from golem_core.managers.agreement import AgreementReleased
 from golem_core.managers.base import ActivityManager, Work, WorkContext, WorkResult
 
 logger = logging.getLogger(__name__)
+print(logger)
 
 
 class SingleUseActivityManager(ActivityManager):
@@ -34,76 +35,77 @@ class SingleUseActivityManager(ActivityManager):
 
     @asynccontextmanager
     async def _prepare_activity(self) -> Activity:
-        logging.debug("Calling `_prepare_activity`...")
+        logger.debug("Calling `_prepare_activity`...")
 
         while True:
-            logging.debug(f"Getting agreement...")
+            logger.debug(f"Getting agreement...")
+
             agreement = await self._get_agreement()
-            logging.debug(f"Getting agreement done with `{agreement}`")
+
+            logger.debug(f"Getting agreement done with `{agreement}`")
 
             try:
-                logging.debug(f"Creating activity...")
+                logger.debug(f"Creating activity...")
 
                 activity = await agreement.create_activity()
 
-                logging.debug(f"Creating activity done")
+                logger.debug(f"Creating activity done")
 
-                logging.debug(f"Yielding activity...")
+                logger.debug(f"Yielding activity...")
+
                 yield activity
 
-                logging.debug(f"Yielding activity done")
+                logger.debug(f"Yielding activity done")
 
                 break
-            except Exception:
-                logging.debug(f"Creating activity failed, but will be retried with new agreement")
+            except Exception as e:
+                logger.debug(f"Creating activity failed with {e}, but will be retried with new agreement")
             finally:
-                event = AgreementReleased(agreement=agreement)
+                event = AgreementReleased(agreement)
 
-                logging.debug(f"Releasing agreement by emitting `{event}`...")
+                logger.debug(f"Releasing agreement by emitting `{event}`...")
 
                 self._event_bus.emit(event)
 
-                logging.debug(f"Releasing agreement by emitting `{event}` done")
+                logger.debug(f"Releasing agreement by emitting `{event}` done")
 
-        logging.debug("Calling `_prepare_activity` done")
+        logger.debug("Calling `_prepare_activity` done")
 
     async def do_work(self, work: Work) -> WorkResult:
         logger.debug("Calling `do_work`...")
-
-        work_result = None
 
         async with self._prepare_activity() as activity:
             work_context = WorkContext(activity)
 
             if self._on_activity_start:
-                logging.debug("Calling `on_activity_start`...")
+                logger.debug("Calling `on_activity_start`...")
 
                 await self._on_activity_start(work_context)
 
-                logging.debug("Calling `on_activity_start` done")
+                logger.debug("Calling `on_activity_start` done")
 
             try:
-                logging.debug("Calling `work`...")
+                logger.debug("Calling `work`...")
                 work_result = await work(work_context)
             except Exception as e:
-                logging.debug(f"Calling `work` done with exception `{e}`")
+                logger.debug(f"Calling `work` done with exception `{e}`")
                 work_result = WorkResult(exception=e)
             else:
                 if isinstance(work_result, WorkResult):
-                    logging.debug(f"Calling `work` done with explicit result `{work_result}`")
+                    logger.debug(f"Calling `work` done with explicit result `{work_result}`")
                 else:
-                    logging.debug(f"Calling `work` done with implicit result `{work_result}`")
+                    logger.debug(f"Calling `work` done with implicit result `{work_result}`")
 
                     work_result = WorkResult(result=work_result)
 
             if self._on_activity_stop:
-                logging.debug("Calling `on_activity_stop`...")
+                logger.debug("Calling `on_activity_stop`...")
 
                 await self._on_activity_stop(work_context)
 
-                logging.debug("Calling `on_activity_stop` done")
+                logger.debug("Calling `on_activity_stop` done")
 
-            if not activity.terminated:
+            if not activity.destroyed:
                 logger.warning(
                     "SingleUseActivityManager expects that activity will be terminated"
                     " after its work is finished. Looks like you forgot calling"

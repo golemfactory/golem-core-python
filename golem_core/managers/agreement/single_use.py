@@ -1,31 +1,56 @@
+import logging
 from typing import Awaitable, Callable
 
-from golem_core.core.market_api import Agreement
+from golem_core.core.events import EventBus
+from golem_core.core.market_api import Agreement, Proposal
 from golem_core.managers.agreement.events import AgreementReleased
 from golem_core.managers.base import AgreementManager
 
 
+logger = logging.getLogger(__name__)
+
 class SingleUseAgreementManager(AgreementManager):
-    def __init__(self, get_offer: Callable[[], Awaitable["Offer"]], event_bus):
-        self._get_offer = get_offer
+    def __init__(self, get_proposal: Callable[[], Awaitable[Proposal]], event_bus: EventBus):
+        self._get_proposal = get_proposal
         self._event_bus = event_bus
 
     async def get_agreement(self) -> Agreement:
+        logger.debug('Getting agreement...')
+
         while True:
-            offer = await self._get_offer()
+            logger.debug('Getting proposal...')
+
+            proposal = await self._get_proposal()
+
+            logger.debug(f'Getting proposal done with {proposal}')
 
             try:
-                agreement = await offer.create_agreement()
+                logger.debug(f'Creating agreement...')
+
+                agreement = await proposal.create_agreement()
+
+                logger.debug(f'Sending agreement to provider...')
+
                 await agreement.confirm()
+
+                logger.debug(f'Waiting for provider approval...')
+
                 await agreement.wait_for_approval()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f'Creating agreement failed with {e}. Retrying...')
             else:
-                self._event_bus.register(
-                    AgreementReleased(agreement=agreement), self._on_agreement_released
-                )
+                logger.debug(f'Creating agreement done')
+
+                # TODO: Support removing callback on resource close
+                self._event_bus.resource_listen(self._on_agreement_released, [AgreementReleased], [Agreement], [agreement.id])
+
+                logger.debug(f'Getting agreement done with {agreement}')
                 return agreement
 
     async def _on_agreement_released(self, event) -> None:
+        logger.debug('Calling `_on_agreement_released`...')
+
         agreement = event.agreement
         await agreement.terminate()
+
+        logger.debug('Calling `_on_agreement_released` done')

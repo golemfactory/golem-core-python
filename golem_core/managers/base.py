@@ -4,6 +4,9 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
 from golem_core.core.activity_api import Activity, Script, commands
 from golem_core.core.events import Event
+from golem_core.core.market_api import Proposal, Agreement
+from golem_core.core.payment_api import Allocation
+from golem_core.core.resources import ResourceEvent
 
 
 class Batch:
@@ -81,7 +84,7 @@ class Work(ABC):
 DoWorkCallable = Callable[[Work], Awaitable[WorkResult]]
 
 
-class ManagerEvent(Event, ABC):
+class ManagerEvent(ResourceEvent, ABC):
     pass
 
 
@@ -91,33 +94,29 @@ class Manager(ABC):
 
 class PaymentManager(Manager, ABC):
     @abstractmethod
-    async def get_allocation(self) -> "Allocation":
+    async def get_allocation(self) -> Allocation:
         ...
 
 
 class NegotiationManager(Manager, ABC):
     @abstractmethod
-    async def get_offer(self) -> "Offer":
+    async def get_offer(self) -> Proposal:
         ...
 
 
 class OfferManager(Manager, ABC):
     @abstractmethod
-    async def get_offer(self) -> "Offer":
+    async def get_offer(self) -> Proposal:
         ...
 
 
 class AgreementManager(Manager, ABC):
     @abstractmethod
-    async def get_agreement(self) -> "Agreement":
+    async def get_agreement(self) -> Agreement:
         ...
 
 
 class ActivityManager(Manager, ABC):
-    @abstractmethod
-    async def get_activity(self) -> "Activity":
-        ...
-
     @abstractmethod
     async def do_work(self, work: Work) -> WorkResult:
         ...

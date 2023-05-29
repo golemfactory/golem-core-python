@@ -1,4 +1,5 @@
 import asyncio
+import logging.config
 from contextlib import asynccontextmanager
 
 from golem_core.core.golem_node import GolemNode
@@ -7,10 +8,11 @@ from golem_core.managers.activity import SingleUseActivityManager
 from golem_core.managers.agreement.single_use import SingleUseAgreementManager
 from golem_core.managers.base import WorkContext
 from golem_core.managers.work import SequentialWorkManager
+from golem_core.utils.logging import DEFAULT_LOGGING
 
 
 @asynccontextmanager
-async def create_agreement():
+async def create_proposal():
     payload = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
     print("Entering golem context...")
@@ -35,7 +37,7 @@ async def create_agreement():
             except StopAsyncIteration:
                 continue
 
-            yield their_response
+            yield golem, their_response
 
             # print('Creating agreement...')
             # agreement = await their_response.create_agreement()
@@ -51,39 +53,41 @@ async def work1(context: WorkContext):
     r = await context.run("echo 1")
     await r.wait()
     for event in r.events:
-        print(event.stdout)
+        print(event.stdout, flush=True)
 
 
 async def work2(context: WorkContext):
     r = await context.run("echo 2")
     await r.wait()
     for event in r.events:
-        print(event.stdout)
+        print(event.stdout, flush=True)
 
 
 async def work3(context: WorkContext):
     r = await context.run("echo 3")
     await r.wait()
     for event in r.events:
-        print(event.stdout)
+        print(event.stdout, flush=True)
 
 
 async def main():
-    async with create_offer() as offer:
+    logging.config.dictConfig(DEFAULT_LOGGING)
 
-        async def get_offer():
-            return offer
+    async with create_proposal() as (golem, proposal):
+        async def get_proposal():
+            return proposal
 
         work_list = [
             work1,
-            work2,
-            work3,
+            # work2,
+            # work3,
         ]
 
-        agreement_manager = SingleUseAgreementManager(get_offer)
+        agreement_manager = SingleUseAgreementManager(get_proposal, golem.event_bus)
 
         activity_manager = SingleUseActivityManager(
             agreement_manager.get_agreement,
+            golem.event_bus,
         )
 
         work_manager = SequentialWorkManager(activity_manager.do_work)
@@ -92,8 +96,9 @@ async def main():
         results = await work_manager.do_work_list(work_list)
         print("work done")
         print(results)
-
-        await agreement_manager.close()
+        print("sleeping...")
+        await asyncio.sleep(10)
+        print("sleeping done")
 
 
 if __name__ == "__main__":

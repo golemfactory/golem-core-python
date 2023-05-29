@@ -6,6 +6,34 @@ if TYPE_CHECKING:
     from golem_core.core.events import Event
 
 
+DEFAULT_LOGGING = {
+    "version": 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'default': {
+            'format': '[%(asctime)s %(levelname)s %(name)s] %(message)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'formatter': 'default',
+            'class': 'logging.StreamHandler'
+        }
+    },
+    'loggers': {
+        '': {
+            'level': 'INFO',
+            'handlers': [
+                'console',
+            ]
+        },
+        'golem_core': {
+            'level': 'DEBUG',
+        }
+    }
+}
+
+
 class _YagnaDatetimeFormatter(logging.Formatter):
     """Custom log Formatter that formats datetime using the same convention yagna uses."""
 
