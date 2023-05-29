@@ -1,6 +1,7 @@
 from typing import Awaitable, Callable
 
 from golem_core.core.market_api import Agreement
+from golem_core.managers.agreement.events import AgreementReleased
 from golem_core.managers.base import AgreementManager
 
 

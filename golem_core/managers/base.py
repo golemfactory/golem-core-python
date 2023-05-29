@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
 from golem_core.core.activity_api import Activity, Script, commands
+from golem_core.core.events import Event
 
 
 class Batch:
@@ -78,6 +79,10 @@ class Work(ABC):
 
 
 DoWorkCallable = Callable[[Work], Awaitable[WorkResult]]
+
+
+class ManagerEvent(Event, ABC):
+    pass
 
 
 class Manager(ABC):
