@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import TYPE_CHECKING, Any, Dict, Tuple, TypeVar
 
-from golem_core.core.events.event import Event
+from golem_core.core.events.base import Event
 
 if TYPE_CHECKING:
     from golem_core.core.resources.base import Resource
