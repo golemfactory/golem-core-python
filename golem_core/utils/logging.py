@@ -23,7 +23,7 @@ DEFAULT_LOGGING = {
             ],
         },
         "golem_core": {
-            "level": "DEBUG",
+            "level": "INFO",
         },
     },
 }

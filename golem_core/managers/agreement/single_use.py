@@ -15,7 +15,7 @@ class SingleUseAgreementManager(AgreementManager):
         self._event_bus = golem.event_bus
 
     async def get_agreement(self) -> Agreement:
-        logger.debug("Getting agreement...")
+        logger.info("Getting agreement")
 
         while True:
             logger.debug("Getting proposal...")
@@ -46,7 +46,7 @@ class SingleUseAgreementManager(AgreementManager):
                     self._on_agreement_released, [AgreementReleased], [Agreement], [agreement.id]
                 )
 
-                logger.debug(f"Getting agreement done with {agreement}")
+                logger.info(f"Done getting agreement")
                 return agreement
 
     async def _on_agreement_released(self, event: AgreementReleased) -> None:

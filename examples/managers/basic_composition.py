@@ -1,12 +1,13 @@
 import asyncio
 import logging.config
 from functools import partial
+from typing import List
 
 from golem_core.core.golem_node.golem_node import GolemNode
 from golem_core.core.market_api import RepositoryVmPayload
 from golem_core.managers.activity.single_use import SingleUseActivityManager
 from golem_core.managers.agreement.single_use import SingleUseAgreementManager
-from golem_core.managers.base import WorkContext
+from golem_core.managers.base import WorkContext, WorkResult
 from golem_core.managers.negotiation import AcceptAllNegotiationManager
 from golem_core.managers.payment.pay_all import PayAllPaymentManager
 from golem_core.managers.proposal import StackProposalManager
@@ -14,12 +15,11 @@ from golem_core.managers.work.sequential import SequentialWorkManager
 from golem_core.utils.logging import DEFAULT_LOGGING
 
 
-async def work(context: WorkContext, label: str):
+async def work(context: WorkContext, label: str) -> str:
     r = await context.run(f"echo {label}")
     await r.wait()
     result = ""
     for event in r.events:
-        print(f"Work {label} got: {event.stdout}")
         result += event.stdout
     return result
 
@@ -45,8 +45,11 @@ async def main():
         await negotiation_manager.start_negotiation(payload)
         await proposal_manager.start_consuming_proposals()
 
-        results = await work_manager.do_work_list(work_list)
-        print(f"work done: {results}")
+        results: List[WorkResult] = await work_manager.do_work_list(work_list)
+        for result in results:
+            print(
+                f"\nWORK MANAGER RETURNED:\nResult:\t{result.result}\nException:\t{result.exception}\nExtras:\t{result.extras}"
+            )
 
         await proposal_manager.stop_consuming_proposals()
         await negotiation_manager.stop_negotiation()

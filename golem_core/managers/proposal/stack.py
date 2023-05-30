@@ -16,13 +16,15 @@ class StackProposalManager(ProposalAggregationManager):
         self._tasks: List[asyncio.Task] = []
 
     async def start_consuming_proposals(self) -> None:
-        logger.debug("Starting manager")
+        logger.info("Starting consuming proposals")
         self._tasks.append(asyncio.create_task(self._consume_proposals()))
+        logger.info("Done starting consuming proposals")
 
     async def stop_consuming_proposals(self) -> None:
+        logger.info("Stopping consuming proposals")
         for task in self._tasks:
-            logger.debug("Stopping manager")
             task.cancel()
+        logger.info("Done stopping consuming proposals")
 
     async def _consume_proposals(self) -> None:
         while True:
@@ -31,6 +33,7 @@ class StackProposalManager(ProposalAggregationManager):
             await self._proposals.put(proposal)
 
     async def get_proposal(self) -> Proposal:
+        logger.info("Getting proposals")
         proposal = await self._proposals.get()
-        logger.debug("Returning proposal from the stack")
+        logger.info("Done getting proposals")
         return proposal

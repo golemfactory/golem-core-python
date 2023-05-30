@@ -27,18 +27,18 @@ class SequentialWorkManager:
         return result
 
     async def do_work(self, work: Work) -> WorkResult:
-        logger.debug("Calling `do_work`...")
+        logger.info("Running work")
 
         decorated_do_work = self._apply_work_decorators(self._do_work, work)
 
         result = await decorated_do_work(work)
 
-        logger.debug(f"Calling `do_work` done with `{result}`")
+        logger.info("Done running work")
 
         return result
 
     async def do_work_list(self, work_list: List[Work]) -> List[WorkResult]:
-        logger.debug("Doing work sequence...")
+        logger.info("Running work sequence")
 
         results = []
 
@@ -49,6 +49,6 @@ class SequentialWorkManager:
 
             logger.debug(f"Doing work sequence #{i} done")
 
-        logger.debug(f"Doing work sequence done with `{results}`")
+        logger.info(f"Done running work sequence")
 
         return results

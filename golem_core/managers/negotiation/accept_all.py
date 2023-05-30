@@ -22,17 +22,21 @@ class AcceptAllNegotiationManager(ProposalNegotiationManager):
         self._eligible_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
 
     async def get_proposal(self) -> Proposal:
-        logger.debug("Returning proposal")
-        return await self._eligible_proposals.get()
+        logger.info("Getting proposal")
+        proposal = await self._eligible_proposals.get()
+        logger.info("Done getting proposal")
+        return proposal
 
     async def start_negotiation(self, payload: Payload) -> None:
-        logger.debug("Starting negotiations")
+        logger.info("Starting negotiations")
         self._negotiations.append(asyncio.create_task(self._negotiate_task(payload)))
+        logger.info("Done starting negotiations")
 
     async def stop_negotiation(self) -> None:
+        logger.info("Stopping negotiations")
         for task in self._negotiations:
-            logger.debug("Stopping negotiations")
             task.cancel()
+        logger.info("Done stopping negotiations")
 
     async def _negotiate_task(self, payload: Payload) -> None:
         allocation = await self._get_allocation()
@@ -41,7 +45,7 @@ class AcceptAllNegotiationManager(ProposalNegotiationManager):
             await self._eligible_proposals.put(proposal)
 
     async def _build_demand(self, allocation: Allocation, payload: Payload) -> Demand:
-        logger.debug("Creating demand")
+        logger.info("Creating demand")
         demand_builder = DemandBuilder()
 
         await demand_builder.add(
@@ -63,17 +67,18 @@ class AcceptAllNegotiationManager(ProposalNegotiationManager):
 
         demand = await demand_builder.create_demand(self._golem)
         demand.start_collecting_events()
+        logger.info("Done creating demand")
         return demand
 
     async def _negotiate(self, demand: Demand) -> AsyncIterator[Proposal]:
         try:
             async for initial in demand.initial_proposals():
-                logger.debug("Got initial proposal")
+                logger.info("Negotiating initial proposal")
                 try:
                     demand_proposal = await initial.respond()
                 except Exception as err:
                     logger.debug(
-                        f"Unable to respond to initialproposal {initial.id}. Got {type(err)}\n{err}"
+                        f"Unable to respond to initial proposal {initial.id}.Got {type(err)}\n{err}"
                     )
                     continue
 
@@ -83,6 +88,7 @@ class AcceptAllNegotiationManager(ProposalNegotiationManager):
                 except StopAsyncIteration:
                     continue
 
+                logger.info("Done negotiating initial proposal")
                 yield offer_proposal
         finally:
             self._golem.add_autoclose_resource(demand)

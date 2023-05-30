@@ -34,32 +34,40 @@ class PayAllPaymentManager(PaymentManager):
         )
 
     async def get_allocation(self) -> "Allocation":
+        logger.info("Getting allocation")
         if self._allocation is None:
-            logger.debug("Creating allocation")
+            logger.info("Creating allocation")
             self._allocation = await Allocation.create_any_account(
                 self._golem, Decimal(self._budget), self._network, self._driver
             )
             self._golem.add_autoclose_resource(self._allocation)
-        logger.debug("Returning allocation")
+            logger.info("Done creating allocation")
+        logger.info("Done getting allocation")
         return self._allocation
 
     async def on_invoice_received(self, invoice_event: NewResource) -> None:
-        logger.debug("Got invoice")
+        logger.info("Received invoice")
         invoice = invoice_event.resource
         assert isinstance(invoice, Invoice)
         if (await invoice.get_data(force=True)).status == "RECEIVED":
+            logger.info("Accepting invoice")
             assert self._allocation is not None  # TODO think of a better way
             await invoice.accept_full(self._allocation)
             await invoice.get_data(force=True)
+            logger.info("Done accepting invoice")
 
     async def on_debit_note_received(self, debit_note_event: NewResource) -> None:
-        logger.debug("Got debit note")
+        logger.info("Received debit note")
         debit_note = debit_note_event.resource
         assert isinstance(debit_note, DebitNote)
         if (await debit_note.get_data(force=True)).status == "RECEIVED":
+            logger.info("Accepting debit note")
             assert self._allocation is not None  # TODO think of a better way
             await debit_note.accept_full(self._allocation)
             await debit_note.get_data(force=True)
+            logger.info("Done accepting debit note")
 
     async def wait_for_invoices(self):
+        logger.info("Waiting for invoices")
         await asyncio.sleep(30)
+        logger.info("Done waiting for invoices")
