@@ -35,7 +35,7 @@ class SingleUseActivityManager(ActivityManager):
     @asynccontextmanager
     async def _prepare_activity(self) -> Activity:
         while True:
-            logger.info("Preparing activity")
+            logger.info("Preparing activity...")
             logger.debug(f"Getting agreement...")
 
             agreement = await self._get_agreement()
@@ -49,7 +49,7 @@ class SingleUseActivityManager(ActivityManager):
 
                 logger.debug(f"Creating activity done with `{activity}`")
 
-                logger.info("Done preparing activity")
+                logger.info("Preparing activity done")
                 logger.debug(f"Yielding activity...")
                 yield activity
 
@@ -70,7 +70,7 @@ class SingleUseActivityManager(ActivityManager):
                 logger.debug(f"Releasing agreement by emitting `{event}` done")
 
     async def do_work(self, work: Work) -> WorkResult:
-        logger.info("Doing work on activity")
+        logger.info("Doing work on activity...")
 
         async with self._prepare_activity() as activity:
             work_context = WorkContext(activity)
@@ -110,6 +110,6 @@ class SingleUseActivityManager(ActivityManager):
                     " `context.terminate()` in custom `on_activity_end` callback."
                 )
 
-        logger.info("Done doing work on activity")
+        logger.info("Doing work on activity done")
 
         return work_result

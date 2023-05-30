@@ -24,6 +24,9 @@ async def work(context: WorkContext, label: str) -> str:
     return result
 
 
+# TODO add Batch example
+
+
 async def main():
     logging.config.dictConfig(DEFAULT_LOGGING)
     payload = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
@@ -46,10 +49,7 @@ async def main():
         await proposal_manager.start_consuming_proposals()
 
         results: List[WorkResult] = await work_manager.do_work_list(work_list)
-        for result in results:
-            print(
-                f"\nWORK MANAGER RETURNED:\nResult:\t{result.result}\nException:\t{result.exception}\nExtras:\t{result.extras}"
-            )
+        print(f"\nWORK MANAGER RESULTS:{[result.result for result in results]}\n")
 
         await proposal_manager.stop_consuming_proposals()
         await negotiation_manager.stop_negotiation()
