@@ -1,13 +1,15 @@
+import logging
 from functools import partial
 from typing import List
 
+from golem_core.core.golem_node.golem_node import GolemNode
 from golem_core.managers.base import DoWorkCallable, Work, WorkResult
 
 logger = logging.getLogger(__name__)
 
 
 class SequentialWorkManager:
-    def __init__(self, do_work: DoWorkCallable):
+    def __init__(self, golem: GolemNode, do_work: DoWorkCallable):
         self._do_work = do_work
 
     def _apply_work_decorators(self, do_work: DoWorkCallable, work: Work) -> DoWorkCallable:

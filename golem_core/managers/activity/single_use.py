@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from typing import Awaitable, Callable, Optional
 
 from golem_core.core.activity_api import Activity
-from golem_core.core.events import EventBus
+from golem_core.core.golem_node.golem_node import GolemNode
 from golem_core.core.market_api import Agreement
 from golem_core.managers.activity.defaults import (
     default_on_activity_start,
@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 class SingleUseActivityManager(ActivityManager):
     def __init__(
         self,
+        golem: GolemNode,
         get_agreement: Callable[[], Awaitable[Agreement]],
-        event_bus: EventBus,
         on_activity_start: Optional[
             Callable[[WorkContext], Awaitable[None]]
         ] = default_on_activity_start,
@@ -28,7 +28,7 @@ class SingleUseActivityManager(ActivityManager):
         ] = default_on_activity_stop,
     ):
         self._get_agreement = get_agreement
-        self._event_bus = event_bus
+        self._event_bus = golem.event_bus
         self._on_activity_start = on_activity_start
         self._on_activity_stop = on_activity_stop
 

@@ -1,7 +1,7 @@
 import logging
 from typing import Awaitable, Callable
 
-from golem_core.core.events import EventBus
+from golem_core.core.golem_node.golem_node import GolemNode
 from golem_core.core.market_api import Agreement, Proposal
 from golem_core.managers.agreement.events import AgreementReleased
 from golem_core.managers.base import AgreementManager
@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 class SingleUseAgreementManager(AgreementManager):
-    def __init__(self, get_proposal: Callable[[], Awaitable[Proposal]], event_bus: EventBus):
+    def __init__(self, golem: GolemNode, get_proposal: Callable[[], Awaitable[Proposal]]):
         self._get_proposal = get_proposal
-        self._event_bus = event_bus
+        self._event_bus = golem.event_bus
 
     async def get_agreement(self) -> Agreement:
         logger.debug("Getting agreement...")
