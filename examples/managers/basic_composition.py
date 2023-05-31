@@ -1,6 +1,5 @@
 import asyncio
 import logging.config
-from functools import partial
 from typing import List
 
 from golem_core.core.golem_node.golem_node import GolemNode
@@ -15,8 +14,8 @@ from golem_core.managers.work.sequential import SequentialWorkManager
 from golem_core.utils.logging import DEFAULT_LOGGING
 
 
-async def work(context: WorkContext, label: str) -> str:
-    r = await context.run(f"echo {label}")
+async def commands_work_example(context: WorkContext) -> str:
+    r = await context.run("echo 'hello golem'")
     await r.wait()
     result = ""
     for event in r.events:
@@ -24,7 +23,15 @@ async def work(context: WorkContext, label: str) -> str:
     return result
 
 
-# TODO add Batch example
+async def batch_work_example(context: WorkContext):
+    batch = await context.create_batch()
+    batch.run("echo 'hello batch'")
+    batch.run("echo 'bye batch'")
+    batch_result = await batch()
+    result = ""
+    for event in batch_result:
+        result += event.stdout
+    return result
 
 
 async def main():
@@ -32,9 +39,8 @@ async def main():
     payload = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
     work_list = [
-        partial(work, label="label-1"),
-        partial(work, label="label-2"),
-        partial(work, label="label-3"),
+        commands_work_example,
+        batch_work_example,
     ]
 
     async with GolemNode() as golem:
