@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, TypedDict, Union
 
 from ya_net import RequestorApi, models
 
+from golem_core.core.network_api.events import NewNetwork
 from golem_core.core.network_api.exceptions import NetworkFull
 from golem_core.core.resources import _NULL, Resource, ResourceClosed, api_call_wrapper
 
@@ -42,6 +43,7 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
 
     def __init__(self, golem_node: "GolemNode", id_: str, data: models.Network):
         super().__init__(golem_node, id_, data)
+        asyncio.create_task(golem_node.event_bus.emit(NewNetwork(self)))
 
         self._create_node_lock = asyncio.Lock()
         self._ip_network: IpNetwork = ip_network(data.ip, strict=False)
@@ -68,7 +70,7 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
     async def remove(self) -> None:
         """Remove the network."""
         await self.api.remove_network(self.id)
-        self.node.event_bus.emit(ResourceClosed(self))
+        await self.node.event_bus.emit(ResourceClosed(self))
 
     @api_call_wrapper()
     async def create_node(self, provider_id: str, node_ip: Optional[str] = None) -> str:

@@ -25,6 +25,15 @@ DEFAULT_LOGGING = {
         "golem_core": {
             "level": "INFO",
         },
+        "golem_core.managers": {
+            "level": "INFO",
+        },
+        "golem_core.managers.negotiation": {
+            "level": "INFO",
+        },
+        "golem_core.managers.proposal": {
+            "level": "INFO",
+        },
     },
 }
 

@@ -1,23 +1,23 @@
 from abc import ABC
-from typing import TYPE_CHECKING, Any, Dict, Tuple, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, Generic, Tuple, TypeVar
 
 from golem_core.core.events.base import Event
 
 if TYPE_CHECKING:
     from golem_core.core.resources.base import Resource
 
-
 TResourceEvent = TypeVar("TResourceEvent", bound="ResourceEvent")
+TResource = TypeVar("TResource", bound="Resource")
 
 
-class ResourceEvent(Event, ABC):
+class ResourceEvent(Event, ABC, Generic[TResource]):
     """Base class for all events related to a particular :any:`Resource`."""
 
-    def __init__(self, resource: "Resource"):
+    def __init__(self, resource: TResource):
         self._resource = resource
 
     @property
-    def resource(self) -> "Resource":
+    def resource(self) -> TResource:
         """Resource related to this :class:`ResourceEvent`."""
         return self._resource
 
@@ -25,7 +25,7 @@ class ResourceEvent(Event, ABC):
         return f"{type(self).__name__}({self.resource})"
 
 
-class NewResource(ResourceEvent):
+class NewResource(ResourceEvent[TResource], ABC, Generic[TResource]):
     """Emitted when a new :any:`Resource` object is created.
 
     There are three distinct scenarios possible:
@@ -39,7 +39,7 @@ class NewResource(ResourceEvent):
     """
 
 
-class ResourceDataChanged(ResourceEvent):
+class ResourceDataChanged(ResourceEvent[TResource], Generic[TResource]):
     """Emitted when `data` attribute of a :any:`Resource` changes.
 
     This event is **not** emitted when the data "would have changed if we
@@ -54,7 +54,7 @@ class ResourceDataChanged(ResourceEvent):
     resource-changing call.
     """
 
-    def __init__(self, resource: "Resource", old_data: Any):
+    def __init__(self, resource: TResource, old_data: Any):
         super().__init__(resource)
         self._old_data = old_data
 
@@ -88,7 +88,7 @@ class ResourceDataChanged(ResourceEvent):
         return f"{type(self).__name__}({self.resource}, {diff_str})"
 
 
-class ResourceClosed(ResourceEvent):
+class ResourceClosed(ResourceEvent[TResource], Generic[TResource]):
     """Emitted when a resource is deleted or rendered unusable.
 
     Usual case is when we delete a resource (e.g. :any:`Allocation.release()`),

@@ -1,3 +1,4 @@
+from golem_core.core.market_api.events import AgreementClosed, AgreementDataChanged, NewAgreement
 from golem_core.core.market_api.exceptions import BaseMarketApiException
 from golem_core.core.market_api.pipeline import (
     default_create_activity,
@@ -64,4 +65,7 @@ __all__ = (
     "ConstraintException",
     "InvalidPropertiesError",
     "BaseMarketApiException",
+    "NewAgreement",
+    "AgreementDataChanged",
+    "AgreementClosed",
 )

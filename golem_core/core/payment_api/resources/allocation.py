@@ -1,11 +1,14 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from _decimal import Decimal
 from ya_payment import RequestorApi, models
 
+from golem_core.core.payment_api.events import NewAllocation
 from golem_core.core.payment_api.exceptions import NoMatchingAccount
 from golem_core.core.resources import _NULL, Resource, ResourceClosed, api_call_wrapper
+from golem_core.core.resources.base import TModel
 
 if TYPE_CHECKING:
     from golem_core.core.golem_node import GolemNode
@@ -17,6 +20,10 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
     Created with one of the :class:`Allocation`-returning methods of the :any:`GolemNode`.
     """
 
+    def __init__(self, node: "GolemNode", id_: str, data: Optional[TModel] = None):
+        super().__init__(node, id_, data)
+        asyncio.create_task(node.event_bus.emit(NewAllocation(self)))
+
     @api_call_wrapper(ignore=[404, 410])
     async def release(self) -> None:
         """Release the allocation.
@@ -25,7 +32,7 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
         released allocation is not available anymore.
         """
         await self.api.release_allocation(self.id)
-        self.node.event_bus.emit(ResourceClosed(self))
+        await self.node.event_bus.emit(ResourceClosed(self))
 
     @classmethod
     async def create_any_account(

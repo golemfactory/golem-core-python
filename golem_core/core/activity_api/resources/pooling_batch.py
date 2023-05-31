@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 from ya_activity import models
 
-from golem_core.core.activity_api.events import BatchFinished
+from golem_core.core.activity_api.events import BatchFinished, NewPoolingBatch
 from golem_core.core.activity_api.exceptions import (
     BatchError,
     BatchTimeoutError,
@@ -36,6 +36,7 @@ class PoolingBatch(
 
     def __init__(self, node: "GolemNode", id_: str):
         super().__init__(node, id_)
+        asyncio.create_task(node.event_bus.emit(NewPoolingBatch(self)))
 
         self.finished_event = asyncio.Event()
         self._futures: Optional[List[asyncio.Future[models.ExeScriptCommandResult]]] = None
@@ -112,7 +113,7 @@ class PoolingBatch(
             #   This happens when activity_api is destroyed when we're waiting for batch results
             #   (I'm not sure if always - for sure when provider destroys activity because
             #   agreement timed out). Maybe some other scenarios are also possible.
-            self._set_finished()
+            await self._set_finished()
 
     def _collect_events_kwargs(self) -> Dict:
         return {"timeout": 5, "_request_timeout": 5.5}
@@ -140,10 +141,10 @@ class PoolingBatch(
                 self._futures[event.index].set_result(event)
 
         if event.is_batch_finished:
-            self._set_finished()
+            await self._set_finished()
 
-    def _set_finished(self) -> None:
-        self.node.event_bus.emit(BatchFinished(self))
+    async def _set_finished(self) -> None:
+        await self.node.event_bus.emit(BatchFinished(self))
         self.finished_event.set()
         self.parent.running_batch_counter -= 1
         self.stop_collecting_events()

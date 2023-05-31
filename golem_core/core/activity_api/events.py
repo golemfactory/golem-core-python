@@ -1,16 +1,34 @@
 from typing import TYPE_CHECKING
 
-from golem_core.core.resources import ResourceEvent
+from golem_core.core.resources import (
+    NewResource,
+    ResourceClosed,
+    ResourceDataChanged,
+    ResourceEvent,
+)
 
 if TYPE_CHECKING:
-    from golem_core.core.activity_api.resources import PoolingBatch
+    pass
 
 
-class BatchFinished(ResourceEvent):
+class NewActivity(NewResource["Activity"]):
+    pass
+
+
+class ActivityDataChanged(ResourceDataChanged["Activity"]):
+    pass
+
+
+class ActivityClosed(ResourceClosed["Activity"]):
+    pass
+
+
+class NewPoolingBatch(NewResource["PoolingBatch"]):
+    pass
+
+
+class BatchFinished(ResourceEvent["PoolingBatch"]):
     """Emitted when the execution of a :any:`PoolingBatch` finishes.
 
     The same event is emitted for successful and failed batches.
     """
-
-    def __init__(self, resource: "PoolingBatch"):
-        super().__init__(resource)

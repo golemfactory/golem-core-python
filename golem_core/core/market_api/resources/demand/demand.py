@@ -1,17 +1,19 @@
-from typing import TYPE_CHECKING, AsyncIterator, Callable, Dict, List, Union
+import asyncio
+from typing import TYPE_CHECKING, AsyncIterator, Callable, Dict, List, Optional, Union
 
 from ya_market import RequestorApi
 from ya_market import models as models
 
+from golem_core.core.market_api.events import DemandClosed, NewDemand
 from golem_core.core.market_api.resources.proposal import Proposal
 from golem_core.core.resources import (
     _NULL,
     Resource,
-    ResourceClosed,
     ResourceNotFound,
     YagnaEventCollector,
     api_call_wrapper,
 )
+from golem_core.core.resources.base import TModel
 
 if TYPE_CHECKING:
     from golem_core.core.golem_node import GolemNode
@@ -22,6 +24,10 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], Yagn
 
     Created with one of the :class:`Demand`-returning methods of the :any:`GolemNode`.
     """
+
+    def __init__(self, node: "GolemNode", id_: str, data: Optional[TModel] = None):
+        super().__init__(node, id_, data)
+        asyncio.create_task(node.event_bus.emit(NewDemand(self)))
 
     ######################
     #   EXTERNAL INTERFACE
@@ -34,7 +40,7 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], Yagn
         self.set_no_more_children()
         self.stop_collecting_events()
         await self.api.unsubscribe_demand(self.id)
-        self.node.event_bus.emit(ResourceClosed(self))
+        await self.node.event_bus.emit(DemandClosed(self))
 
     async def initial_proposals(self) -> AsyncIterator["Proposal"]:
         """Yield initial proposals matched to this demand."""

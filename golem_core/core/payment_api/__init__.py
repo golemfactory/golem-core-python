@@ -1,3 +1,4 @@
+from golem_core.core.payment_api.events import DebitNoteClosed, DebitNoteDataChanged, NewDebitNote
 from golem_core.core.payment_api.exceptions import BasePaymentApiException, NoMatchingAccount
 from golem_core.core.payment_api.resources import (
     Allocation,
@@ -7,7 +8,7 @@ from golem_core.core.payment_api.resources import (
     InvoiceEventCollector,
 )
 
-__all__ = [
+__all__ = (
     "Allocation",
     "DebitNote",
     "Invoice",
@@ -15,4 +16,7 @@ __all__ = [
     "InvoiceEventCollector",
     "BasePaymentApiException",
     "NoMatchingAccount",
-]
+    "NewDebitNote",
+    "DebitNoteClosed",
+    "DebitNoteDataChanged",
+)

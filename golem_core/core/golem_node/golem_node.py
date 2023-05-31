@@ -7,7 +7,7 @@ from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Set, Type, 
 from uuid import uuid4
 
 from golem_core.core.activity_api import Activity, PoolingBatch
-from golem_core.core.events import EventBus
+from golem_core.core.events import EventBus, InMemoryEventBus
 from golem_core.core.golem_node.events import SessionStarted, ShutdownFinished, ShutdownStarted
 from golem_core.core.market_api import Agreement, Demand, DemandBuilder, Payload, Proposal
 from golem_core.core.market_api.resources.demand.demand_offer_base import defaults as dobm_defaults
@@ -83,7 +83,7 @@ class GolemNode:
         #   (This is done internally by the metaclass of the Resource)
         self._resources: DefaultDict[Type[Resource], Dict[str, Resource]] = defaultdict(dict)
         self._autoclose_resources: Set[Resource] = set()
-        self._event_bus = EventBus()
+        self._event_bus = InMemoryEventBus()
 
         self._invoice_event_collector = InvoiceEventCollector(self)
         self._debit_note_event_collector = DebitNoteEventCollector(self)
@@ -108,7 +108,7 @@ class GolemNode:
         await self.aclose()
 
     async def start(self) -> None:
-        self._event_bus.start()
+        await self.event_bus.start()
 
         api_factory = ApiFactory(self._api_config)
         self._ya_market_api = api_factory.create_market_api_client()
@@ -120,16 +120,17 @@ class GolemNode:
             self._invoice_event_collector.start_collecting_events()
             self._debit_note_event_collector.start_collecting_events()
 
-        self.event_bus.emit(SessionStarted(self))
+        await self.event_bus.emit(SessionStarted(self))
 
     async def aclose(self) -> None:
-        self.event_bus.emit(ShutdownStarted(self))
+        await self.event_bus.emit(ShutdownStarted(self))
         self._set_no_more_children()
         self._stop_event_collectors()
         await self._close_autoclose_resources()
         await self._close_apis()
-        self.event_bus.emit(ShutdownFinished(self))
-        await self._event_bus.stop()
+        await self.event_bus.emit(ShutdownFinished(self))
+
+        await self.event_bus.stop()
 
     def _stop_event_collectors(self) -> None:
         demands = self.all_resources(Demand)

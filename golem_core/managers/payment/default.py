@@ -2,11 +2,12 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Set
 
-from golem_core.core.payment_api import DebitNote, Invoice
-from golem_core.core.resources import NewResource
+from golem_core.core.payment_api import NewDebitNote
+from golem_core.core.payment_api.events import NewInvoice
 
 if TYPE_CHECKING:
     from golem_core.core.golem_node import GolemNode
+    from golem_core.core.market_api import NewAgreement
     from golem_core.core.payment_api import Allocation
 
 
@@ -40,33 +41,34 @@ class DefaultPaymentManager:
         """
 
         # FIXME: Resolve local import due to cyclic imports
-        from golem_core.core.market_api.resources.agreement import Agreement
+        from golem_core.core.market_api import Agreement
 
+        self._node = node
         self.allocation = allocation
         self._agreements: Set[Agreement] = set()
 
-        node.event_bus.resource_listen(self.on_agreement, [NewResource], [Agreement])
-        node.event_bus.resource_listen(self.on_invoice, [NewResource], [Invoice])
-        node.event_bus.resource_listen(self.on_debit_note, [NewResource], [DebitNote])
+    async def start(self):
+        # FIXME: Add event_bus.off
 
-    async def on_agreement(self, event: NewResource) -> None:
+        await self._node.event_bus.on(NewAgreement, self.on_agreement)
+        await self._node.event_bus.on(NewInvoice, self.on_invoice)
+        await self._node.event_bus.on(NewDebitNote, self.on_debit_note)
+
+    async def on_agreement(self, event: "NewAgreement") -> None:
         # FIXME: Resolve local import due to cyclic imports
-        from golem_core.core.market_api.resources.agreement import Agreement
 
-        agreement = event.resource
-        assert isinstance(agreement, Agreement)
-        self._agreements.add(agreement)
+        self._agreements.add(event.resource)
 
-    async def on_invoice(self, event: NewResource) -> None:
+    async def on_invoice(self, event: NewInvoice) -> None:
         invoice = event.resource
-        assert isinstance(invoice, Invoice)
+
         if (await invoice.get_data(force=True)).status == "RECEIVED":
             await invoice.accept_full(self.allocation)
             await invoice.get_data(force=True)
 
-    async def on_debit_note(self, event: NewResource) -> None:
+    async def on_debit_note(self, event: NewDebitNote) -> None:
         debit_note = event.resource
-        assert isinstance(debit_note, DebitNote)
+
         if (await debit_note.get_data(force=True)).status == "RECEIVED":
             await debit_note.accept_full(self.allocation)
             await debit_note.get_data(force=True)

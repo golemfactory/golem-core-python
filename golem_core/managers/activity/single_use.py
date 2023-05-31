@@ -35,7 +35,6 @@ class SingleUseActivityManager(ActivityManager):
     @asynccontextmanager
     async def _prepare_activity(self) -> Activity:
         while True:
-            logger.info("Preparing activity...")
             logger.debug("Getting agreement...")
 
             agreement = await self._get_agreement()
@@ -48,9 +47,10 @@ class SingleUseActivityManager(ActivityManager):
                 activity = await agreement.create_activity()
 
                 logger.debug(f"Creating activity done with `{activity}`")
+                logger.info(f"Activity `{activity}` created")
 
-                logger.info(f"Preparing activity done {activity.id}")
                 logger.debug("Yielding activity...")
+
                 yield activity
 
                 logger.debug("Yielding activity done")
@@ -65,12 +65,12 @@ class SingleUseActivityManager(ActivityManager):
 
                 logger.debug(f"Releasing agreement by emitting `{event}`...")
 
-                self._event_bus.emit(event)
+                await self._event_bus.emit(event)
 
                 logger.debug(f"Releasing agreement by emitting `{event}` done")
 
     async def do_work(self, work: Work) -> WorkResult:
-        logger.info(f"Doing work {work} on activity")
+        logger.debug(f"Doing work `{work}`...")
 
         async with self._prepare_activity() as activity:
             work_context = WorkContext(activity)
@@ -83,33 +83,35 @@ class SingleUseActivityManager(ActivityManager):
                 logger.debug("Calling `on_activity_start` done")
 
             try:
-                logger.debug("Calling `work`...")
+                logger.debug(f"Calling `{work}`...")
                 work_result = await work(work_context)
             except Exception as e:
-                logger.debug(f"Calling `work` done with exception `{e}`")
+                logger.debug(f"Calling `{work}` done with exception `{e}`")
                 work_result = WorkResult(exception=e)
             else:
                 if isinstance(work_result, WorkResult):
-                    logger.debug(f"Calling `work` done with explicit result `{work_result}`")
+                    logger.debug(f"Calling `{work}` done with explicit result `{work_result}`")
                 else:
-                    logger.debug(f"Calling `work` done with implicit result `{work_result}`")
+                    logger.debug(f"Calling `{work}` done with implicit result `{work_result}`")
 
                     work_result = WorkResult(result=work_result)
 
             if self._on_activity_stop:
-                logger.debug("Calling `on_activity_stop`...")
+                logger.debug(f"Calling `on_activity_stop` on activity `{activity}`...")
 
                 await self._on_activity_stop(work_context)
 
-                logger.debug("Calling `on_activity_stop` done")
+                logger.debug(f"Calling `on_activity_stop` on activity `{activity}` done")
 
-            if not activity.destroyed:
+            if activity.destroyed:
+                logger.info(f"Activity `{activity}` destroyed")
+            else:
                 logger.warning(
                     "SingleUseActivityManager expects that activity will be terminated"
                     " after its work is finished. Looks like you forgot calling"
                     " `context.terminate()` in custom `on_activity_end` callback."
                 )
 
-        logger.info(f"Doing work done {work} on activity {activity.id}")
+        logger.debug(f"Doing work `{work}` done")
 
         return work_result

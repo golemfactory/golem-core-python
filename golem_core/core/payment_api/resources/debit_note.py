@@ -1,12 +1,17 @@
-from typing import TYPE_CHECKING, Union
+import asyncio
+from typing import TYPE_CHECKING, Optional, Union
 
 from _decimal import Decimal
 from ya_payment import RequestorApi, models
 
+from golem_core.core.payment_api import NewDebitNote
 from golem_core.core.payment_api.resources.allocation import Allocation
 from golem_core.core.resources import _NULL, Resource, api_call_wrapper
+from golem_core.core.resources.base import TModel
 
 if TYPE_CHECKING:
+    from golem_core.core.golem_node import GolemNode
+
     from golem_core.core.activity_api import Activity  # noqa
 
 
@@ -15,6 +20,10 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
 
     Ususally created by a :any:`GolemNode` initialized with `collect_payment_events = True`.
     """
+
+    def __init__(self, node: "GolemNode", id_: str, data: Optional[TModel] = None):
+        super().__init__(node, id_, data)
+        asyncio.create_task(node.event_bus.emit(NewDebitNote(self)))
 
     async def accept_full(self, allocation: Allocation) -> None:
         """Accept full debit note amount using a given :any:`Allocation`."""

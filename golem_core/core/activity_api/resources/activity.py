@@ -6,9 +6,10 @@ from typing import TYPE_CHECKING, List
 from ya_activity import models
 
 from golem_core.core.activity_api.commands import Command, Script
+from golem_core.core.activity_api.events import ActivityClosed, NewActivity
 from golem_core.core.activity_api.resources.pooling_batch import PoolingBatch
 from golem_core.core.payment_api import DebitNote
-from golem_core.core.resources import _NULL, ActivityApi, Resource, ResourceClosed, api_call_wrapper
+from golem_core.core.resources import _NULL, ActivityApi, Resource, api_call_wrapper
 
 if TYPE_CHECKING:
     from golem_core.core.golem_node.golem_node import GolemNode
@@ -23,6 +24,8 @@ class Activity(Resource[ActivityApi, _NULL, "Agreement", PoolingBatch, _NULL]):
 
     def __init__(self, node: "GolemNode", id_: str):
         super().__init__(node, id_)
+
+        asyncio.create_task(node.event_bus.emit(NewActivity(self)))
 
         self._running_batch_counter = 0
         self._busy_event = asyncio.Event()
@@ -85,7 +88,7 @@ class Activity(Resource[ActivityApi, _NULL, "Agreement", PoolingBatch, _NULL]):
         used."""
         await self.api.destroy_activity(self.id)
         self._destroyed_event.set()
-        self.node.event_bus.emit(ResourceClosed(self))
+        await self.node.event_bus.emit(ActivityClosed(self))
 
     @api_call_wrapper()
     async def execute(self, script: models.ExeScriptRequest) -> PoolingBatch:

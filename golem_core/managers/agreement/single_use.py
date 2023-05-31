@@ -15,7 +15,7 @@ class SingleUseAgreementManager(AgreementManager):
         self._event_bus = golem.event_bus
 
     async def get_agreement(self) -> Agreement:
-        logger.info("Getting agreement...")
+        logger.debug("Getting agreement...")
 
         while True:
             logger.debug("Getting proposal...")
@@ -25,7 +25,7 @@ class SingleUseAgreementManager(AgreementManager):
             logger.debug(f"Getting proposal done with {proposal}")
 
             try:
-                logger.info("Creating agreement...")
+                logger.debug("Creating agreement...")
 
                 agreement = await proposal.create_agreement()
 
@@ -37,22 +37,28 @@ class SingleUseAgreementManager(AgreementManager):
 
                 await agreement.wait_for_approval()
             except Exception as e:
-                logger.debug(f"Creating agreement failed with {e}. Retrying...")
+                logger.debug(f"Creating agreement failed with `{e}`. Retrying...")
             else:
-                logger.info(f"Creating agreement done {agreement.id}")
+                logger.debug(f"Creating agreement done with `{agreement}`")
+                logger.info(f"Agreement `{agreement}` created")
 
                 # TODO: Support removing callback on resource close
-                self._event_bus.resource_listen(
-                    self._on_agreement_released, [AgreementReleased], [Agreement], [agreement.id]
+                await self._event_bus.on_once(
+                    AgreementReleased,
+                    self._terminate_agreement,
+                    lambda e: e.resource.id == agreement.id,
                 )
 
-                logger.info(f"Getting agreement done  {agreement.id}")
+                logger.debug(f"Getting agreement done with `{agreement}`")
+
                 return agreement
 
-    async def _on_agreement_released(self, event: AgreementReleased) -> None:
-        logger.debug("Calling `_on_agreement_released`...")
+    async def _terminate_agreement(self, event: AgreementReleased) -> None:
+        logger.debug("Calling `_terminate_agreement`...")
 
         agreement: Agreement = event.resource
         await agreement.terminate()
 
-        logger.debug("Calling `_on_agreement_released` done")
+        logger.debug("Calling `_terminate_agreement` done")
+
+        logger.info(f"Agreement `{agreement}` closed")

@@ -26,7 +26,7 @@ async def test_app_session_id(kwargs: dict, has_events: bool) -> None:
         events.append(event)
 
     golem = GolemNode(**kwargs)
-    golem.event_bus.resource_listen(save_event)
+    await golem.event_bus.on(ResourceEvent, save_event)
 
     async with golem:
         other_golem = GolemNode(app_session_id="0")

@@ -20,7 +20,7 @@ from ya_market import ApiException as MarketApiException
 from ya_net import ApiException as NetApiException
 from ya_payment import ApiException as PaymentApiException
 
-from golem_core.core.resources.events import NewResource, ResourceDataChanged
+from golem_core.core.resources.events import ResourceDataChanged
 from golem_core.core.resources.exceptions import ResourceNotFound
 from golem_core.core.resources.low import TRequestorApi, get_requestor_api
 
@@ -87,7 +87,10 @@ class ResourceMeta(ABCMeta):
         if id_ not in node._resources[cls]:
             obj = super(ResourceMeta, cls).__call__(node, id_, *args, **kwargs)  # type: ignore
             node._resources[cls][id_] = obj
-            node.event_bus.emit(NewResource(obj))
+
+            # FIXME: Is there any better solution for this?
+            # asyncio.create_task(node.event_bus.emit(NewResource(obj)))
+
         return node._resources[cls][id_]
 
 
@@ -235,7 +238,7 @@ class Resource(
                 old_data = self._data
                 self._data = await self._get_data()
                 if old_data is not None and old_data != self._data:
-                    self.node.event_bus.emit(ResourceDataChanged(self, old_data))
+                    await self.node.event_bus.emit(ResourceDataChanged(self, old_data))
 
         assert self._data is not None  # mypy
         return self._data

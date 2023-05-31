@@ -24,6 +24,7 @@ from examples.task_api_draft.examples.yacat_no_business_logic import (
 )
 from examples.task_api_draft.task_api.activity_pool import ActivityPool
 from golem_core.core.activity_api import Activity, PoolingBatch, default_prepare_activity
+from golem_core.core.events import Event
 from golem_core.core.golem_node import GolemNode
 from golem_core.core.market_api import (
     Proposal,
@@ -32,6 +33,7 @@ from golem_core.core.market_api import (
     default_negotiate,
 )
 from golem_core.core.payment_api import DebitNote
+from golem_core.core.payment_api.events import NewDebitNote
 from golem_core.core.resources import NewResource, ResourceClosed
 from golem_core.managers import DefaultPaymentManager
 from golem_core.pipeline import Buffer, Chain, Map, Sort, Zip
@@ -171,9 +173,9 @@ async def main() -> None:
     asyncio.create_task(manage_activities())
 
     golem = GolemNode()
-    golem.event_bus.listen(DefaultLogger().on_event)
+    await golem.event_bus.on(Event, DefaultLogger().on_event)
     golem.event_bus.resource_listen(count_batches, [NewResource], [PoolingBatch])
-    golem.event_bus.resource_listen(gather_debit_note_log, [NewResource], [DebitNote])
+    await golem.event_bus.on(NewDebitNote, gather_debit_note_log)
     golem.event_bus.resource_listen(update_new_activity_status, [NewResource], [Activity])
     golem.event_bus.resource_listen(note_activity_destroyed, [ResourceClosed], [Activity])
 

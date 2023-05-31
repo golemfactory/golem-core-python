@@ -116,10 +116,10 @@ async def example_5() -> None:
     golem = GolemNode()
     got_events = []
 
-    async def on_event(event: ResourceEvent) -> None:
+    async def collect_resource_events(event: ResourceEvent) -> None:
         got_events.append(event)
 
-    golem.event_bus.resource_listen(on_event)
+    await golem.event_bus.on(ResourceEvent, collect_resource_events)
     async with golem:
         allocation = await golem.create_allocation(1)
 

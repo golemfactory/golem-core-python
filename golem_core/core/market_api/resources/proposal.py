@@ -1,12 +1,14 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, AsyncIterator, Optional, Union
 
 from ya_market import RequestorApi
 from ya_market import models as models
 
+from golem_core.core.market_api.events import NewProposal
 from golem_core.core.market_api.resources.agreement import Agreement
 from golem_core.core.resources import Resource
-from golem_core.core.resources.base import api_call_wrapper
+from golem_core.core.resources.base import TModel, api_call_wrapper
 
 if TYPE_CHECKING:
     from golem_core.core.golem_node import GolemNode
@@ -39,6 +41,10 @@ class Proposal(
     """
 
     _demand: Optional["Demand"] = None
+
+    def __init__(self, node: "GolemNode", id_: str, data: Optional[TModel] = None):
+        super().__init__(node, id_, data)
+        asyncio.create_task(node.event_bus.emit(NewProposal(self)))
 
     ##############################
     #   State-related properties
