@@ -49,7 +49,7 @@ class SingleUseActivityManager(ActivityManager):
 
                 logger.debug(f"Creating activity done with `{activity}`")
 
-                logger.info("Preparing activity done")
+                logger.info(f"Preparing activity done {activity.id}")
                 logger.debug(f"Yielding activity...")
                 yield activity
 
@@ -70,7 +70,7 @@ class SingleUseActivityManager(ActivityManager):
                 logger.debug(f"Releasing agreement by emitting `{event}` done")
 
     async def do_work(self, work: Work) -> WorkResult:
-        logger.info("Doing work on activity...")
+        logger.info(f"Doing work {work} on activity")
 
         async with self._prepare_activity() as activity:
             work_context = WorkContext(activity)
@@ -110,6 +110,6 @@ class SingleUseActivityManager(ActivityManager):
                     " `context.terminate()` in custom `on_activity_end` callback."
                 )
 
-        logger.info("Doing work on activity done")
+        logger.info(f"Doing work done {work} on activity {activity.id}")
 
         return work_result

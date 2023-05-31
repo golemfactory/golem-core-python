@@ -35,5 +35,5 @@ class StackProposalManager(ProposalAggregationManager):
     async def get_proposal(self) -> Proposal:
         logger.info("Getting proposals...")
         proposal = await self._proposals.get()
-        logger.info("Getting proposals done")
+        logger.info(f"Getting proposals done {proposal.id}")
         return proposal

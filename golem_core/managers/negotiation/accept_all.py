@@ -24,7 +24,7 @@ class AcceptAllNegotiationManager(ProposalNegotiationManager):
     async def get_proposal(self) -> Proposal:
         logger.info("Getting proposal...")
         proposal = await self._eligible_proposals.get()
-        logger.info("Getting proposal done")
+        logger.info(f"Getting proposal done {proposal.id}")
         return proposal
 
     async def start_negotiation(self, payload: Payload) -> None:
@@ -67,13 +67,13 @@ class AcceptAllNegotiationManager(ProposalNegotiationManager):
 
         demand = await demand_builder.create_demand(self._golem)
         demand.start_collecting_events()
-        logger.info("Creating demand done")
+        logger.info(f"Creating demand done {demand.id}")
         return demand
 
     async def _negotiate(self, demand: Demand) -> AsyncIterator[Proposal]:
         try:
             async for initial in demand.initial_proposals():
-                logger.info("Negotiating initial proposal...")
+                logger.info(f"Negotiating initial proposal {initial.id}")
                 try:
                     demand_proposal = await initial.respond()
                 except Exception as err:
@@ -88,7 +88,7 @@ class AcceptAllNegotiationManager(ProposalNegotiationManager):
                 except StopAsyncIteration:
                     continue
 
-                logger.info("Negotiating initial proposal done")
+                logger.info(f"Negotiating initial proposal done {initial.id}")
                 yield offer_proposal
         finally:
             self._golem.add_autoclose_resource(demand)

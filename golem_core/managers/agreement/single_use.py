@@ -25,7 +25,7 @@ class SingleUseAgreementManager(AgreementManager):
             logger.debug(f"Getting proposal done with {proposal}")
 
             try:
-                logger.debug(f"Creating agreement...")
+                logger.info(f"Creating agreement...")
 
                 agreement = await proposal.create_agreement()
 
@@ -39,14 +39,14 @@ class SingleUseAgreementManager(AgreementManager):
             except Exception as e:
                 logger.debug(f"Creating agreement failed with {e}. Retrying...")
             else:
-                logger.debug(f"Creating agreement done")
+                logger.info(f"Creating agreement done {agreement.id}")
 
                 # TODO: Support removing callback on resource close
                 self._event_bus.resource_listen(
                     self._on_agreement_released, [AgreementReleased], [Agreement], [agreement.id]
                 )
 
-                logger.info(f"Getting agreement done")
+                logger.info(f"Getting agreement done  {agreement.id}")
                 return agreement
 
     async def _on_agreement_released(self, event: AgreementReleased) -> None:
