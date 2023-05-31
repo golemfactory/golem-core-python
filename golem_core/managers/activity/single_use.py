@@ -36,24 +36,24 @@ class SingleUseActivityManager(ActivityManager):
     async def _prepare_activity(self) -> Activity:
         while True:
             logger.info("Preparing activity...")
-            logger.debug(f"Getting agreement...")
+            logger.debug("Getting agreement...")
 
             agreement = await self._get_agreement()
 
             logger.debug(f"Getting agreement done with `{agreement}`")
 
             try:
-                logger.debug(f"Creating activity...")
+                logger.debug("Creating activity...")
 
                 activity = await agreement.create_activity()
 
                 logger.debug(f"Creating activity done with `{activity}`")
 
                 logger.info(f"Preparing activity done {activity.id}")
-                logger.debug(f"Yielding activity...")
+                logger.debug("Yielding activity...")
                 yield activity
 
-                logger.debug(f"Yielding activity done")
+                logger.debug("Yielding activity done")
 
                 break
             except Exception as e:

@@ -87,7 +87,7 @@ class InMemoryEventBus(EventBus):
         try:
             self._callbacks[event_type].remove(callback_info)
         except (KeyError, ValueError):
-            raise ValueError(f"Given callback handler is not found in event bus!")
+            raise ValueError("Given callback handler is not found in event bus!")
 
     async def emit(self, event: TEvent) -> None:
         for event_type, callback_infos in self._callbacks.items():

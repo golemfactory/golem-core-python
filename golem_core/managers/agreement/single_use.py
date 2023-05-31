@@ -25,15 +25,15 @@ class SingleUseAgreementManager(AgreementManager):
             logger.debug(f"Getting proposal done with {proposal}")
 
             try:
-                logger.info(f"Creating agreement...")
+                logger.info("Creating agreement...")
 
                 agreement = await proposal.create_agreement()
 
-                logger.debug(f"Sending agreement to provider...")
+                logger.debug("Sending agreement to provider...")
 
                 await agreement.confirm()
 
-                logger.debug(f"Waiting for provider approval...")
+                logger.debug("Waiting for provider approval...")
 
                 await agreement.wait_for_approval()
             except Exception as e:
