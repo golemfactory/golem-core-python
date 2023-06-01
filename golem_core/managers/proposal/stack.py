@@ -45,4 +45,6 @@ class StackProposalManager(ProposalAggregationManager):
 
         logger.debug(f"Getting proposal done with `{proposal.id}`")
 
+        logger.info(f"Proposal `{proposal}` picked")
+
         return proposal
