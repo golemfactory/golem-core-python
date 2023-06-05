@@ -25,13 +25,6 @@ class AcceptAllNegotiationManager(ProposalNegotiationManager):
         self._negotiations: List[asyncio.Task] = []
         self._eligible_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
 
-    async def __aenter__(self):
-        await self.start_negotiation()
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        await self.stop_negotiation()
-
     async def get_proposal(self) -> Proposal:
         logger.debug("Getting proposal...")
 
@@ -41,14 +34,14 @@ class AcceptAllNegotiationManager(ProposalNegotiationManager):
 
         return proposal
 
-    async def start_negotiation(self) -> None:
+    async def start(self) -> None:
         logger.debug("Starting negotiations...")
 
         self._negotiations.append(asyncio.create_task(self._negotiate_task(self._payload)))
 
         logger.debug("Starting negotiations done")
 
-    async def stop_negotiation(self) -> None:
+    async def stop(self) -> None:
         logger.debug("Stopping negotiations...")
 
         for task in self._negotiations:

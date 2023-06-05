@@ -88,7 +88,18 @@ class ManagerEvent(ResourceEvent, ABC):
 
 
 class Manager(ABC):
-    ...
+    async def __aenter__(self):
+        await self.start()
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.stop()
+
+    async def start(self):
+        ...
+
+    async def stop(self):
+        ...
 
 
 class PaymentManager(Manager, ABC):

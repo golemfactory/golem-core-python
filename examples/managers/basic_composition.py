@@ -46,7 +46,7 @@ async def main():
     ]
 
     golem = GolemNode()
-    
+
     payment_manager = PayAllPaymentManager(golem, budget=1.0)
     negotiation_manager = AcceptAllNegotiationManager(
         golem, payment_manager.get_allocation, payload

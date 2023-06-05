@@ -33,13 +33,6 @@ class PayAllPaymentManager(PaymentManager):
         self._closed_agreements_count = 0
         self._payed_invoices_count = 0
 
-    async def __aenter__(self):
-        await self.start()
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        await self.wait_for_invoices()
-
     async def start(self) -> None:
         # TODO: Add stop with event_bus.off()
 
@@ -48,6 +41,9 @@ class PayAllPaymentManager(PaymentManager):
 
         await self._golem.event_bus.on(NewAgreement, self._increment_opened_agreements)
         await self._golem.event_bus.on(AgreementClosed, self._increment_closed_agreements)
+
+    async def stop(self) -> None:
+        await self.wait_for_invoices()
 
     async def get_allocation(self) -> "Allocation":
         logger.debug("Getting allocation...")
