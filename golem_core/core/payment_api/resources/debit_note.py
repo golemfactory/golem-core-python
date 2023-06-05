@@ -10,9 +10,8 @@ from golem_core.core.resources import _NULL, Resource, api_call_wrapper
 from golem_core.core.resources.base import TModel
 
 if TYPE_CHECKING:
-    from golem_core.core.golem_node import GolemNode
-
     from golem_core.core.activity_api import Activity  # noqa
+    from golem_core.core.golem_node import GolemNode
 
 
 class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NULL]):

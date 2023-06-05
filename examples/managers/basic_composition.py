@@ -10,6 +10,10 @@ from golem_core.managers.base import WorkContext, WorkResult
 from golem_core.managers.negotiation import AcceptAllNegotiationManager
 from golem_core.managers.payment.pay_all import PayAllPaymentManager
 from golem_core.managers.proposal import StackProposalManager
+from golem_core.managers.work.decorators import (
+    redundancy_cancel_others_on_first_done,
+    work_decorator,
+)
 from golem_core.managers.work.sequential import SequentialWorkManager
 from golem_core.utils.logging import DEFAULT_LOGGING
 
@@ -23,6 +27,8 @@ async def commands_work_example(context: WorkContext) -> str:
     return result
 
 
+# @work_decorator(redundancy_cancel_others_on_first_done(size=2))
+@work_decorator(redundancy_cancel_others_on_first_done(size=2))
 async def batch_work_example(context: WorkContext):
     batch = await context.create_batch()
     batch.run("echo 'hello batch'")

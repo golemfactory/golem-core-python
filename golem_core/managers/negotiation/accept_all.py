@@ -93,7 +93,6 @@ class AcceptAllNegotiationManager(ProposalNegotiationManager):
                     continue
 
                 try:
-                    # TODO IDK how to call `confirm` on a proposal in golem-core
                     offer_proposal = await demand_proposal.responses().__anext__()
                 except StopAsyncIteration:
                     continue
