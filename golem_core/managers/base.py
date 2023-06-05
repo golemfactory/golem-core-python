@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
 from golem_core.core.activity_api import Activity, Script, commands
@@ -67,7 +67,7 @@ class WorkContext:
 class WorkResult:
     result: Optional[Any] = None
     exception: Optional[Exception] = None
-    extras: Optional[Dict] = None
+    extras: Dict = field(default_factory=dict)
 
 
 WorkDecorator = Callable[["DoWorkCallable"], "DoWorkCallable"]

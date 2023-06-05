@@ -1,5 +1,4 @@
 import logging
-from functools import partial
 from typing import List
 
 from golem_core.core.golem_node.golem_node import GolemNode
@@ -20,7 +19,7 @@ class SequentialWorkManager(WorkManager):
 
         result = do_work
         for dec in work._work_decorators:
-            result = partial(dec, result)
+            result = dec(result)
 
         logger.debug(f"Applying decorators on `{work}` done")
 

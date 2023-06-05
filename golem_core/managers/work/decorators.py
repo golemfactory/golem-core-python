@@ -16,7 +16,7 @@ def work_decorator(decorator: WorkDecorator):
     return _work_decorator
 
 
-def retry(tries: int = 3):
+def retry(tries: int):
     def _retry(do_work: DoWorkCallable) -> DoWorkCallable:
         @wraps(do_work)
         async def wrapper(work: Work) -> WorkResult:
@@ -45,7 +45,7 @@ def retry(tries: int = 3):
     return _retry
 
 
-def redundancy_cancel_others_on_first_done(size: int = 3):
+def redundancy_cancel_others_on_first_done(size: int):
     def _redundancy(do_work: DoWorkCallable):
         @wraps(do_work)
         async def wrapper(work: Work) -> WorkResult:
