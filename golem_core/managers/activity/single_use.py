@@ -32,6 +32,12 @@ class SingleUseActivityManager(ActivityManager):
         self._on_activity_start = on_activity_start
         self._on_activity_stop = on_activity_stop
 
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        pass
+
     @asynccontextmanager
     async def _prepare_activity(self) -> Activity:
         while True:

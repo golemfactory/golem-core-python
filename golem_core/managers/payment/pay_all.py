@@ -33,6 +33,13 @@ class PayAllPaymentManager(PaymentManager):
         self._closed_agreements_count = 0
         self._payed_invoices_count = 0
 
+    async def __aenter__(self):
+        await self.start()
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.wait_for_invoices()
+
     async def start(self) -> None:
         # TODO: Add stop with event_bus.off()
 

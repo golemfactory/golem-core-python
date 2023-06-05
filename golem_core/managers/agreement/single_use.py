@@ -14,6 +14,12 @@ class SingleUseAgreementManager(AgreementManager):
         self._get_proposal = get_proposal
         self._event_bus = golem.event_bus
 
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        pass
+
     async def get_agreement(self) -> Agreement:
         logger.debug("Getting agreement...")
 

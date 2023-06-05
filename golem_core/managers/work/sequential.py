@@ -12,6 +12,12 @@ class SequentialWorkManager:
     def __init__(self, golem: GolemNode, do_work: DoWorkCallable):
         self._do_work = do_work
 
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        pass
+
     def _apply_work_decorators(self, do_work: DoWorkCallable, work: Work) -> DoWorkCallable:
         logger.debug(f"Applying decorators on `{work}`...")
 

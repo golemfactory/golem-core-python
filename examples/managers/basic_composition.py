@@ -49,24 +49,21 @@ async def main():
         batch_work_example,
     ]
 
-    async with GolemNode() as golem:
-        payment_manager = PayAllPaymentManager(golem, budget=1.0)
-        negotiation_manager = AcceptAllNegotiationManager(golem, payment_manager.get_allocation)
-        proposal_manager = StackProposalManager(golem, negotiation_manager.get_proposal)
-        agreement_manager = SingleUseAgreementManager(golem, proposal_manager.get_proposal)
-        activity_manager = SingleUseActivityManager(golem, agreement_manager.get_agreement)
-        work_manager = SequentialWorkManager(golem, activity_manager.do_work)
-
-        await payment_manager.start()
-        await negotiation_manager.start_negotiation(payload)
-        await proposal_manager.start_consuming_proposals()
-
+    async with GolemNode() as golem, PayAllPaymentManager(
+        golem, budget=1.0
+    ) as payment_manager, AcceptAllNegotiationManager(
+        golem, payment_manager.get_allocation, payload
+    ) as negotiation_manager, StackProposalManager(
+        golem, negotiation_manager.get_proposal
+    ) as proposal_manager, SingleUseAgreementManager(
+        golem, proposal_manager.get_proposal
+    ) as agreement_manager, SingleUseActivityManager(
+        golem, agreement_manager.get_agreement
+    ) as activity_manager, SequentialWorkManager(
+        golem, activity_manager.do_work
+    ) as work_manager:
         results: List[WorkResult] = await work_manager.do_work_list(work_list)
         print(f"\nWORK MANAGER RESULTS:{[result.result for result in results]}\n")
-
-        await proposal_manager.stop_consuming_proposals()
-        await negotiation_manager.stop_negotiation()
-        await payment_manager.wait_for_invoices()
 
 
 if __name__ == "__main__":

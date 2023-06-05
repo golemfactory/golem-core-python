@@ -15,6 +15,13 @@ class StackProposalManager(ProposalAggregationManager):
         self._proposals: asyncio.Queue[Proposal] = asyncio.Queue()
         self._tasks: List[asyncio.Task] = []
 
+    async def __aenter__(self):
+        await self.start_consuming_proposals()
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.stop_consuming_proposals()
+
     async def start_consuming_proposals(self) -> None:
         logger.debug("Starting consuming proposals...")
 

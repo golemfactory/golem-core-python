@@ -14,12 +14,23 @@ logger = logging.getLogger(__name__)
 
 class AcceptAllNegotiationManager(ProposalNegotiationManager):
     def __init__(
-        self, golem: GolemNode, get_allocation: Callable[[], Awaitable[Allocation]]
+        self,
+        golem: GolemNode,
+        get_allocation: Callable[[], Awaitable[Allocation]],
+        payload: Payload,
     ) -> None:
         self._golem = golem
         self._get_allocation = get_allocation
+        self._payload = payload
         self._negotiations: List[asyncio.Task] = []
         self._eligible_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
+
+    async def __aenter__(self):
+        await self.start_negotiation()
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.stop_negotiation()
 
     async def get_proposal(self) -> Proposal:
         logger.debug("Getting proposal...")
@@ -30,10 +41,10 @@ class AcceptAllNegotiationManager(ProposalNegotiationManager):
 
         return proposal
 
-    async def start_negotiation(self, payload: Payload) -> None:
+    async def start_negotiation(self) -> None:
         logger.debug("Starting negotiations...")
 
-        self._negotiations.append(asyncio.create_task(self._negotiate_task(payload)))
+        self._negotiations.append(asyncio.create_task(self._negotiate_task(self._payload)))
 
         logger.debug("Starting negotiations done")
 
