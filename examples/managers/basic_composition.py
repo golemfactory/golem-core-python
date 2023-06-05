@@ -45,19 +45,18 @@ async def main():
         batch_work_example,
     ]
 
-    async with GolemNode() as golem, PayAllPaymentManager(
-        golem, budget=1.0
-    ) as payment_manager, AcceptAllNegotiationManager(
+    golem = GolemNode()
+    
+    payment_manager = PayAllPaymentManager(golem, budget=1.0)
+    negotiation_manager = AcceptAllNegotiationManager(
         golem, payment_manager.get_allocation, payload
-    ) as negotiation_manager, StackProposalManager(
-        golem, negotiation_manager.get_proposal
-    ) as proposal_manager, SingleUseAgreementManager(
-        golem, proposal_manager.get_proposal
-    ) as agreement_manager, SingleUseActivityManager(
-        golem, agreement_manager.get_agreement
-    ) as activity_manager, SequentialWorkManager(
-        golem, activity_manager.do_work
-    ) as work_manager:
+    )
+    proposal_manager = StackProposalManager(golem, negotiation_manager.get_proposal)
+    agreement_manager = SingleUseAgreementManager(golem, proposal_manager.get_proposal)
+    activity_manager = SingleUseActivityManager(golem, agreement_manager.get_agreement)
+    work_manager = SequentialWorkManager(golem, activity_manager.do_work)
+
+    async with golem, payment_manager, negotiation_manager, proposal_manager:
         results: List[WorkResult] = await work_manager.do_work_list(work_list)
         print(f"\nWORK MANAGER RESULTS:{[result.result for result in results]}\n")
 
