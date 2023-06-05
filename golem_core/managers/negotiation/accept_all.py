@@ -1,18 +1,29 @@
 import asyncio
 import logging
+from abc import ABC, abstractmethod
+from copy import deepcopy
 from datetime import datetime, timezone
-from typing import AsyncIterator, Awaitable, Callable, List
+from typing import AsyncIterator, Awaitable, Callable, List, Optional
 
 from golem_core.core.golem_node.golem_node import DEFAULT_EXPIRATION_TIMEOUT, SUBNET, GolemNode
 from golem_core.core.market_api import Demand, DemandBuilder, Payload, Proposal
 from golem_core.core.market_api.resources.demand.demand_offer_base import defaults as dobm_defaults
 from golem_core.core.payment_api import Allocation
-from golem_core.managers.base import ProposalNegotiationManager
+from golem_core.managers.base import NegotiationManager, ManagerException
 
 logger = logging.getLogger(__name__)
 
 
-class AcceptAllNegotiationManager(ProposalNegotiationManager):
+class IgnoreProposal(Exception):
+    pass
+
+class NegotiationPlugin(ABC):
+    @abstractmethod
+    async def __call__(self, demand_builder: DemandBuilder, proposal: Proposal) -> DemandBuilder:
+        ...
+
+
+class AcceptAllNegotiationManager(NegotiationManager):
     def __init__(
         self,
         golem: GolemNode,
@@ -22,38 +33,63 @@ class AcceptAllNegotiationManager(ProposalNegotiationManager):
         self._golem = golem
         self._get_allocation = get_allocation
         self._payload = payload
-        self._negotiations: List[asyncio.Task] = []
+
+        self._negotiation_loop_task: Optional[asyncio.Task] = None
+        self._plugins: List[NegotiationPlugin] = []
         self._eligible_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
+
+    def register_plugin(self, plugin: NegotiationPlugin):
+        self._plugins.append(plugin)
+
+    def unregister_plugin(self, plugin: NegotiationPlugin):
+        self._plugins.remove(plugin)
 
     async def get_proposal(self) -> Proposal:
         logger.debug("Getting proposal...")
 
         proposal = await self._eligible_proposals.get()
 
-        logger.debug(f"Getting proposal done with `{proposal.id}`")
+        logger.debug(f"Getting proposal done with `{proposal}`")
 
         return proposal
 
     async def start(self) -> None:
         logger.debug("Starting negotiations...")
 
-        self._negotiations.append(asyncio.create_task(self._negotiate_task(self._payload)))
+        if self.is_negotiation_started():
+            message = "Negotiation is already started!"
+            logger.debug(f"Starting negotiations failed with `{message}`")
+            raise ManagerException(message)
+
+        self._negotiation_loop_task = asyncio.create_task(self._negotiation_loop(payload))
 
         logger.debug("Starting negotiations done")
 
     async def stop(self) -> None:
         logger.debug("Stopping negotiations...")
 
-        for task in self._negotiations:
-            task.cancel()
+        if not self.is_negotiation_started():
+            message = "Negotiation is already stopped!"
+            logger.debug(f"Stopping negotiations failed with `{message}`")
+            raise ManagerException(message)
+
+        self._negotiation_loop_task.cancel()
+        self._negotiation_loop_task = None
 
         logger.debug("Stopping negotiations done")
 
-    async def _negotiate_task(self, payload: Payload) -> None:
+    def is_negotiation_started(self) -> bool:
+        return self._negotiation_loop_task is not None
+
+    async def _negotiation_loop(self, payload: Payload) -> None:
         allocation = await self._get_allocation()
         demand = await self._build_demand(allocation, payload)
-        async for proposal in self._negotiate(demand):
-            await self._eligible_proposals.put(proposal)
+
+        try:
+            async for proposal in self._negotiate(demand):
+                await self._eligible_proposals.put(proposal)
+        finally:
+            await demand.unsubscribe()
 
     async def _build_demand(self, allocation: Allocation, payload: Payload) -> Demand:
         logger.debug("Creating demand...")
@@ -80,28 +116,43 @@ class AcceptAllNegotiationManager(ProposalNegotiationManager):
         demand = await demand_builder.create_demand(self._golem)
         demand.start_collecting_events()
 
-        logger.debug(f"Creating demand done with `{demand.id}`")
+        logger.debug(f"Creating demand done with `{demand}`")
 
         return demand
 
     async def _negotiate(self, demand: Demand) -> AsyncIterator[Proposal]:
-        try:
-            async for initial in demand.initial_proposals():
-                logger.debug(f"Negotiating initial proposal `{initial.id}`...")
-                try:
-                    demand_proposal = await initial.respond()
-                except Exception as err:
-                    logger.debug(
-                        f"Unable to respond to initial proposal {initial.id}.Got {type(err)}\n{err}"
-                    )
-                    continue
+        async for initial in demand.initial_proposals():
+            logger.debug(f"Negotiating initial proposal `{initial}`...")
 
-                try:
-                    offer_proposal = await demand_proposal.responses().__anext__()
-                except StopAsyncIteration:
-                    continue
+            try:
+                demand_proposal = await initial.respond()
+            except Exception as e:
+                logger.debug(f"Negotiating initial proposal `{initial}` failed with `{e}`")
+                continue
 
-                logger.debug(f"Negotiating initial proposal `{initial.id}` done")
-                yield offer_proposal
-        finally:
-            self._golem.add_autoclose_resource(demand)
+            try:
+                offer_proposal = await demand_proposal.responses().__anext__()
+            except StopAsyncIteration:
+                continue
+
+            logger.debug(f"Negotiating initial proposal `{initial}` done")
+
+            yield offer_proposal
+
+    async def _negotiate_with_plugins(self, offer_proposal: Proposal) -> Optional[Proposal]:
+        while True:
+            original_demand_builder = DemandBuilder.from_proposal(offer_proposal)
+            demand_builder = deepcopy(original_demand_builder)
+
+            try:
+                for plugin in self._plugins:
+                    demand_builder = await plugin(demand_builder, offer_proposal)
+            except IgnoreProposal:
+                return None
+
+            if offer_proposal.initial or demand_builder != original_demand_builder:
+                demand_proposal = await offer_proposal.respond(demand_builder.properties, demand_builder.constraints)
+                offer_proposal = await demand_proposal.responses().__anext__()
+                continue
+
+            return offer_proposal

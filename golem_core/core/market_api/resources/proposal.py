@@ -143,7 +143,7 @@ class Proposal(
         )
 
     @api_call_wrapper()
-    async def respond(self) -> "Proposal":
+    async def respond(self, properties, constraints) -> "Proposal":
         """Respond to a proposal with a counter-proposal.
 
         Invalid on our responses.
@@ -154,7 +154,9 @@ class Proposal(
         https://github.com/golemfactory/golem-core-python/issues/18
         """
 
-        data = await self._response_data()
+        data = models.DemandOfferBase(
+            properties=properties, constraints=constraints
+        )
         new_proposal_id = await self.api.counter_proposal_demand(
             self.demand.id, self.id, data, _request_timeout=5
         )

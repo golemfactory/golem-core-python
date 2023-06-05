@@ -3,9 +3,10 @@ from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
 from golem_core.core.activity_api import Activity, Script, commands
-from golem_core.core.market_api import Agreement, Proposal
+from golem_core.core.market_api import Agreement, Proposal, DemandBuilder
 from golem_core.core.payment_api import Allocation
 from golem_core.core.resources import ResourceEvent
+from golem_core.exceptions import BaseGolemException
 
 
 class Batch:
@@ -87,6 +88,10 @@ class ManagerEvent(ResourceEvent, ABC):
     pass
 
 
+class ManagerException(BaseGolemException):
+    pass
+
+
 class Manager(ABC):
     async def __aenter__(self):
         await self.start()
@@ -108,13 +113,13 @@ class PaymentManager(Manager, ABC):
         ...
 
 
-class ProposalNegotiationManager(Manager, ABC):
+class NegotiationManager(Manager, ABC):
     @abstractmethod
     async def get_proposal(self) -> Proposal:
         ...
 
 
-class ProposalAggregationManager(Manager, ABC):
+class ProposalManager(Manager, ABC):
     @abstractmethod
     async def get_proposal(self) -> Proposal:
         ...

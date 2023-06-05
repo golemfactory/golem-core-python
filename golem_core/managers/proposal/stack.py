@@ -4,12 +4,12 @@ from typing import List
 
 from golem_core.core.golem_node.golem_node import GolemNode
 from golem_core.core.market_api import Proposal
-from golem_core.managers.base import ProposalAggregationManager
+from golem_core.managers.base import ProposalManager
 
 logger = logging.getLogger(__name__)
 
 
-class StackProposalManager(ProposalAggregationManager):
+class StackProposalManager(ProposalManager):
     def __init__(self, golem: GolemNode, get_proposal) -> None:
         self._get_proposal = get_proposal
         self._proposals: asyncio.Queue[Proposal] = asyncio.Queue()
