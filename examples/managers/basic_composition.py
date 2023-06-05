@@ -10,10 +10,6 @@ from golem_core.managers.base import WorkContext, WorkResult
 from golem_core.managers.negotiation import AcceptAllNegotiationManager
 from golem_core.managers.payment.pay_all import PayAllPaymentManager
 from golem_core.managers.proposal import StackProposalManager
-from golem_core.managers.work.decorators import (
-    redundancy_cancel_others_on_first_done,
-    work_decorator,
-)
 from golem_core.managers.work.sequential import SequentialWorkManager
 from golem_core.utils.logging import DEFAULT_LOGGING
 
@@ -28,7 +24,7 @@ async def commands_work_example(context: WorkContext) -> str:
 
 
 # @work_decorator(redundancy_cancel_others_on_first_done(size=2))
-@work_decorator(redundancy_cancel_others_on_first_done(size=2))
+# @work_decorator(redundancy_cancel_others_on_first_done(size=2))
 async def batch_work_example(context: WorkContext):
     batch = await context.create_batch()
     batch.run("echo 'hello batch'")
@@ -49,17 +45,19 @@ async def main():
         batch_work_example,
     ]
 
-    async with (
-        GolemNode() as golem,
-        PayAllPaymentManager(golem, budget=1.0) as payment_manager,
-        AcceptAllNegotiationManager(
-            golem, payment_manager.get_allocation, payload
-        ) as negotiation_manager,
-        StackProposalManager(golem, negotiation_manager.get_proposal) as proposal_manager,
-        SingleUseAgreementManager(golem, proposal_manager.get_proposal) as agreement_manager,
-        SingleUseActivityManager(golem, agreement_manager.get_agreement) as activity_manager,
-        SequentialWorkManager(golem, activity_manager.do_work) as work_manager,
-    ):
+    async with GolemNode() as golem, PayAllPaymentManager(
+        golem, budget=1.0
+    ) as payment_manager, AcceptAllNegotiationManager(
+        golem, payment_manager.get_allocation, payload
+    ) as negotiation_manager, StackProposalManager(
+        golem, negotiation_manager.get_proposal
+    ) as proposal_manager, SingleUseAgreementManager(
+        golem, proposal_manager.get_proposal
+    ) as agreement_manager, SingleUseActivityManager(
+        golem, agreement_manager.get_agreement
+    ) as activity_manager, SequentialWorkManager(
+        golem, activity_manager.do_work
+    ) as work_manager:
         results: List[WorkResult] = await work_manager.do_work_list(work_list)
         print(f"\nWORK MANAGER RESULTS:{[result.result for result in results]}\n")
 
