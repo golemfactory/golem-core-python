@@ -1,3 +1,3 @@
-from golem_core.managers.negotiation.accept_all import AcceptAllNegotiationManager
+from golem_core.managers.negotiation.sequential import SequentialNegotiationManager
 
-__all__ = ("AcceptAllNegotiationManager",)
+__all__ = ("SequentialNegotiationManager",)

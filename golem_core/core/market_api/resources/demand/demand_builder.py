@@ -1,5 +1,6 @@
 import abc
-from typing import TYPE_CHECKING, Any, Dict, List
+from copy import deepcopy
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from golem_core.core.market_api.resources.demand.demand import Demand
 from golem_core.core.market_api.resources.demand.demand_offer_base.model import (
@@ -32,12 +33,21 @@ class DemandBuilder:
     ```
     """
 
-    def __init__(self):
-        self._properties: Dict[str, Any] = {}
-        self._constraints: List[str] = []
+    def __init__(
+        self, properties: Optional[Dict[str, Any]] = None, constraints: Optional[List[str]] = None
+    ):
+        self._properties: Dict[str, Any] = properties if properties is not None else {}
+        self._constraints: List[str] = constraints if constraints is not None else []
 
     def __repr__(self):
         return repr({"properties": self._properties, "constraints": self._constraints})
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, DemandBuilder)
+            and self._properties == other.properties
+            and self.constraints == other.constraints
+        )
 
     @property
     def properties(self) -> Dict:
@@ -76,6 +86,12 @@ class DemandBuilder:
         return await Demand.create_from_properties_constraints(
             node, self.properties, self.constraints
         )
+
+    @classmethod
+    async def from_demand(cls, demand: "Demand") -> "DemandBuilder":
+        demand_data = deepcopy(await demand.get_data())
+
+        return cls(demand_data.properties, [demand_data.constraints])
 
 
 class DemandBuilderDecorator(abc.ABC):

@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, AsyncIterator, Optional, Union
+from typing import TYPE_CHECKING, AsyncIterator, Dict, Optional, Union
 
 from ya_market import RequestorApi
 from ya_market import models as models
@@ -143,20 +143,24 @@ class Proposal(
         )
 
     @api_call_wrapper()
-    async def respond(self, properties, constraints) -> "Proposal":
+    async def respond(
+        self, properties: Optional[Dict] = None, constraints: Optional[str] = None
+    ) -> "Proposal":
         """Respond to a proposal with a counter-proposal.
 
         Invalid on our responses.
 
-        TODO: all the negotiation logic should be reflected in params of this method,
-        but negotiations are not implemented yet. Related issues:
+        Related issues:
         https://github.com/golemfactory/golem-core-python/issues/17
         https://github.com/golemfactory/golem-core-python/issues/18
         """
+        if properties is None and constraints is None:
+            data = await self._response_data()
+        elif properties is not None and constraints is not None:
+            data = models.DemandOfferBase(properties=properties, constraints=constraints)
+        else:
+            raise ValueError("Both `properties` and `constraints` arguments must be provided!")
 
-        data = models.DemandOfferBase(
-            properties=properties, constraints=constraints
-        )
         new_proposal_id = await self.api.counter_proposal_demand(
             self.demand.id, self.id, data, _request_timeout=5
         )
@@ -167,7 +171,6 @@ class Proposal(
         return new_proposal
 
     async def _response_data(self) -> models.DemandOfferBase:
-        # FIXME: this is a mock
         demand_data = await self.demand.get_data()
         data = models.DemandOfferBase(
             properties=demand_data.properties, constraints=demand_data.constraints

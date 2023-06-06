@@ -8,7 +8,8 @@ from golem_core.core.market_api import RepositoryVmPayload
 from golem_core.managers.activity.single_use import SingleUseActivityManager
 from golem_core.managers.agreement.single_use import SingleUseAgreementManager
 from golem_core.managers.base import WorkContext, WorkResult
-from golem_core.managers.negotiation import AcceptAllNegotiationManager
+from golem_core.managers.negotiation import SequentialNegotiationManager
+from golem_core.managers.negotiation.plugins import BlacklistProviderId
 from golem_core.managers.payment.pay_all import PayAllPaymentManager
 from golem_core.managers.proposal import StackProposalManager
 from golem_core.managers.work.decorators import (
@@ -56,8 +57,19 @@ async def main():
     golem = GolemNode()
 
     payment_manager = PayAllPaymentManager(golem, budget=1.0)
-    negotiation_manager = AcceptAllNegotiationManager(
-        golem, payment_manager.get_allocation, payload
+    negotiation_manager = SequentialNegotiationManager(
+        golem,
+        payment_manager.get_allocation,
+        payload,
+        plugins=[
+            BlacklistProviderId(
+                [
+                    "0x3b0f605fcb0690458064c10346af0c5f6b7202a5",
+                    "0x7ad8ce2f95f69be197d136e308303d2395e68379",
+                    "0x40f401ead13eabe677324bf50605c68caabb22c7",
+                ]
+            ),
+        ],
     )
     proposal_manager = StackProposalManager(golem, negotiation_manager.get_proposal)
     agreement_manager = SingleUseAgreementManager(golem, proposal_manager.get_proposal)
