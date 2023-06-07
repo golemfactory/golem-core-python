@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 from golem_core.core.activity_api import Activity, commands
+from golem_core.core.events.base import Event
 from golem_core.core.golem_node import GolemNode
 from golem_core.core.market_api import (
     RepositoryVmPayload,
@@ -56,7 +57,7 @@ def create_ssh_connection(network: Network) -> Callable[[Activity], Awaitable[Tu
 
 async def main() -> None:
     golem = GolemNode()
-    golem.event_bus.listen(DefaultLogger().on_event)
+    await golem.event_bus.on(Event, DefaultLogger().on_event)
 
     async with golem:
         network = await golem.create_network("192.168.0.1/24")

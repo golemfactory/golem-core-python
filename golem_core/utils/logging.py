@@ -56,7 +56,7 @@ class DefaultLogger:
     Usage::
 
         golem = GolemNode()
-        golem.event_bus.listen(DefaultLogger().on_event)
+        await golem.event_bus.on(Event, DefaultLogger().on_event)
 
     Or::
 
@@ -96,5 +96,5 @@ class DefaultLogger:
         return logger
 
     async def on_event(self, event: "Event") -> None:
-        """Handle event produced by :any:`EventBus.listen`."""
+        """Handle event produced by :any:`EventBus.on`."""
         self.logger.info(event)

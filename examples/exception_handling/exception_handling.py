@@ -2,6 +2,7 @@ import asyncio
 from typing import Callable, Tuple
 
 from golem_core.core.activity_api import Activity, BatchError, BatchTimeoutError, commands
+from golem_core.core.events.base import Event
 from golem_core.core.golem_node import GolemNode
 from golem_core.core.market_api import (
     RepositoryVmPayload,
@@ -41,7 +42,7 @@ async def on_exception(func: Callable, args: Tuple, e: Exception) -> None:
 
 async def main() -> None:
     golem = GolemNode()
-    golem.event_bus.listen(DefaultLogger().on_event)
+    await golem.event_bus.on(Event, DefaultLogger().on_event)
 
     async with golem:
         allocation = await golem.create_allocation(1.0)

@@ -3,6 +3,7 @@ from random import random
 from typing import AsyncIterator, Awaitable, Callable, Iterable, Optional, Tuple, TypeVar
 
 from golem_core.core.activity_api import Activity, default_prepare_activity
+from golem_core.core.events.base import Event
 from golem_core.core.golem_node import GolemNode
 from golem_core.core.market_api import (
     Demand,
@@ -143,7 +144,7 @@ async def execute_tasks(
     task_stream = TaskDataStream(task_data)
 
     golem = GolemNode()
-    golem.event_bus.listen(DefaultLogger().on_event)
+    await golem.event_bus.on(Event, DefaultLogger().on_event)
 
     async with golem:
         allocation = await golem.create_allocation(budget)
