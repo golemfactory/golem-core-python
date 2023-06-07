@@ -174,10 +174,16 @@ async def main() -> None:
 
     golem = GolemNode()
     await golem.event_bus.on(Event, DefaultLogger().on_event)
-    golem.event_bus.resource_listen(count_batches, [NewResource], [PoolingBatch])
+    await golem.event_bus.on(
+        NewResource, count_batches, lambda e: isinstance(e.resource, PoolingBatch)
+    )
     await golem.event_bus.on(NewDebitNote, gather_debit_note_log)
-    golem.event_bus.resource_listen(update_new_activity_status, [NewResource], [Activity])
-    golem.event_bus.resource_listen(note_activity_destroyed, [ResourceClosed], [Activity])
+    await golem.event_bus.on(
+        NewResource, update_new_activity_status, lambda e: isinstance(e.resource, Activity)
+    )
+    await golem.event_bus.on(
+        ResourceClosed, note_activity_destroyed, lambda e: isinstance(e.resource, Activity)
+    )
 
     async with golem:
         allocation = await golem.create_allocation(amount=1)
