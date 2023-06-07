@@ -1,5 +1,7 @@
 import asyncio
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from enum import StrEnum
 from typing import TYPE_CHECKING, AsyncIterator, Dict, Optional, Union
 
 from ya_market import RequestorApi
@@ -7,12 +9,33 @@ from ya_market import models as models
 
 from golem_core.core.market_api.events import NewProposal
 from golem_core.core.market_api.resources.agreement import Agreement
+from golem_core.core.props_cons.constraints import Constraints
+from golem_core.core.props_cons.properties import Properties
 from golem_core.core.resources import Resource
 from golem_core.core.resources.base import TModel, api_call_wrapper
 
 if TYPE_CHECKING:
     from golem_core.core.golem_node import GolemNode
     from golem_core.core.market_api.resources.demand import Demand
+
+
+class ProposalState(StrEnum):
+    INITIDAL = "Initial"
+    DRAFT = "Draft"
+    REJECTED = "Rejected"
+    ACCPETED = "Accepted"
+    EXPIRED = "Expired"
+
+
+@dataclass
+class ProposalData:
+    properties: Properties
+    constraints: Constraints
+    proposal_id: str
+    issuer_id: str
+    state: ProposalState
+    timestamp: datetime
+    prev_proposal_id: Optional[str]
 
 
 class Proposal(

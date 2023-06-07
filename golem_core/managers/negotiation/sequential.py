@@ -7,6 +7,7 @@ from typing import AsyncIterator, Awaitable, Callable, List, Optional, Sequence
 from golem_core.core.golem_node.golem_node import DEFAULT_EXPIRATION_TIMEOUT, SUBNET, GolemNode
 from golem_core.core.market_api import Demand, DemandBuilder, Payload, Proposal
 from golem_core.core.market_api.resources.demand.demand_offer_base import defaults as dobm_defaults
+from golem_core.core.market_api.resources.proposal import ProposalData
 from golem_core.core.payment_api import Allocation
 from golem_core.managers.base import ManagerException, NegotiationManager, NegotiationPlugin
 
@@ -84,7 +85,7 @@ class SequentialNegotiationManager(NegotiationManager):
         demand.start_collecting_events()
 
         try:
-            async for proposal in self._negotiate(demand_builder, demand):
+            async for proposal in self._negotiate(demand):
                 await self._eligible_proposals.put(proposal)
         finally:
             await demand.unsubscribe()
@@ -119,11 +120,11 @@ class SequentialNegotiationManager(NegotiationManager):
 
         return demand_builder
 
-    async def _negotiate(
-        self, demand_builder: DemandBuilder, demand: Demand
-    ) -> AsyncIterator[Proposal]:
+    async def _negotiate(self, demand: Demand) -> AsyncIterator[Proposal]:
+        demand_data = self._get_demand_data_from_demand(demand)
+
         async for initial_offer_proposal in demand.initial_proposals():
-            offer_proposal = await self._negotiate_proposal(demand_builder, initial_offer_proposal)
+            offer_proposal = await self._negotiate_proposal(demand_data, initial_offer_proposal)
 
             if offer_proposal is None:
                 logger.debug(
@@ -189,3 +190,7 @@ class SequentialNegotiationManager(NegotiationManager):
         logger.debug(f"Negotiating proposal `{offer_proposal}` done")
 
         return offer_proposal
+
+    def _get_proposal_data_from_demand(self, demand: Demand) -> ProposalData:
+        # FIXME: Unnecessary serialisation from DemandBuilder to Demand, and from Demand to ProposalData
+        return ProposalData(demand.data.properties)

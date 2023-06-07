@@ -1,24 +1,19 @@
 import abc
 import dataclasses
-import datetime
 import enum
-import inspect
-from typing import Any, Dict, Final, Iterable, List, Literal, Tuple, Type, TypeVar
+from typing import Any, Dict, Final, List, Tuple, Type, TypeVar
 
 from golem_core.core.market_api.resources.demand.demand_offer_base.exceptions import (
-    ConstraintException,
     InvalidPropertiesError,
 )
-from golem_core.utils.typing import match_type_union_aware
+from golem_core.core.props_cons.constraints import Constraint, ConstraintOperator, Constraints
+from golem_core.core.props_cons.properties import Properties
 
 TDemandOfferBaseModel = TypeVar("TDemandOfferBaseModel", bound="DemandOfferBaseModel")
 
 PROP_KEY: Final[str] = "key"
 PROP_OPERATOR: Final[str] = "operator"
 PROP_MODEL_FIELD_TYPE: Final[str] = "model_field_type"
-
-ConstraintOperator = Literal["=", ">=", "<="]
-ConstraintGroupOperator = Literal["&", "|", "!"]
 
 
 class DemandOfferBaseModelFieldType(enum.Enum):
@@ -37,86 +32,28 @@ class DemandOfferBaseModel(abc.ABC):
     def __init__(self, **kwargs):  # pragma: no cover
         pass
 
-    async def serialize(self) -> Tuple[Dict[str, Any], str]:
-        """Return a tuple of serialized properties and constraints.
+    async def build_properties_and_constraints(self) -> Tuple[Properties, Constraints]:
+        return self._build_properties(), self._build_constraints()
 
-        Intended to be overriden with additional logic that requires async context.
-        """
-        return self._serialize_properties(), self._serialize_constraints()
+    def _build_properties(self) -> Properties:
+        """Return a collaction of properties declated in model."""
+        return Properties(
+            {
+                field.metadata[PROP_KEY]: getattr(self, field.name)
+                for field in self._get_fields(DemandOfferBaseModelFieldType.property)
+            }
+        )
 
-    def _serialize_properties(self) -> Dict[str, Any]:
-        """Return a serialized collection of property values."""
-        return {
-            field.metadata[PROP_KEY]: self._serialize_property(getattr(self, field.name), field)
-            for field in self._get_fields(DemandOfferBaseModelFieldType.property)
-            if getattr(self, field.name) is not None
-        }
-
-    def _serialize_constraints(self) -> str:
+    def _build_constraints(self) -> Constraints:
         """Return a serialized collection of constraint values."""
-        return join_str_constraints(
-            self._serialize_constraint(getattr(self, field.name), field)
+        return Constraints(
+            Constraint(
+                property_path=field.metadata[PROP_KEY],
+                operator=field.metadata[PROP_OPERATOR],
+                value=getattr(self, field.name),
+            )
             for field in self._get_fields(DemandOfferBaseModelFieldType.constraint)
-            if getattr(self, field.name) is not None
         )
-
-    @classmethod
-    def _serialize_property(cls, value: Any, field: dataclasses.Field) -> Any:
-        """Return serialized property value."""
-        return cls.serialize_value(value)
-
-    @classmethod
-    def _serialize_constraint(cls, value: Any, field: dataclasses.Field) -> str:
-        """Return serialized constraint value."""
-        if isinstance(value, (list, tuple)):
-            if value:
-                return join_str_constraints([cls._serialize_constraint(v, field) for v in value])
-
-            return ""
-
-        serialized_value = cls.serialize_value(value)
-
-        return "({key}{operator}{value})".format(
-            key=field.metadata[PROP_KEY],
-            operator=field.metadata[PROP_OPERATOR],
-            value=serialized_value,
-        )
-
-    @classmethod
-    def serialize_value(cls, value: Any) -> Any:
-        """Return value in primitive format compatible with Golem's property and constraint syntax.
-
-        Intended to be overriden with additional type serialisation methods.
-        """
-
-        if isinstance(value, (list, tuple)):
-            return type(value)(cls.serialize_value(v) for v in value)
-
-        if isinstance(value, datetime.datetime):
-            return int(value.timestamp() * 1000)
-
-        if isinstance(value, enum.Enum):
-            return value.value
-
-        return value
-
-    @classmethod
-    def deserialize_value(cls, value: Any, field: dataclasses.Field) -> Any:
-        """Return proper value for field from given primitive.
-
-        Intended to be overriden with additional type serialisation methods.
-        """
-        if matched_type := match_type_union_aware(
-            field.type, lambda t: inspect.isclass(t) and issubclass(t, datetime.datetime)
-        ):
-            return matched_type.fromtimestamp(int(float(value) * 0.001), datetime.timezone.utc)
-
-        if matched_type := match_type_union_aware(
-            field.type, lambda t: inspect.isclass(t) and issubclass(t, enum.Enum)
-        ):
-            return matched_type(value)
-
-        return value
 
     @classmethod
     def _get_fields(cls, field_type: DemandOfferBaseModelFieldType) -> List[dataclasses.Field]:
@@ -227,54 +164,8 @@ def constraint(
     )
 
 
-def join_str_constraints(
-    constraints: Iterable[str], operator: ConstraintGroupOperator = "&"
-) -> str:
-    """Join a list of constraints using the given opererator.
-
-    The semantics here reflect LDAP filters: https://ldap.com/ldap-filters/
-
-    :param constraints: list of strings representing individual constraints
-                        (which may include previously joined constraint groups)
-    :param operator: constraint group operator, one of "&", "|", "!", which represent
-                     "and", "or" and "not" operations on those constraints.
-                     "!" requires that the list contains one and only one constraint.
-                     Defaults to "&" (and) if not given.
-    :return: string representation of the compound constraint.
-
-    example:
-    ```python
-    >>> from dataclasses import dataclass
-    >>> from golem_core.core.market_api import join_str_constraints
-    >>>
-    >>> min_bar = '(bar>=42)'
-    >>> max_bar = '(bar<=128)'
-    >>> print(join_str_constraints([min_bar, max_bar]))
-    (&(bar>=42)
-        (bar<=128))
-    ```
-    """
-    constraints = [c for c in constraints if c]
-
-    if operator == "!":
-        if len(constraints) == 1:
-            return f"({operator}{constraints[0]})"
-        else:
-            raise ConstraintException(f"{operator} requires exactly one component.")
-
-    if not constraints:
-        return f"({operator})"
-
-    if len(constraints) == 1:
-        return f"{constraints[0]}"
-
-    rules = "\n\t".join(constraints)
-    return f"({operator}{rules})"
-
-
 __all__ = (
     "DemandOfferBaseModel",
     "prop",
     "constraint",
-    "join_str_constraints",
 )

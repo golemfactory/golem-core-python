@@ -1,4 +1,5 @@
 import asyncio
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, AsyncIterator, Callable, Dict, List, Optional, Union
 
 from ya_market import RequestorApi
@@ -6,6 +7,8 @@ from ya_market import models as models
 
 from golem_core.core.market_api.events import DemandClosed, NewDemand
 from golem_core.core.market_api.resources.proposal import Proposal
+from golem_core.core.props_cons.constraints import Constraints
+from golem_core.core.props_cons.properties import Properties
 from golem_core.core.resources import (
     _NULL,
     Resource,
@@ -17,6 +20,15 @@ from golem_core.core.resources.base import TModel
 
 if TYPE_CHECKING:
     from golem_core.core.golem_node import GolemNode
+
+
+@dataclass
+class DemandData:
+    properties: Properties
+    constraints: Constraints
+    demand_id: str
+    requestor_id: str
+    timestamp: str
 
 
 class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], YagnaEventCollector):

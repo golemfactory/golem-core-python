@@ -1,12 +1,11 @@
-import abc
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from ctypes import Union
+from typing import TYPE_CHECKING, Optional
 
 from golem_core.core.market_api.resources.demand.demand import Demand
-from golem_core.core.market_api.resources.demand.demand_offer_base.model import (
-    DemandOfferBaseModel,
-    join_str_constraints,
-)
+from golem_core.core.market_api.resources.demand.demand_offer_base.model import DemandOfferBaseModel
+from golem_core.core.props_cons.constraints import Constraint, ConstraintGroup, Constraints
+from golem_core.core.props_cons.properties import Properties
 
 if TYPE_CHECKING:  # pragma: no cover
     from golem_core.core.golem_node import GolemNode
@@ -34,10 +33,10 @@ class DemandBuilder:
     """
 
     def __init__(
-        self, properties: Optional[Dict[str, Any]] = None, constraints: Optional[List[str]] = None
+        self, properties: Optional[Properties] = None, constraints: Optional[Constraints] = None
     ):
-        self._properties: Dict[str, Any] = properties if properties is not None else {}
-        self._constraints: List[str] = constraints if constraints is not None else []
+        self._properties: Properties = properties if properties is not None else Properties()
+        self._constraints: Constraints = constraints if constraints is not None else Constraints()
 
     def __repr__(self):
         return repr({"properties": self._properties, "constraints": self._constraints})
@@ -46,18 +45,18 @@ class DemandBuilder:
         return (
             isinstance(other, DemandBuilder)
             and self._properties == other.properties
-            and self.constraints == other.constraints
+            and self._constraints == other.constraints
         )
 
     @property
-    def properties(self) -> Dict:
-        """List of properties for this demand."""
+    def properties(self) -> Properties:
+        """Collection of acumulated Properties."""
         return self._properties
 
     @property
-    def constraints(self) -> str:
-        """Constraints definition for this demand."""
-        return join_str_constraints(self._constraints)
+    def constraints(self) -> Constraints:
+        """Collection of acumulated Constraints."""
+        return self._constraints
 
     async def add(self, model: DemandOfferBaseModel):
         """Add properties and constraints from the given model to this demand definition."""
@@ -67,19 +66,13 @@ class DemandBuilder:
         self.add_properties(properties)
         self.add_constraints(constraints)
 
-    def add_properties(self, props: Dict):
+    def add_properties(self, props: Properties):
         """Add properties from the given dictionary to this demand definition."""
         self._properties.update(props)
 
-    def add_constraints(self, *constraints: str):
+    def add_constraints(self, constraints: Union[Constraint, ConstraintGroup]):
         """Add a constraint from given args to the demand definition."""
-        self._constraints.extend(constraints)
-
-    async def decorate(self, *decorators: "DemandBuilderDecorator"):
-        """Decorate demand definition with given demand decorators."""
-
-        for decorator in decorators:
-            await decorator.decorate_demand_builder(self)
+        self._constraints.items.extend(constraints)
 
     async def create_demand(self, node: "GolemNode") -> "Demand":
         """Create demand and subscribe to its events."""
@@ -92,15 +85,3 @@ class DemandBuilder:
         demand_data = deepcopy(await demand.get_data())
 
         return cls(demand_data.properties, [demand_data.constraints])
-
-
-class DemandBuilderDecorator(abc.ABC):
-    """An interface that specifies classes that can add properties and constraints through a \
-    DemandBuilder."""
-
-    @abc.abstractmethod
-    async def decorate_demand_builder(self, demand_builder: DemandBuilder) -> None:
-        """Decorate given DemandBuilder.
-
-        Intended to be overriden to customize given DemandBuilder decoration.
-        """
