@@ -80,7 +80,7 @@ async def main():
         on_activity_start=on_activity_start(network_manager.get_deploy_args),
     )
     work_manager = SequentialWorkManager(golem, activity_manager.do_work)
-
+    # TODO use different managers so it allows to finish work func without destroying activity
     async with golem, network_manager, payment_manager, negotiation_manager, proposal_manager:
         result: WorkResult = await work_manager.do_work(
             work(golem._api_config.app_key, network_manager.get_provider_uri)
