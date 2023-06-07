@@ -14,8 +14,8 @@ class Batch:
         self._script = Script()
         self._activity = activity
 
-    def deploy(self):
-        self._script.add_command(commands.Deploy())
+    def deploy(self, deploy_args: Optional[commands.ArgsDict] = None):
+        self._script.add_command(commands.Deploy(deploy_args))
 
     def start(self):
         self._script.add_command(commands.Start())
@@ -38,8 +38,8 @@ class WorkContext:
     def __init__(self, activity: Activity):
         self._activity = activity
 
-    async def deploy(self):
-        pooling_batch = await self._activity.execute_commands(commands.Deploy())
+    async def deploy(self, deploy_args: Optional[commands.ArgsDict] = None):
+        pooling_batch = await self._activity.execute_commands(commands.Deploy(deploy_args))
         await pooling_batch.wait()
 
     async def start(self):
@@ -105,6 +105,10 @@ class Manager(ABC):
 
     async def stop(self):
         ...
+
+
+class NetworkManager(Manager, ABC):
+    ...
 
 
 class PaymentManager(Manager, ABC):

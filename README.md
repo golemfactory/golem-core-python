@@ -30,7 +30,7 @@ $ python -m golem_core find-node --runtime vm --timeout 1m # stops after 60 seco
 $ python -m golem_core allocation list
 
 $ python -m golem_core allocation new 1
-$ python -m golem_core allocation new 2 --driver erc20 --network rinkeby
+$ python -m golem_core allocation new 2 --driver erc20 --network goerli
 
 $ python -m golem_core allocation clean
 ```

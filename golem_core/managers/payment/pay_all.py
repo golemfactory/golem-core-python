@@ -54,6 +54,7 @@ class PayAllPaymentManager(PaymentManager):
         logger.debug("Stopping done")
 
     async def get_allocation(self) -> "Allocation":
+        # TODO handle NoMatchingAccount
         logger.debug("Getting allocation...")
 
         if self._allocation is None:
