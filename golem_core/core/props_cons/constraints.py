@@ -1,23 +1,22 @@
 from abc import ABC, abstractmethod
-from ctypes import Union
 from dataclasses import dataclass, field
-from enum import StrEnum
-from typing import Any, MutableSequence
+from enum import Enum
+from typing import Any, MutableSequence, Union
 
-from golem_core.core.props_cons.base import PropertyPath
+from golem_core.core.props_cons.base import PropertyName
 
 
 class ConstraintException(Exception):
     pass
 
 
-class ConstraintOperator(StrEnum):
+class ConstraintOperator(Enum):
     EQUALS = "="
     GRATER_OR_EQUALS = ">="
     LESS_OR_EQUALS = "<="
 
 
-class ConstraintGroupOperator(StrEnum):
+class ConstraintGroupOperator(Enum):
     AND = "&"
     OR = "|"
     NOT = "!"
@@ -43,12 +42,12 @@ class MarketDemandOfferSyntaxElement(ABC):
 
 @dataclass
 class Constraint(MarketDemandOfferSyntaxElement):
-    property_path: PropertyPath
+    property_name: PropertyName
     operator: ConstraintOperator
     value: Any
 
     def _serialize(self) -> str:
-        return f"({self.property_path}{self.operator}{self.value})"
+        return f"({self.property_name}{self.operator}{self.value})"
 
 
 @dataclass
@@ -58,7 +57,7 @@ class ConstraintGroup(MarketDemandOfferSyntaxElement):
 
     def _validate(self) -> None:
         if self.operator == "!" and 2 <= len(self.items):
-            return ConstraintException("ConstraintGroup with `!` operator can contain only 1 item!")
+            raise ConstraintException("ConstraintGroup with `!` operator can contain only 1 item!")
 
     def _serialize(self) -> str:
         items_len = len(self.items)

@@ -48,7 +48,7 @@ class DemandOfferBaseModel(abc.ABC):
         """Return a serialized collection of constraint values."""
         return Constraints(
             Constraint(
-                property_path=field.metadata[PROP_KEY],
+                property_name=field.metadata[PROP_KEY],
                 operator=field.metadata[PROP_OPERATOR],
                 value=getattr(self, field.name),
             )

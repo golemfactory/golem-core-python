@@ -6,7 +6,7 @@ from typing import Any
 
 from golem_core.utils.typing import match_type_union_aware
 
-PropertyPath = str
+PropertyName = str
 PropertyValue = Any
 
 

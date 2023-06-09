@@ -7,6 +7,8 @@ from ya_payment import RequestorApi, models
 
 from golem_core.core.payment_api.events import NewAllocation
 from golem_core.core.payment_api.exceptions import NoMatchingAccount
+from golem_core.core.props_cons.constraints import Constraints
+from golem_core.core.props_cons.properties import Properties
 from golem_core.core.resources import _NULL, Resource, ResourceClosed, api_call_wrapper
 from golem_core.core.resources.base import TModel
 
@@ -86,6 +88,16 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
         return cls(node, created.allocation_id, created)
 
     @api_call_wrapper()
-    async def demand_properties_constraints(self) -> Tuple[List[models.MarketProperty], List[str]]:
+    async def get_properties_and_constraints_for_demand(self) -> Tuple[Properties, Constraints]:
         data = await self.api.get_demand_decorations([self.id])
+
+        properties = Properties({
+            prop.name: prop.value
+            for prop in data.properties
+        })
+
+        print(data.constraints)
+
+        constraints = self._node._demand_offer_syntax_parser.parse()
+
         return data.properties, data.constraints

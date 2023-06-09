@@ -57,7 +57,7 @@ class SequentialNegotiationManager(NegotiationManager):
             logger.debug(f"Starting failed with `{message}`")
             raise ManagerException(message)
 
-        self._negotiation_loop_task = asyncio.create_task(self._negotiation_loop(self._payload))
+        self._negotiation_loop_task = asyncio.create_task(self._negotiation_loop())
 
         logger.debug("Starting done")
 
@@ -77,9 +77,9 @@ class SequentialNegotiationManager(NegotiationManager):
     def is_started_started(self) -> bool:
         return self._negotiation_loop_task is not None
 
-    async def _negotiation_loop(self, payload: Payload) -> None:
+    async def _negotiation_loop(self) -> None:
         allocation = await self._get_allocation()
-        demand_builder = await self._prepare_demand_builder(allocation, payload)
+        demand_builder = await self._prepare_demand_builder(allocation)
 
         demand = await demand_builder.create_demand(self._golem)
         demand.start_collecting_events()
@@ -90,9 +90,7 @@ class SequentialNegotiationManager(NegotiationManager):
         finally:
             await demand.unsubscribe()
 
-    async def _prepare_demand_builder(
-        self, allocation: Allocation, payload: Payload
-    ) -> DemandBuilder:
+    async def _prepare_demand_builder(self, allocation: Allocation) -> DemandBuilder:
         logger.debug("Preparing demand...")
 
         # FIXME: Code looks duplicated as GolemNode.create_demand does the same
@@ -107,7 +105,7 @@ class SequentialNegotiationManager(NegotiationManager):
         )
         await demand_builder.add(dobm_defaults.NodeInfo(subnet_tag=SUBNET))
 
-        await demand_builder.add(payload)
+        await demand_builder.add(self._payload)
 
         (
             allocation_properties,

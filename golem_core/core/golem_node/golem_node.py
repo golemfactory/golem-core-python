@@ -19,6 +19,7 @@ from golem_core.core.payment_api import (
     Invoice,
     InvoiceEventCollector,
 )
+from golem_core.core.props_cons.parsers.textx.parser import TextXDemandOfferSyntaxParser
 from golem_core.core.resources import ApiConfig, ApiFactory, Resource, TResource
 
 PAYMENT_DRIVER: str = os.getenv("YAGNA_PAYMENT_DRIVER", "erc20").lower()
@@ -84,6 +85,7 @@ class GolemNode:
         self._resources: DefaultDict[Type[Resource], Dict[str, Resource]] = defaultdict(dict)
         self._autoclose_resources: Set[Resource] = set()
         self._event_bus = InMemoryEventBus()
+        self._demand_offer_syntax_parser = TextXDemandOfferSyntaxParser()
 
         self._invoice_event_collector = InvoiceEventCollector(self)
         self._debit_note_event_collector = DebitNoteEventCollector(self)

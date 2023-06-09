@@ -1,9 +1,12 @@
-from copy import deepcopy
 from ctypes import Union
-from typing import TYPE_CHECKING, Optional
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Iterable, Optional
 
+from golem_core.core.golem_node.golem_node import DEFAULT_EXPIRATION_TIMEOUT, SUBNET
 from golem_core.core.market_api.resources.demand.demand import Demand
+from golem_core.core.market_api.resources.demand.demand_offer_base import defaults as dobm_defaults
 from golem_core.core.market_api.resources.demand.demand_offer_base.model import DemandOfferBaseModel
+from golem_core.core.payment_api.resources.allocation import Allocation
 from golem_core.core.props_cons.constraints import Constraint, ConstraintGroup, Constraints
 from golem_core.core.props_cons.properties import Properties
 
@@ -35,53 +38,66 @@ class DemandBuilder:
     def __init__(
         self, properties: Optional[Properties] = None, constraints: Optional[Constraints] = None
     ):
-        self._properties: Properties = properties if properties is not None else Properties()
-        self._constraints: Constraints = constraints if constraints is not None else Constraints()
+        self.properties: Properties = properties if properties is not None else Properties()
+        self.constraints: Constraints = constraints if constraints is not None else Constraints()
 
     def __repr__(self):
-        return repr({"properties": self._properties, "constraints": self._constraints})
+        return repr({"properties": self.properties, "constraints": self.constraints})
 
     def __eq__(self, other):
         return (
             isinstance(other, DemandBuilder)
-            and self._properties == other.properties
-            and self._constraints == other.constraints
+            and self.properties == other.properties
+            and self.constraints == other.constraints
         )
-
-    @property
-    def properties(self) -> Properties:
-        """Collection of acumulated Properties."""
-        return self._properties
-
-    @property
-    def constraints(self) -> Constraints:
-        """Collection of acumulated Constraints."""
-        return self._constraints
 
     async def add(self, model: DemandOfferBaseModel):
         """Add properties and constraints from the given model to this demand definition."""
 
-        properties, constraints = await model.serialize()
+        properties, constraints = await model.build_properties_and_constraints()
 
         self.add_properties(properties)
         self.add_constraints(constraints)
 
     def add_properties(self, props: Properties):
         """Add properties from the given dictionary to this demand definition."""
-        self._properties.update(props)
+        self.properties.update(props)
 
-    def add_constraints(self, constraints: Union[Constraint, ConstraintGroup]):
+    def add_constraints(self, *constraints: Union[Constraint, ConstraintGroup]):
         """Add a constraint from given args to the demand definition."""
-        self._constraints.items.extend(constraints)
+        self.constraints.items.extend(constraints)
+
+    async def add_default_parameters(
+        self,
+        subnet: Optional[str] = SUBNET,
+        expiration: Optional[datetime] = None,
+        allocations: Iterable[Allocation] = (),
+    ) -> None:
+        """Subscribe a new demand.
+
+        :param payload: Details of the demand
+        :param subnet: Subnet tag
+        :param expiration: Timestamp when all agreements based on this demand will expire
+            TODO: is this correct?
+        :param allocations: Allocations that will be included in the description of this demand.
+        :param autoclose: Unsubscribe demand on :func:`__aexit__`
+        :param autostart: Immediately start collecting yagna events for this :any:`Demand`.
+            Without autostart events for this demand will start being collected after a call to
+            :func:`Demand.start_collecting_events`.
+        """
+        if expiration is None:
+            expiration = datetime.now(timezone.utc) + DEFAULT_EXPIRATION_TIMEOUT
+
+        await self.add(dobm_defaults.Activity(expiration=expiration, multi_activity=True))
+        await self.add(dobm_defaults.NodeInfo(subnet_tag=subnet))
+
+        for allocation in allocations:
+            properties, constraints = await allocation.get_properties_and_constraints_for_demand()
+            self.add_constraints(constraints)
+            self.add_properties(properties)
 
     async def create_demand(self, node: "GolemNode") -> "Demand":
         """Create demand and subscribe to its events."""
         return await Demand.create_from_properties_constraints(
             node, self.properties, self.constraints
         )
-
-    @classmethod
-    async def from_demand(cls, demand: "Demand") -> "DemandBuilder":
-        demand_data = deepcopy(await demand.get_data())
-
-        return cls(demand_data.properties, [demand_data.constraints])
