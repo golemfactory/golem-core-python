@@ -1,9 +1,10 @@
-from typing import TYPE_CHECKING, AsyncIterator, Callable, Dict, List, Union
+from typing import TYPE_CHECKING, AsyncIterator, Callable, Dict, Iterable, List, Union
 
 from ya_market import RequestorApi
 from ya_market import models as models
 
 from golem_core.core.market_api.resources.proposal import Proposal
+from golem_core.core.payment_api.resources.allocation import Allocation
 from golem_core.core.resources import (
     _NULL,
     Resource,
@@ -22,6 +23,12 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], Yagn
 
     Created with one of the :class:`Demand`-returning methods of the :any:`GolemNode`.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # FIXME: allocations should be not included this way
+        self.allocations: Iterable[Allocation] = []
 
     ######################
     #   EXTERNAL INTERFACE
@@ -95,12 +102,16 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], Yagn
         node: "GolemNode",
         properties: Dict[str, str],
         constraints: str,
+        allocations: Iterable[Allocation],
     ) -> "Demand":
         data = models.DemandOfferBase(
             properties=properties,
             constraints=constraints,
         )
-        return await cls.create(node, data)
+        demand = await cls.create(node, data)
+        demand.allocations = allocations
+
+        return demand
 
     @classmethod
     async def create(cls, node: "GolemNode", data: models.DemandOfferBase) -> "Demand":

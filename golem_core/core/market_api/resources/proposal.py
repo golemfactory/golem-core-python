@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, AsyncIterator, Optional, Union
+from typing import TYPE_CHECKING, AsyncIterator, Optional, Set, Union
 
 from ya_market import RequestorApi
 from ya_market import models as models
@@ -161,10 +161,41 @@ class Proposal(
     async def _response_data(self) -> models.DemandOfferBase:
         # FIXME: this is a mock
         demand_data = await self.demand.get_data()
+
+        await self._add_choosen_payment_platform_property(demand_data)
+
         data = models.DemandOfferBase(
             properties=demand_data.properties, constraints=demand_data.constraints
         )
         return data
+
+    async def _add_choosen_payment_platform_property(self, demand_data) -> None:
+        # Check if any of the supported payment platforms matches the proposal
+        common_platforms = self._get_common_payment_platforms()
+
+        if common_platforms:
+            demand_data.properties["golem.com.payment.chosen-platform"] = next(
+                iter(common_platforms)
+            )
+        else:
+            # reject proposal if there are no common payment platforms
+            return await self.reject("No common payment platform")
+
+    def _get_common_payment_platforms(self) -> Set[str]:
+        provider_platforms = {
+            property.split(".")[4]
+            for property in self.data.properties
+            if property.startswith("golem.com.payment.platform.") and property is not None
+        }
+
+        requestor_platforms = {
+            allocation.data.payment_platform
+            # FIXME: allocations should be not included this way
+            for allocation in self.demand.allocations
+            if allocation.data.payment_platform is not None
+        }
+
+        return requestor_platforms.intersection(provider_platforms)
 
     ##########################
     #   Other

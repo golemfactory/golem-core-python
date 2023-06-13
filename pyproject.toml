@@ -51,6 +51,8 @@ sphinx-autodoc-typehints = "^1"
 sphinx-rtd-theme = "^1"
 
 poethepoet = "^0.8"
+pip = "*"
+setuptools = "*"
 
 [tool.poe.tasks]
 checks = {sequence = ["checks_codestyle", "checks_typing", "checks_license"], help = "Run all available code checks"}

@@ -22,7 +22,7 @@ from golem_core.core.payment_api import (
 from golem_core.core.resources import ApiConfig, ApiFactory, Resource, TResource
 
 PAYMENT_DRIVER: str = os.getenv("YAGNA_PAYMENT_DRIVER", "erc20").lower()
-PAYMENT_NETWORK: str = os.getenv("YAGNA_PAYMENT_NETWORK", "rinkeby").lower()
+PAYMENT_NETWORK: str = os.getenv("YAGNA_PAYMENT_NETWORK", "goerli").lower()
 SUBNET: str = os.getenv("YAGNA_SUBNET", "public")
 
 DEFAULT_EXPIRATION_TIMEOUT = timedelta(minutes=30)
@@ -232,7 +232,7 @@ class GolemNode:
         await self._add_builder_allocations(builder, allocations)
 
         demand = await Demand.create_from_properties_constraints(
-            self, builder.properties, builder.constraints
+            self, builder.properties, builder.constraints, allocations
         )
 
         if autostart:

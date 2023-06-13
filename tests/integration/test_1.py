@@ -45,7 +45,7 @@ async def test_singletons(golem):
 async def test_allocation(golem):
     async with golem:
         amount = random()
-        allocation = await golem.create_allocation(amount=amount)
+        allocation = await golem.create_allocation(amount=amount, network="rinkeby")
         assert float(allocation.data.total_amount) == amount
 
         old_data = allocation.data
@@ -63,7 +63,7 @@ async def test_allocation(golem):
 @pytest.mark.asyncio
 async def test_demand(golem):
     async with golem:
-        allocation = await golem.create_allocation(1)
+        allocation = await golem.create_allocation(1, network="rinkeby")
         demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
         async for proposal in demand.initial_proposals():
@@ -80,7 +80,7 @@ async def test_demand(golem):
 @pytest.mark.parametrize("autoclose", (True, False))
 async def test_autoclose(golem, autoclose):
     async with golem:
-        allocation = await golem.create_allocation(1, autoclose=autoclose)
+        allocation = await golem.create_allocation(1, autoclose=autoclose, network="rinkeby")
         demand = await golem.create_demand(PAYLOAD, allocations=[allocation], autoclose=autoclose)
 
     async with golem:

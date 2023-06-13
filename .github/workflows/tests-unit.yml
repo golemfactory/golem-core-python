@@ -29,7 +29,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - uses: Gr1N/setup-poetry@v8
         with:
-          poetry-version: 1.2.2
+          poetry-version: 1.5.0
 
       - run: poetry install
 

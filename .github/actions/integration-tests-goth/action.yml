@@ -16,16 +16,15 @@ runs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ inputs.PYTHON_VERSION }}
+
     - name: Install and configure Poetry
-      uses: snok/install-poetry@v1
+      uses: Gr1N/setup-poetry@v8
       with:
-        version: 1.4.1
+        poetry-version: 1.5.1
 
     - name: Install dependencies
       shell: bash
-      run: |
-        poetry env use python${{ inputs.PYTHON_VERSION }}
-        poetry install
+      run: poetry install -vvv
 
     - name: Disconnect Docker containers from default network
       shell: bash
@@ -59,6 +58,21 @@ runs:
     - name: Run tests
       shell: bash
       run: poetry run ./tests/integration/run-tests.sh
+
+    # Only relevant for self-hosted runners
+    - name: Remove test logs
+      shell: bash
+      if: always()
+      run: rm -rf /tmp/goth-tests
+
+    # Only relevant for self-hosted runners
+    - name: Remove poetry virtual env
+      shell: bash
+      if: always()
+      # Python version below should agree with the version set up by this job.
+      # In future we'll be able to use the `--all` flag here to remove envs for
+      # all Python versions (https://github.com/python-poetry/poetry/issues/3208).
+      run: poetry env remove python${{ inputs.PYTHON_VERSION }}
 
     - name: Remove Docker containers
       shell: bash

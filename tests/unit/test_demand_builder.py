@@ -53,20 +53,22 @@ def test_repr():
 async def test_create_demand(mocker):
     demand_builder = DemandBuilder()
 
+    allocation = mocker.Mock()
+    mocked_instance = mocker.Mock(
+        allocations=[allocation]
+    )  # FIXME: allocations should be not included this way
     mocked_node = mocker.Mock()
     mocked_demand = mocker.patch(
         "golem_core.core.market_api.resources.demand.demand_builder.Demand",
-        **{"create_from_properties_constraints": mocker.AsyncMock(return_value="foobar")},
+        **{"create_from_properties_constraints": mocker.AsyncMock(return_value=mocked_instance)},
     )
 
-    result = await demand_builder.create_demand(mocked_node)
+    result = await demand_builder.create_demand(mocked_node, [allocation])
 
-    assert result == "foobar"
+    assert result == mocked_instance
 
     mocked_demand.create_from_properties_constraints.assert_called_with(
-        mocked_node,
-        demand_builder.properties,
-        demand_builder.constraints,
+        mocked_node, demand_builder.properties, demand_builder.constraints, [allocation]
     )
 
 
