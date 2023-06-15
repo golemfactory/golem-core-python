@@ -10,7 +10,6 @@ from golem_core.core.market_api.resources.demand import (
     ConstraintException,
     Demand,
     DemandBuilder,
-    DemandBuilderDecorator,
     DemandOfferBaseModel,
     InvalidPropertiesError,
     ManifestVmPayload,
@@ -20,7 +19,6 @@ from golem_core.core.market_api.resources.demand import (
     TDemandOfferBaseModel,
     VmPayloadException,
     constraint,
-    join_str_constraints,
     prop,
 )
 from golem_core.core.market_api.resources.proposal import Proposal
@@ -33,7 +31,6 @@ __all__ = (
     "ManifestVmPayload",
     "VmPayloadException",
     "RepositoryVmPayload",
-    "DemandBuilderDecorator",
     "DemandBuilder",
     "Payload",
     "ManifestVmPayload",
@@ -48,7 +45,6 @@ __all__ = (
     "Activity",
     "TDemandOfferBaseModel",
     "DemandOfferBaseModel",
-    "join_str_constraints",
     "constraint",
     "prop",
     "BaseDemandOfferBaseException",

@@ -10,13 +10,13 @@ PropertyName = str
 PropertyValue = Any
 
 
-class PropsConstrsSerializer:
+class PropsConstrsSerializerMixin:
     @classmethod
-    def serialize_value(cls, value: Any) -> Any:
+    def _serialize_value(cls, value: Any) -> Any:
         """Return value in primitive format compatible with Golem's property and constraint syntax."""
 
         if isinstance(value, (list, tuple)):
-            return type(value)(cls.serialize_value(v) for v in value)
+            return type(value)(cls._serialize_value(v) for v in value)
 
         if isinstance(value, datetime.datetime):
             return int(value.timestamp() * 1000)
@@ -27,7 +27,7 @@ class PropsConstrsSerializer:
         return value
 
     @classmethod
-    def deserialize_value(cls, value: Any, field: Field) -> Any:
+    def _deserialize_value(cls, value: Any, field: Field) -> Any:
         """Return proper value for field from given primitive.
 
         Intended to be overriden with additional type serialisation methods.

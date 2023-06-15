@@ -111,12 +111,12 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], Yagn
     async def create_from_properties_constraints(
         cls,
         node: "GolemNode",
-        properties: Dict[str, str],
-        constraints: str,
+        properties: Properties,
+        constraints: Constraints,
     ) -> "Demand":
         data = models.DemandOfferBase(
-            properties=properties,
-            constraints=constraints,
+            properties=properties.serialize(),
+            constraints=constraints.serialize(),
         )
         return await cls.create(node, data)
 

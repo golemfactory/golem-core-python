@@ -1,5 +1,9 @@
 Model:
-    constraints=ConstraintGroup
+    constraints=ConstraintGroupOrSingle
+;
+
+ConstraintGroupOrSingle:
+    ConstraintGroup | Constraint
 ;
 
 ConstraintGroup:
@@ -8,10 +12,6 @@ ConstraintGroup:
 
 Constraint:
     "(" property_path=PropertyName operator=ConstraintOperator value=PropertyValue ")"
-;
-
-ConstraintGroupOrSingle:
-    ConstraintGroup | Constraint
 ;
 
 ConstraintGroupOperator:
@@ -23,7 +23,7 @@ ConstraintOperator:
 ;
 
 PropertyName:
-    /\w+(\.\w+)*/
+    /[\w-]+(\.[\w-]+)*/
 ;
 
 ProeprtyValueList:
@@ -35,5 +35,5 @@ PropertyValue:
 ;
 
 PropertyValueStr:
-    /[a-zA-Z0-9_.\/:;]+/
+    /[a-zA-Z0-9_.\*\/:;]+/
 ;

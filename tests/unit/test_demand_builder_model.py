@@ -10,7 +10,6 @@ from golem_core.core.market_api import (
     DemandOfferBaseModel,
     InvalidPropertiesError,
     constraint,
-    join_str_constraints,
     prop,
 )
 

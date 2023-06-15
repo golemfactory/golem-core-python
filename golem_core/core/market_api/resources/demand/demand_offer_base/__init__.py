@@ -16,7 +16,6 @@ from golem_core.core.market_api.resources.demand.demand_offer_base.model import 
     DemandOfferBaseModel,
     TDemandOfferBaseModel,
     constraint,
-    join_str_constraints,
     prop,
 )
 from golem_core.core.market_api.resources.demand.demand_offer_base.payload import (
@@ -40,7 +39,6 @@ __all__ = (
     "Activity",
     "TDemandOfferBaseModel",
     "DemandOfferBaseModel",
-    "join_str_constraints",
     "constraint",
     "prop",
     "BaseDemandOfferBaseException",

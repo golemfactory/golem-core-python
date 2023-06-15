@@ -4,6 +4,7 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
 from golem_core.core.activity_api import Activity, Script, commands
 from golem_core.core.market_api import Agreement, Proposal
+from golem_core.core.market_api.resources.demand.demand import DemandData
 from golem_core.core.market_api.resources.proposal import ProposalData
 from golem_core.core.payment_api import Allocation
 from golem_core.core.resources import ResourceEvent
@@ -148,5 +149,5 @@ class WorkManager(Manager, ABC):
 
 class NegotiationPlugin(ABC):
     @abstractmethod
-    async def __call__(self, demand_data: ProposalData, offer_data: ProposalData) -> None:
+    async def __call__(self, demand_data: DemandData, proposal_data: ProposalData) -> None:
         ...

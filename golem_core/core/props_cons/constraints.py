@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, MutableSequence, Union
 
-from golem_core.core.props_cons.base import PropertyName
+from golem_core.core.props_cons.base import PropertyName, PropsConstrsSerializerMixin
 
 
 class ConstraintException(Exception):
@@ -23,7 +23,7 @@ class ConstraintGroupOperator(Enum):
 
 
 @dataclass
-class MarketDemandOfferSyntaxElement(ABC):
+class MarketDemandOfferSyntaxElement(PropsConstrsSerializerMixin, ABC):
     def __post_init__(self) -> None:
         self._validate()
 
@@ -47,7 +47,12 @@ class Constraint(MarketDemandOfferSyntaxElement):
     value: Any
 
     def _serialize(self) -> str:
-        return f"({self.property_name}{self.operator}{self.value})"
+        serialized_value = self._serialize_value(self.value)
+
+        if isinstance(self.value, (list, tuple)):
+            serialized_value = '[{}]'.format(', '.join(str(v) for v in serialized_value))
+
+        return f"({self.property_name}{self.operator}{serialized_value})"
 
 
 @dataclass
@@ -60,14 +65,6 @@ class ConstraintGroup(MarketDemandOfferSyntaxElement):
             raise ConstraintException("ConstraintGroup with `!` operator can contain only 1 item!")
 
     def _serialize(self) -> str:
-        items_len = len(self.items)
-
-        if items_len == 0:
-            return f"({self.operator})"
-
-        if items_len == 1:
-            return self.items[0].serialize()
-
         items = "\n\t".join(item.serialize() for item in self.items)
 
         return f"({self.operator}{items})"

@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from textx import metamodel_from_file
+from textx import metamodel_from_file, TextXSyntaxError
 
 from golem_core.core.props_cons.constraints import Constraint, ConstraintGroup, Constraints
-from golem_core.core.props_cons.parsers.base import DemandOfferSyntaxParser
+from golem_core.core.props_cons.parsers.base import DemandOfferSyntaxParser, SyntaxException
 
 
 class TextXDemandOfferSyntaxParser(DemandOfferSyntaxParser):
@@ -18,6 +18,9 @@ class TextXDemandOfferSyntaxParser(DemandOfferSyntaxParser):
         )
 
     def parse(self, syntax: str) -> Constraints:
-        model = self._metamodel.model_from_str(syntax)
+        try:
+            model = self._metamodel.model_from_str(syntax)
+        except TextXSyntaxError as e:
+            raise SyntaxException(f"Syntax `{syntax}` parsed with following error: {e}")
 
         return model.constraints

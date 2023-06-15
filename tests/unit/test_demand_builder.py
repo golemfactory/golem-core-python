@@ -4,7 +4,6 @@ import pytest
 
 from golem_core.core.market_api import (
     DemandBuilder,
-    DemandBuilderDecorator,
     DemandOfferBaseModel,
     constraint,
     prop,
@@ -17,16 +16,6 @@ class ExampleModel(DemandOfferBaseModel):
     prop2: int = prop("some.prop2.path")
     con1: int = constraint("some.con1.path", "=")
     con2: int = constraint("some.con2.path", "<=")
-
-
-class ExampleBuilderDecorator(DemandBuilderDecorator):
-    async def decorate_demand_builder(self, demand_builder: DemandBuilder) -> None:
-        demand_builder.add_properties({"some.fancy.field": "was just added by demand decorator"})
-
-
-class AnotherExampleBuilderDecorator(DemandBuilderDecorator):
-    async def decorate_demand_builder(self, demand_builder: DemandBuilder) -> None:
-        demand_builder.add_constraints("field=added")
 
 
 @pytest.mark.asyncio
@@ -68,19 +57,3 @@ async def test_create_demand(mocker):
         demand_builder.properties,
         demand_builder.constraints,
     )
-
-
-@pytest.mark.asyncio
-async def test_decorate():
-    demand_builder = DemandBuilder()
-
-    assert demand_builder.properties == {}
-    assert demand_builder.constraints == "(&)"
-
-    await demand_builder.decorate(ExampleBuilderDecorator(), AnotherExampleBuilderDecorator())
-
-    assert demand_builder.properties == {
-        "some.fancy.field": "was just added by demand decorator",
-    }
-
-    assert demand_builder.constraints == "field=added"

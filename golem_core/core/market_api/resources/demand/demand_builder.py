@@ -1,13 +1,13 @@
-from ctypes import Union
+from copy import deepcopy
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Iterable, Optional
+from typing import TYPE_CHECKING, Iterable, Optional, Union
 
-from golem_core.core.golem_node.golem_node import DEFAULT_EXPIRATION_TIMEOUT, SUBNET
 from golem_core.core.market_api.resources.demand.demand import Demand
 from golem_core.core.market_api.resources.demand.demand_offer_base import defaults as dobm_defaults
 from golem_core.core.market_api.resources.demand.demand_offer_base.model import DemandOfferBaseModel
 from golem_core.core.payment_api.resources.allocation import Allocation
 from golem_core.core.props_cons.constraints import Constraint, ConstraintGroup, Constraints
+from golem_core.core.props_cons.parsers.base import DemandOfferSyntaxParser
 from golem_core.core.props_cons.properties import Properties
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -38,8 +38,8 @@ class DemandBuilder:
     def __init__(
         self, properties: Optional[Properties] = None, constraints: Optional[Constraints] = None
     ):
-        self.properties: Properties = properties if properties is not None else Properties()
-        self.constraints: Constraints = constraints if constraints is not None else Constraints()
+        self.properties: Properties = deepcopy(properties) if properties is not None else Properties()
+        self.constraints: Constraints = deepcopy(constraints) if constraints is not None else Constraints()
 
     def __repr__(self):
         return repr({"properties": self.properties, "constraints": self.constraints})
@@ -69,22 +69,24 @@ class DemandBuilder:
 
     async def add_default_parameters(
         self,
-        subnet: Optional[str] = SUBNET,
+        parser: DemandOfferSyntaxParser,
+        subnet: Optional[str] = None,
         expiration: Optional[datetime] = None,
         allocations: Iterable[Allocation] = (),
     ) -> None:
-        """Subscribe a new demand.
-
+        """
         :param payload: Details of the demand
         :param subnet: Subnet tag
         :param expiration: Timestamp when all agreements based on this demand will expire
             TODO: is this correct?
         :param allocations: Allocations that will be included in the description of this demand.
-        :param autoclose: Unsubscribe demand on :func:`__aexit__`
-        :param autostart: Immediately start collecting yagna events for this :any:`Demand`.
-            Without autostart events for this demand will start being collected after a call to
-            :func:`Demand.start_collecting_events`.
         """
+        # FIXME: get rid of local import
+        from golem_core.core.golem_node.golem_node import DEFAULT_EXPIRATION_TIMEOUT, SUBNET
+
+        if subnet is None:
+            subnet = SUBNET
+
         if expiration is None:
             expiration = datetime.now(timezone.utc) + DEFAULT_EXPIRATION_TIMEOUT
 
@@ -92,7 +94,9 @@ class DemandBuilder:
         await self.add(dobm_defaults.NodeInfo(subnet_tag=subnet))
 
         for allocation in allocations:
-            properties, constraints = await allocation.get_properties_and_constraints_for_demand()
+            properties, constraints = await allocation.get_properties_and_constraints_for_demand(
+                parser
+            )
             self.add_constraints(constraints)
             self.add_properties(properties)
 

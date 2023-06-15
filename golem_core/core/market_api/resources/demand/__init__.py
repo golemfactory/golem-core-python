@@ -1,7 +1,6 @@
 from golem_core.core.market_api.resources.demand.demand import Demand
 from golem_core.core.market_api.resources.demand.demand_builder import (
     DemandBuilder,
-    DemandBuilderDecorator,
 )
 from golem_core.core.market_api.resources.demand.demand_offer_base import (
     INF_CPU_THREADS,
@@ -21,7 +20,6 @@ from golem_core.core.market_api.resources.demand.demand_offer_base import (
     TDemandOfferBaseModel,
     VmPayloadException,
     constraint,
-    join_str_constraints,
     prop,
 )
 
@@ -31,7 +29,6 @@ __all__ = (
     "ManifestVmPayload",
     "VmPayloadException",
     "RepositoryVmPayload",
-    "DemandBuilderDecorator",
     "DemandBuilder",
     "Payload",
     "ManifestVmPayload",
@@ -46,7 +43,6 @@ __all__ = (
     "Activity",
     "TDemandOfferBaseModel",
     "DemandOfferBaseModel",
-    "join_str_constraints",
     "constraint",
     "prop",
     "BaseDemandOfferBaseException",

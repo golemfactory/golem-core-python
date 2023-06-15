@@ -1,15 +1,22 @@
 from copy import deepcopy
 from typing import Any, Mapping
 
-from golem_core.core.props_cons.base import PropsConstrsSerializer
+from golem_core.core.props_cons.base import PropsConstrsSerializerMixin
 
 
-class Properties(PropsConstrsSerializer, dict):
+_missing = object()
+
+class Properties(PropsConstrsSerializerMixin, dict):
     """Low level wrapper class for Golem's Market API properties manipulation."""
 
-    def __init__(self, mapping, /) -> None:
+    def __init__(self, mapping=_missing, /) -> None:
+        if mapping is _missing:
+            super().__init__()
+            return
+
         mapping_deep_copy = deepcopy(mapping)
-        super(mapping_deep_copy)
+
+        super().__init__(mapping_deep_copy)
 
     def serialize(self) -> Mapping[str, Any]:
         """Serialize complex objects into format handled by Market API properties specification."""
