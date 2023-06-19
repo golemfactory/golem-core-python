@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import Enum
+
 from golem_core.core.props_cons.properties import Properties
 
 
@@ -10,7 +11,7 @@ class ExampleEnum(Enum):
 def test_property_deepcopies_its_input():
     list_field = [1, 2, 3]
     original_dict = {
-        'foo': "bar",
+        "foo": "bar",
         "list_field": list_field,
     }
     props = Properties(original_dict)
@@ -20,7 +21,7 @@ def test_property_deepcopies_its_input():
     assert props["list_field"][1] == 2
     assert props["list_field"][2] == 3
 
-    props['foo'] = "123"
+    props["foo"] = "123"
     props["list_field"].append(4)
 
     assert props["foo"] == "123"
@@ -29,18 +30,22 @@ def test_property_deepcopies_its_input():
     assert original_dict["foo"] == "bar"
     assert original_dict["list_field"] != props["list_field"]
 
+
 def test_property_serialize():
-    props = Properties({
-        "foo": "bar",
-        "int_field": 123,
-        "float_field": 1.5,
-        "datetime_field": datetime(2023, 1, 2),
-        "enum_field": ExampleEnum.FOO,
-        "list_field": [
-            datetime(2023, 1, 2),
-            ExampleEnum.FOO,
-        ]
-    })
+    props = Properties(
+        {
+            "foo": "bar",
+            "int_field": 123,
+            "float_field": 1.5,
+            "datetime_field": datetime(2023, 1, 2),
+            "enum_field": ExampleEnum.FOO,
+            "list_field": [
+                datetime(2023, 1, 2),
+                ExampleEnum.FOO,
+            ],
+            "nulled_field": None,
+        }
+    )
 
     serialized_props = props.serialize()
 
@@ -53,5 +58,5 @@ def test_property_serialize():
         "list_field": [
             1672614000000,
             "BAR",
-        ]
+        ],
     }

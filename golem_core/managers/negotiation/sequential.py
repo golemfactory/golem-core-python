@@ -1,13 +1,12 @@
 import asyncio
 import logging
 from copy import deepcopy
-from datetime import datetime, timezone
-from typing import AsyncIterator, Awaitable, Callable, List, Optional, Sequence
+from datetime import datetime
+from typing import AsyncIterator, Awaitable, Callable, List, Optional, Sequence, cast
 
-from golem_core.core.golem_node.golem_node import DEFAULT_EXPIRATION_TIMEOUT, SUBNET, GolemNode
+from golem_core.core.golem_node.golem_node import GolemNode
 from golem_core.core.market_api import Demand, DemandBuilder, Payload, Proposal
 from golem_core.core.market_api.resources.demand.demand import DemandData
-from golem_core.core.market_api.resources.demand.demand_offer_base import defaults as dobm_defaults
 from golem_core.core.market_api.resources.proposal import ProposalData
 from golem_core.core.payment_api import Allocation
 from golem_core.core.props_cons.constraints import Constraints
@@ -92,7 +91,7 @@ class SequentialNegotiationManager(NegotiationManager):
 
         print(await demand.get_data())
 
-        logger.debug('Demand published, waiting for proposals...')
+        logger.debug("Demand published, waiting for proposals...")
 
         try:
             async for proposal in self._negotiate(demand):
@@ -106,7 +105,9 @@ class SequentialNegotiationManager(NegotiationManager):
         # FIXME: Code looks duplicated as GolemNode.create_demand does the same
         demand_builder = DemandBuilder()
 
-        await demand_builder.add_default_parameters(self._demand_offer_parser, allocations=[allocation])
+        await demand_builder.add_default_parameters(
+            self._demand_offer_parser, allocations=[allocation]
+        )
 
         await demand_builder.add(self._payload)
 
@@ -135,12 +136,13 @@ class SequentialNegotiationManager(NegotiationManager):
 
         while True:
             demand_data_after_plugins = deepcopy(demand_data)
+            proposal_data = await self._get_proposal_data_from_proposal(offer_proposal)
 
             try:
                 logger.debug(f"Applying plugins on `{offer_proposal}`...")
 
                 for plugin in self._plugins:
-                    await plugin(demand_data_after_plugins, offer_proposal)
+                    await plugin(demand_data_after_plugins, proposal_data)
 
             except RejectProposal as e:
                 logger.debug(
@@ -183,16 +185,31 @@ class SequentialNegotiationManager(NegotiationManager):
 
         return offer_proposal
 
-    async def _get_demand_data_from_demand(self, demand: Demand) -> ProposalData:
+    async def _get_demand_data_from_demand(self, demand: Demand) -> DemandData:
         # FIXME: Unnecessary serialisation from DemandBuilder to Demand, and from Demand to ProposalData
         data = await demand.get_data()
 
-        constraints = Constraints(self._demand_offer_parser.parse(con) for con in data.constraints)
+        constraints = self._demand_offer_parser.parse(data.constraints)
 
         return DemandData(
             properties=Properties(data.properties),
             constraints=constraints,
             demand_id=data.demand_id,
             requestor_id=data.requestor_id,
-            timestamp=data.timestamp,
+            timestamp=cast(datetime, data.timestamp),
+        )
+
+    async def _get_proposal_data_from_proposal(self, proposal: Proposal) -> ProposalData:
+        data = await proposal.get_data()
+
+        constraints = self._demand_offer_parser.parse(data.constraints)
+
+        return ProposalData(
+            properties=Properties(data.properties),
+            constraints=constraints,
+            proposal_id=data.proposal_id,
+            issuer_id=data.issuer_id,
+            state=data.state,
+            timestamp=cast(datetime, data.timestamp),
+            prev_proposal_id=data.prev_proposal_id,
         )

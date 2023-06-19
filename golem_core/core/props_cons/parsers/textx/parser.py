@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from textx import metamodel_from_file, TextXSyntaxError
+from textx import TextXSyntaxError, metamodel_from_file
 
 from golem_core.core.props_cons.constraints import Constraint, ConstraintGroup, Constraints
 from golem_core.core.props_cons.parsers.base import DemandOfferSyntaxParser, SyntaxException
@@ -8,12 +8,12 @@ from golem_core.core.props_cons.parsers.base import DemandOfferSyntaxParser, Syn
 
 class TextXDemandOfferSyntaxParser(DemandOfferSyntaxParser):
     def __init__(self):
-        self._metamodel = metamodel_from_file(Path(__file__).with_name("syntax.tx"))
+        self._metamodel = metamodel_from_file(str(Path(__file__).with_name("syntax.tx")))
         self._metamodel.register_obj_processors(
             {
                 "ConstraintGroup": lambda e: ConstraintGroup(e.items, e.operator),
                 "Constraint": lambda e: Constraint(e.property_path, e.operator, e.value),
-                "ProeprtyValueList": lambda e: e.items,
+                "PropertyValueList": lambda e: e.items,
             }
         )
 

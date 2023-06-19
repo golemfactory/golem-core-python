@@ -19,19 +19,19 @@ ConstraintGroupOperator:
 ;
 
 ConstraintOperator:
-    "=" | ">=" | "<="
+    "=" | "<=" | ">=" | "<" | ">"
 ;
 
 PropertyName:
     /[\w-]+(\.[\w-]+)*/
 ;
 
-ProeprtyValueList:
+PropertyValueList:
     "[" items*=PropertyValue[","] "]"
 ;
 
 PropertyValue:
-    PropertyValueStr | ProeprtyValueList
+    PropertyValueStr | PropertyValueList
 ;
 
 PropertyValueStr:

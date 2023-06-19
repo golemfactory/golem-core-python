@@ -8,6 +8,7 @@ from golem_core.core.props_cons.parsers.textx.parser import TextXDemandOfferSynt
 def demand_offer_parser():
     return TextXDemandOfferSyntaxParser()
 
+
 @pytest.mark.parametrize(
     "input_string, output",
     (
@@ -27,6 +28,8 @@ def demand_offer_parser():
         ("(some.nested.param=1)", Constraint("some.nested.param", "=", "1")),
         ("(foo<=1)", Constraint("foo", "<=", "1")),
         ("(foo>=1)", Constraint("foo", ">=", "1")),
+        ("(foo<1)", Constraint("foo", "<", "1")),
+        ("(foo>1)", Constraint("foo", ">", "1")),
     ),
 )
 def test_single_constraint(demand_offer_parser, input_string, output):
@@ -56,7 +59,6 @@ def test_single_constraint(demand_offer_parser, input_string, output):
             "(| (foo=1) (bar=2))",
             ConstraintGroup([Constraint("foo", "=", "1"), Constraint("bar", "=", "2")], "|"),
         ),
-
         (
             "(| (foo=1) (bar=2))",
             ConstraintGroup([Constraint("foo", "=", "1"), Constraint("bar", "=", "2")], "|"),

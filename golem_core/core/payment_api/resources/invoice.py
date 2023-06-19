@@ -10,8 +10,8 @@ from golem_core.core.resources import _NULL, Resource, api_call_wrapper
 from golem_core.core.resources.base import TModel
 
 if TYPE_CHECKING:
-    from golem_core.core.market_api.resources.agreement import Agreement  # noqa
     from golem_core.core.golem_node import GolemNode
+    from golem_core.core.market_api.resources.agreement import Agreement  # noqa
 
 
 class Invoice(Resource[RequestorApi, models.Invoice, "Agreement", _NULL, _NULL]):

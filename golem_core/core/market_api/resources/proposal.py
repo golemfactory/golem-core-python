@@ -2,7 +2,7 @@ import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, AsyncIterator, Dict, Optional, Union
+from typing import TYPE_CHECKING, AsyncIterator, Optional, Union, Literal
 
 from ya_market import RequestorApi
 from ya_market import models as models
@@ -19,13 +19,7 @@ if TYPE_CHECKING:
     from golem_core.core.market_api.resources.demand import Demand
 
 
-class ProposalState(Enum):
-    INITIDAL = "Initial"
-    DRAFT = "Draft"
-    REJECTED = "Rejected"
-    ACCPETED = "Accepted"
-    EXPIRED = "Expired"
-
+ProposalState = Literal["Initial","Draft","Rejected","Accepted","Expired"]
 
 @dataclass
 class ProposalData:
@@ -181,8 +175,7 @@ class Proposal(
             data = await self._response_data()
         elif properties is not None and constraints is not None:
             data = models.DemandOfferBase(
-                properties=properties.serialize(),
-                constraints=constraints.serialize()
+                properties=properties.serialize(), constraints=constraints.serialize()
             )
         else:
             raise ValueError("Both `properties` and `constraints` arguments must be provided!")

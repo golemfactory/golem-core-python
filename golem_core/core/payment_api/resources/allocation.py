@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 from _decimal import Decimal
 from ya_payment import RequestorApi, models
@@ -89,16 +89,13 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
         return cls(node, created.allocation_id, created)
 
     @api_call_wrapper()
-    async def get_properties_and_constraints_for_demand(self, parser: DemandOfferSyntaxParser) -> Tuple[Properties, Constraints]:
+    async def get_properties_and_constraints_for_demand(
+        self, parser: DemandOfferSyntaxParser
+    ) -> Tuple[Properties, Constraints]:
         data = await self.api.get_demand_decorations([self.id])
 
-        properties = Properties({
-            prop.key: prop.value
-            for prop in data.properties
-        })
+        properties = Properties({prop.key: prop.value for prop in data.properties})
 
-        constraints = Constraints(
-            parser.parse(c) for c in data.constraints
-        )
-        
+        constraints = Constraints(parser.parse(c) for c in data.constraints)
+
         return properties, constraints

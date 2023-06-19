@@ -1,7 +1,5 @@
 from golem_core.core.market_api.resources.demand.demand import Demand
-from golem_core.core.market_api.resources.demand.demand_builder import (
-    DemandBuilder,
-)
+from golem_core.core.market_api.resources.demand.demand_builder import DemandBuilder
 from golem_core.core.market_api.resources.demand.demand_offer_base import (
     INF_CPU_THREADS,
     INF_MEM,

@@ -1,5 +1,6 @@
 import asyncio
 from dataclasses import dataclass
+from datetime import datetime
 from typing import TYPE_CHECKING, AsyncIterator, Callable, Dict, List, Optional, Union
 
 from ya_market import RequestorApi
@@ -28,7 +29,7 @@ class DemandData:
     constraints: Constraints
     demand_id: str
     requestor_id: str
-    timestamp: str
+    timestamp: datetime
 
 
 class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], YagnaEventCollector):

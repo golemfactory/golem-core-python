@@ -1,7 +1,7 @@
 import logging
 from typing import Sequence
-from golem_core.core.market_api.resources.demand.demand import DemandData
 
+from golem_core.core.market_api.resources.demand.demand import DemandData
 from golem_core.core.market_api.resources.proposal import ProposalData
 from golem_core.managers.base import NegotiationPlugin
 from golem_core.managers.negotiation.sequential import RejectProposal
@@ -13,9 +13,7 @@ class BlacklistProviderId(NegotiationPlugin):
     def __init__(self, blacklist: Sequence[str]) -> None:
         self._blacklist = blacklist
 
-    async def __call__(
-        self, demand_data: DemandData, proposal_data: ProposalData
-    ) -> None:
+    async def __call__(self, demand_data: DemandData, proposal_data: ProposalData) -> None:
         logger.debug("Calling blacklist plugin...")
 
         provider_id = proposal_data.issuer_id

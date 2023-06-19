@@ -38,8 +38,12 @@ class DemandBuilder:
     def __init__(
         self, properties: Optional[Properties] = None, constraints: Optional[Constraints] = None
     ):
-        self.properties: Properties = deepcopy(properties) if properties is not None else Properties()
-        self.constraints: Constraints = deepcopy(constraints) if constraints is not None else Constraints()
+        self.properties: Properties = (
+            deepcopy(properties) if properties is not None else Properties()
+        )
+        self.constraints: Constraints = (
+            deepcopy(constraints) if constraints is not None else Constraints()
+        )
 
     def __repr__(self):
         return repr({"properties": self.properties, "constraints": self.constraints})

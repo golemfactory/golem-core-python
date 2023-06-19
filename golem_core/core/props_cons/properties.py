@@ -3,8 +3,8 @@ from typing import Any, Mapping
 
 from golem_core.core.props_cons.base import PropsConstrsSerializerMixin
 
-
 _missing = object()
+
 
 class Properties(PropsConstrsSerializerMixin, dict):
     """Low level wrapper class for Golem's Market API properties manipulation."""
@@ -20,7 +20,9 @@ class Properties(PropsConstrsSerializerMixin, dict):
 
     def serialize(self) -> Mapping[str, Any]:
         """Serialize complex objects into format handled by Market API properties specification."""
-        return {key: self._serialize_property(value) for key, value in self.items()}
+        return {
+            key: self._serialize_property(value) for key, value in self.items() if value is not None
+        }
 
     def _serialize_property(self, value: Any) -> Any:
         return self._serialize_value(value)

@@ -2,12 +2,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from golem_core.core.market_api import (
-    DemandBuilder,
-    DemandOfferBaseModel,
-    constraint,
-    prop,
-)
+from golem_core.core.market_api import DemandBuilder, DemandOfferBaseModel, constraint, prop
 
 
 @dataclass
@@ -30,7 +25,7 @@ async def test_add():
         "some.prop1.path": 1,
         "some.prop2.path": 2,
     }
-
+    
     assert demand_builder.constraints == "(&(some.con1.path=3)\n\t(some.con2.path<=4))"
 
 
