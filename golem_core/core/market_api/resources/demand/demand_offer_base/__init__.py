@@ -4,8 +4,9 @@ from golem_core.core.market_api.resources.demand.demand_offer_base.defaults impo
     INF_STORAGE,
     RUNTIME_CAPABILITIES,
     RUNTIME_NAME,
-    Activity,
+    ActivityInfo,
     NodeInfo,
+    PaymentInfo,
 )
 from golem_core.core.market_api.resources.demand.demand_offer_base.exceptions import (
     BaseDemandOfferBaseException,
@@ -36,7 +37,7 @@ __all__ = (
     "INF_MEM",
     "INF_STORAGE",
     "NodeInfo",
-    "Activity",
+    "ActivityInfo",
     "TDemandOfferBaseModel",
     "DemandOfferBaseModel",
     "constraint",
@@ -44,4 +45,5 @@ __all__ = (
     "BaseDemandOfferBaseException",
     "ConstraintException",
     "InvalidPropertiesError",
+    "PaymentInfo",
 )

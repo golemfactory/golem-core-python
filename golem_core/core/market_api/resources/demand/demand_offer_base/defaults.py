@@ -27,7 +27,7 @@ class NodeInfo(DemandOfferBaseModel):
 
 
 @dataclass
-class Activity(DemandOfferBaseModel):
+class ActivityInfo(DemandOfferBaseModel):
     """Activity-related Properties."""
 
     cost_cap: Optional[Decimal] = prop("golem.activity.cost_cap", default=None)
@@ -56,3 +56,9 @@ class Activity(DemandOfferBaseModel):
     multi_activity: Optional[bool] = prop("golem.srv.caps.multi-activity", default=None)
     """Whether client supports multi_activity (executing more than one activity per agreement).
     """
+
+
+@dataclass
+class PaymentInfo(DemandOfferBaseModel):
+    chosen_payment_platform: Optional[str] = prop("golem.com.payment.chosen-platform", default=None)
+    """Payment platform selected to be used for this demand."""

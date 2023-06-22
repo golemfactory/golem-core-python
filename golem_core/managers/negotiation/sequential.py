@@ -4,12 +4,13 @@ from copy import deepcopy
 from datetime import datetime
 from typing import AsyncIterator, Awaitable, Callable, List, Optional, Sequence, cast
 
+from ya_market import ApiException
+
 from golem_core.core.golem_node.golem_node import GolemNode
 from golem_core.core.market_api import Demand, DemandBuilder, Payload, Proposal
 from golem_core.core.market_api.resources.demand.demand import DemandData
 from golem_core.core.market_api.resources.proposal import ProposalData
 from golem_core.core.payment_api import Allocation
-from golem_core.core.props_cons.constraints import Constraints
 from golem_core.core.props_cons.parsers.textx.parser import TextXDemandOfferSyntaxParser
 from golem_core.core.props_cons.properties import Properties
 from golem_core.managers.base import ManagerException, NegotiationManager, NegotiationPlugin
@@ -57,7 +58,7 @@ class SequentialNegotiationManager(NegotiationManager):
     async def start(self) -> None:
         logger.debug("Starting...")
 
-        if self.is_started_started():
+        if self.is_started():
             message = "Already started!"
             logger.debug(f"Starting failed with `{message}`")
             raise ManagerException(message)
@@ -69,7 +70,7 @@ class SequentialNegotiationManager(NegotiationManager):
     async def stop(self) -> None:
         logger.debug("Stopping...")
 
-        if not self.is_started_started():
+        if not self.is_started():
             message = "Already stopped!"
             logger.debug(f"Stopping failed with `{message}`")
             raise ManagerException(message)
@@ -79,8 +80,8 @@ class SequentialNegotiationManager(NegotiationManager):
 
         logger.debug("Stopping done")
 
-    def is_started_started(self) -> bool:
-        return self._negotiation_loop_task is not None
+    def is_started(self) -> bool:
+        return self._negotiation_loop_task is not None and not self._negotiation_loop_task.done()
 
     async def _negotiation_loop(self) -> None:
         allocation = await self._get_allocation()
@@ -88,8 +89,6 @@ class SequentialNegotiationManager(NegotiationManager):
 
         demand = await demand_builder.create_demand(self._golem)
         demand.start_collecting_events()
-
-        print(await demand.get_data())
 
         logger.debug("Demand published, waiting for proposals...")
 
@@ -159,16 +158,26 @@ class SequentialNegotiationManager(NegotiationManager):
             if offer_proposal.initial or demand_data_after_plugins != demand_data:
                 logger.debug("Sending demand proposal...")
 
-                demand_proposal = await offer_proposal.respond(
-                    demand_data_after_plugins.properties,
-                    demand_data_after_plugins.constraints,
-                )
+                demand_data = demand_data_after_plugins
+
+                try:
+                    demand_proposal = await offer_proposal.respond(
+                        demand_data_after_plugins.properties,
+                        demand_data_after_plugins.constraints,
+                    )
+                except (ApiException, asyncio.TimeoutError) as e:
+                    logger.debug(f"Sending demand proposal failed with `{e}`")
+                    return None
 
                 logger.debug("Sending demand proposal done")
 
                 logger.debug("Waiting for response...")
 
-                new_offer_proposal = await demand_proposal.responses().__anext__()
+                try:
+                    new_offer_proposal = await demand_proposal.responses().__anext__()
+                except StopAsyncIteration:
+                    logger.debug("Waiting for response failed with rejection")
+                    return None
 
                 logger.debug(f"Waiting for response done with `{new_offer_proposal}`")
 

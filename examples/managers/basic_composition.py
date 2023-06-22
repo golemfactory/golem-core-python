@@ -9,7 +9,7 @@ from golem_core.managers.activity.single_use import SingleUseActivityManager
 from golem_core.managers.agreement.single_use import SingleUseAgreementManager
 from golem_core.managers.base import WorkContext, WorkResult
 from golem_core.managers.negotiation import SequentialNegotiationManager
-from golem_core.managers.negotiation.plugins import BlacklistProviderId
+from golem_core.managers.negotiation.plugins import AddChosenPaymentPlatform, BlacklistProviderId
 from golem_core.managers.payment.pay_all import PayAllPaymentManager
 from golem_core.managers.proposal import StackProposalManager
 from golem_core.managers.work.decorators import (
@@ -62,6 +62,7 @@ async def main():
         payment_manager.get_allocation,
         payload,
         plugins=[
+            AddChosenPaymentPlatform(),
             BlacklistProviderId(
                 [
                     "0x3b0f605fcb0690458064c10346af0c5f6b7202a5",
@@ -76,9 +77,10 @@ async def main():
     activity_manager = SingleUseActivityManager(golem, agreement_manager.get_agreement)
     work_manager = SequentialWorkManager(golem, activity_manager.do_work)
 
-    async with golem, payment_manager, negotiation_manager, proposal_manager:
-        results: List[WorkResult] = await work_manager.do_work_list(work_list)
-        print(f"\nWORK MANAGER RESULTS:{[result.result for result in results]}\n")
+    async with golem:
+        async with payment_manager, negotiation_manager, proposal_manager:
+            results: List[WorkResult] = await work_manager.do_work_list(work_list)
+            print(f"\nWORK MANAGER RESULTS:{[result.result for result in results]}\n")
 
 
 if __name__ == "__main__":

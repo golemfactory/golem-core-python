@@ -22,6 +22,9 @@ DEFAULT_LOGGING = {
                 "console",
             ],
         },
+        "asyncio": {
+            "level": "DEBUG",
+        },
         "golem_core": {
             "level": "INFO",
         },

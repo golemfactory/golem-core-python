@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "golem-core"
-version = "0.1.0"
-description = "Python Golem (https://www.golem.network/) Core API"
-authors = ["Jan Betley <jan.betley@golem.network>", "GolemFactory <contact@golem.network>"]
+name = "golem-api-python"
+version = "0.1.1"
+description = "Golem Netowrk (https://www.golem.network/) API for Python"
+authors = ["Golem Factory <contact@golem.network>"]
 license = "LGPL-3.0-or-later"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -11,6 +11,7 @@ classifiers = [
     "Topic :: System :: Distributed Computing"
 ]
 repository = "https://github.com/golemfactory/golem-core-python"
+packages = [{ include = "golem_core" }]
 
 [build-system]
 requires = ["poetry_core>=1.0.0"]
@@ -148,7 +149,16 @@ target-version = ['py38']
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-addopts = "--cov --cov-report html --cov-report term-missing -sv"
+addopts = "--cov golem_core --cov-report html --cov-report term-missing -sv"
 testspaths = [
-    "tests"
+    "tests",
+]
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+
+    # Don't complain about abstract methods, they aren't run:
+    """@(abc\\.)?abstractmethod""",
 ]

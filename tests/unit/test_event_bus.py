@@ -97,7 +97,7 @@ async def test_emit_multiple(mocker, event_bus):
 
 
 async def test_emit_once(mocker, event_bus):
-    callback_mock = mocker.Mock()
+    callback_mock = mocker.AsyncMock()
 
     callback_handler = await event_bus.on_once(ExampleEvent, callback_mock)
 
@@ -111,9 +111,7 @@ async def test_emit_once(mocker, event_bus):
 
     await event_bus.stop()  # Waits for all callbacks to be called
 
-    assert callback_mock.mock_calls == [
-        mocker.call(event1),
-    ]
+    callback_mock.assert_called_once_with(event1)
 
     with pytest.raises(EventBusError, match="callback handler is not found"):
         await event_bus.off(callback_handler)

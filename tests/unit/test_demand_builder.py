@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
-import pytest
-
 from golem_core.core.market_api import DemandBuilder, DemandOfferBaseModel, constraint, prop
+from golem_core.core.props_cons.constraints import Constraint, Constraints, ConstraintGroup
+from golem_core.core.props_cons.properties import Properties
 
 
 @dataclass
@@ -13,7 +13,6 @@ class ExampleModel(DemandOfferBaseModel):
     con2: int = constraint("some.con2.path", "<=")
 
 
-@pytest.mark.asyncio
 async def test_add():
     model = ExampleModel(prop1=1, prop2=2, con1=3, con2=4)
 
@@ -25,15 +24,101 @@ async def test_add():
         "some.prop1.path": 1,
         "some.prop2.path": 2,
     }
-    
-    assert demand_builder.constraints == "(&(some.con1.path=3)\n\t(some.con2.path<=4))"
 
+    assert demand_builder.constraints == Constraints(
+        [
+            Constraint("some.con1.path", "=", 3),
+            Constraint("some.con2.path", "<=", 4),
+        ]
+    )
+
+def test_add_properties():
+    demand_builder = DemandBuilder()
+
+    assert demand_builder.properties.get('foo') != 'bar'
+
+    demand_builder.add_properties(Properties({
+        'foo': 'bar',
+    }))
+
+    assert demand_builder.properties.get('foo') == 'bar'
+
+    demand_builder.add_properties(Properties({
+        'foo': '123',
+        'bat': 'man',
+    }))
+
+    assert demand_builder.properties.get('foo') == '123'
+    assert demand_builder.properties.get('bat') == 'man'
+
+def test_add_constraints():
+    demand_builder = DemandBuilder()
+
+    assert demand_builder.constraints == Constraints()
+
+    demand_builder.add_constraints(Constraints([
+        Constraint('foo', '=', 'bar'),
+    ]))
+
+    assert demand_builder.constraints == Constraints([
+        Constraint('foo', '=', 'bar'),
+    ])
+
+    demand_builder.add_constraints(Constraints([
+        Constraint('another.field', '<=', 'value1'),
+        Constraint('collection.to.add', '>=', 'value2'),
+    ]))
+
+    assert demand_builder.constraints == Constraints([
+        Constraint('foo', '=', 'bar'),
+        Constraint('another.field', '<=', 'value1'),
+        Constraint('collection.to.add', '>=', 'value2'),
+    ])
+
+    demand_builder.add_constraints(Constraint('single.field', '=', 'works too!'))
+
+    assert demand_builder.constraints == Constraints([
+        Constraint('foo', '=', 'bar'),
+        Constraint('another.field', '<=', 'value1'),
+        Constraint('collection.to.add', '>=', 'value2'),
+        Constraint('single.field', '=', 'works too!'),
+    ])
+
+    demand_builder.add_constraints(ConstraintGroup([
+        Constraint('field.group', '=', 'works too!')
+    ], "|"))
+
+    assert demand_builder.constraints == Constraints([
+        Constraint('foo', '=', 'bar'),
+        Constraint('another.field', '<=', 'value1'),
+        Constraint('collection.to.add', '>=', 'value2'),
+        Constraint('single.field', '=', 'works too!'),
+        ConstraintGroup([
+            Constraint('field.group', '=', 'works too!')
+        ], "|"),
+    ])
 
 def test_repr():
-    assert str(DemandBuilder()) == "{'properties': {}, 'constraints': []}"
+    assert (
+        str(DemandBuilder())
+        == "{'properties': {}, 'constraints': Constraints(items=[], operator='&')}"
+    )
+
+def test_comparison():
+    builder_1 = DemandBuilder(Properties({
+        'foo': 'bar',
+    }))
+    builder_2 = DemandBuilder(Properties({
+        'foo': 'bar',
+    }))
+    builder_3 = DemandBuilder(Properties({
+        'foo': 123,
+    }))
+
+    assert builder_1 == builder_2
+    assert builder_1 != builder_3
 
 
-@pytest.mark.asyncio
 async def test_create_demand(mocker):
     demand_builder = DemandBuilder()
 

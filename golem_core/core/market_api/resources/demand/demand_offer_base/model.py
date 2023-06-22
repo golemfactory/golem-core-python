@@ -47,12 +47,14 @@ class DemandOfferBaseModel(abc.ABC):
     def _build_constraints(self) -> Constraints:
         """Return a serialized collection of constraint values."""
         return Constraints(
-            Constraint(
-                property_name=field.metadata[PROP_KEY],
-                operator=field.metadata[PROP_OPERATOR],
-                value=getattr(self, field.name),
-            )
-            for field in self._get_fields(DemandOfferBaseModelFieldType.constraint)
+            [
+                Constraint(
+                    property_name=field.metadata[PROP_KEY],
+                    operator=field.metadata[PROP_OPERATOR],
+                    value=getattr(self, field.name),
+                )
+                for field in self._get_fields(DemandOfferBaseModelFieldType.constraint)
+            ]
         )
 
     @classmethod
@@ -79,7 +81,7 @@ class DemandOfferBaseModel(abc.ABC):
             for field in cls._get_fields(DemandOfferBaseModelFieldType.property)
         }
         data = {
-            field_map[key].name: cls.deserialize_value(val, field_map[key])
+            field_map[key].name: Properties._deserialize_value(val, field_map[key])
             for (key, val) in props.items()
             if key in field_map
         }

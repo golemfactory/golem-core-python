@@ -1,6 +1,5 @@
 from golem_core.core.resources.base import _NULL, Resource, TResource, api_call_wrapper
 from golem_core.core.resources.event_collectors import YagnaEventCollector
-from golem_core.core.resources.event_filters import ResourceEventFilter
 from golem_core.core.resources.events import (
     NewResource,
     ResourceClosed,
@@ -32,5 +31,4 @@ __all__ = (
     "ResourceNotFound",
     "BaseResourceException",
     "MissingConfiguration",
-    "ResourceEventFilter",
 )

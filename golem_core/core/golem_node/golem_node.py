@@ -228,7 +228,7 @@ class GolemNode:
             expiration = datetime.now(timezone.utc) + DEFAULT_EXPIRATION_TIMEOUT
 
         builder = DemandBuilder()
-        await builder.add(dobm_defaults.Activity(expiration=expiration, multi_activity=True))
+        await builder.add(dobm_defaults.ActivityInfo(expiration=expiration, multi_activity=True))
         await builder.add(dobm_defaults.NodeInfo(subnet_tag=subnet))
 
         await builder.add(payload)
@@ -275,12 +275,12 @@ class GolemNode:
     async def _add_builder_allocations(
         self, builder: DemandBuilder, allocations: Iterable[Allocation]
     ) -> None:
-        for allocation in allocations:
-            properties, constraints = await allocation.demand_properties_constraints()
-            builder.add_constraints(*constraints)
+        # TODO (?): https://github.com/golemfactory/golem-core-python/issues/35
 
-            #   TODO (?): https://github.com/golemfactory/golem-core-python/issues/35
-            builder.add_properties({p.key: p.value for p in properties})
+        for allocation in allocations:
+            properties, constraints = await allocation.get_properties_and_constraints_for_demand()
+            builder.add_constraints(constraints)
+            builder.add_properties(properties)
 
     ###########################
     #   Single-resource factories for already existing resources

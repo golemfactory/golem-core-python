@@ -56,9 +56,9 @@ class SingleUseActivityManager(ActivityManager):
                 logger.debug("Yielding activity done")
 
                 break
-            except Exception as e:
-                logger.debug(
-                    f"Creating activity failed with `{e}`, but will be retried with new agreement"
+            except Exception:
+                logger.exception(
+                    f"Creating activity failed, but will be retried with new agreement"
                 )
             finally:
                 event = AgreementReleased(agreement)

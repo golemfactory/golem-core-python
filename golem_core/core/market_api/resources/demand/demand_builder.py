@@ -10,7 +10,7 @@ from golem_core.core.props_cons.constraints import Constraint, ConstraintGroup, 
 from golem_core.core.props_cons.parsers.base import DemandOfferSyntaxParser
 from golem_core.core.props_cons.properties import Properties
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from golem_core.core.golem_node import GolemNode
 
 
@@ -25,7 +25,7 @@ class DemandBuilder:
     >>> from datetime import datetime, timezone
     >>> builder = DemandBuilder()
     >>> await builder.add(defaults.NodeInfo(name="a node", subnet_tag="testnet"))
-    >>> await builder.add(defaults.Activity(expiration=datetime.now(timezone.utc)))
+    >>> await builder.add(defaults.ActivityInfo(expiration=datetime.now(timezone.utc)))
     >>> print(builder)
     {'properties':
         {'golem.node.id.name': 'a node',
@@ -67,9 +67,12 @@ class DemandBuilder:
         """Add properties from the given dictionary to this demand definition."""
         self.properties.update(props)
 
-    def add_constraints(self, *constraints: Union[Constraint, ConstraintGroup]):
+    def add_constraints(self, constraints: Union[Constraint, ConstraintGroup]):
         """Add a constraint from given args to the demand definition."""
-        self.constraints.items.extend(constraints)
+        if isinstance(constraints, ConstraintGroup) and constraints.operator == self.constraints.operator:
+            self.constraints.items.extend(constraints.items)
+        else:
+            self.constraints.items.append(constraints)
 
     async def add_default_parameters(
         self,
@@ -94,13 +97,14 @@ class DemandBuilder:
         if expiration is None:
             expiration = datetime.now(timezone.utc) + DEFAULT_EXPIRATION_TIMEOUT
 
-        await self.add(dobm_defaults.Activity(expiration=expiration, multi_activity=True))
+        await self.add(dobm_defaults.ActivityInfo(expiration=expiration, multi_activity=True))
         await self.add(dobm_defaults.NodeInfo(subnet_tag=subnet))
 
         for allocation in allocations:
             properties, constraints = await allocation.get_properties_and_constraints_for_demand(
                 parser
             )
+
             self.add_constraints(constraints)
             self.add_properties(properties)
 

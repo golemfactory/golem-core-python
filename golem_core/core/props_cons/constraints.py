@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, MutableSequence, Union, Literal
+from typing import Any, Literal, MutableSequence, Union
 
 from golem_core.core.props_cons.base import PropertyName, PropsConstrsSerializerMixin
 

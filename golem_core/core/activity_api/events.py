@@ -1,14 +1,9 @@
-from typing import TYPE_CHECKING
-
 from golem_core.core.resources import (
     NewResource,
     ResourceClosed,
     ResourceDataChanged,
     ResourceEvent,
 )
-
-if TYPE_CHECKING:
-    pass
 
 
 class NewActivity(NewResource["Activity"]):

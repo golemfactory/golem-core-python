@@ -96,6 +96,6 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
 
         properties = Properties({prop.key: prop.value for prop in data.properties})
 
-        constraints = Constraints(parser.parse(c) for c in data.constraints)
+        constraints = Constraints([parser.parse(c) for c in data.constraints])
 
         return properties, constraints

@@ -11,7 +11,7 @@ from golem_core.core.market_api.resources import (
     INF_STORAGE,
     RUNTIME_CAPABILITIES,
     RUNTIME_NAME,
-    Activity,
+    ActivityInfo,
     Agreement,
     BaseDemandOfferBaseException,
     ConstraintException,
@@ -52,7 +52,7 @@ __all__ = (
     "INF_MEM",
     "INF_STORAGE",
     "NodeInfo",
-    "Activity",
+    "ActivityInfo",
     "TDemandOfferBaseModel",
     "DemandOfferBaseModel",
     "constraint",
@@ -64,4 +64,5 @@ __all__ = (
     "NewAgreement",
     "AgreementDataChanged",
     "AgreementClosed",
+    "PaymentInfo",
 )

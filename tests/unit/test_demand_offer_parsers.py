@@ -1,12 +1,18 @@
 import pytest
 
 from golem_core.core.props_cons.constraints import Constraint, ConstraintException, ConstraintGroup
+from golem_core.core.props_cons.parsers.base import SyntaxException
 from golem_core.core.props_cons.parsers.textx.parser import TextXDemandOfferSyntaxParser
 
 
 @pytest.fixture(scope="module")
 def demand_offer_parser():
     return TextXDemandOfferSyntaxParser()
+
+
+def test_parse_raises_exception_on_bad_syntax(demand_offer_parser):
+    with pytest.raises(SyntaxException):
+        demand_offer_parser.parse("NOT VALID SYNTAX")
 
 
 @pytest.mark.parametrize(

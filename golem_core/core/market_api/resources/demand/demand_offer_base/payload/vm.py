@@ -3,7 +3,7 @@ from abc import ABC
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, Final, List, Literal, Optional, Tuple
+from typing import Final, List, Literal, Optional, Tuple
 
 from dns.exception import DNSException
 from srvresolver.srv_record import SRVRecord
@@ -12,6 +12,8 @@ from srvresolver.srv_resolver import SRVResolver
 from golem_core.core.market_api.resources.demand.demand_offer_base import defaults
 from golem_core.core.market_api.resources.demand.demand_offer_base.model import constraint, prop
 from golem_core.core.market_api.resources.demand.demand_offer_base.payload.base import Payload
+from golem_core.core.props_cons.constraints import Constraints
+from golem_core.core.props_cons.properties import Properties
 from golem_core.utils.http import make_http_get_request, make_http_head_request
 
 DEFAULT_REPO_URL_SRV: Final[str] = "_girepo._tcp.dev.golem.network"
@@ -50,9 +52,6 @@ class BaseVmPayload(Payload, ABC):
     package_format: VmPackageFormat = prop(
         "golem.srv.comp.vm.package_format", default=VmPackageFormat.GVMKIT_SQUASH
     )
-
-    def __hash__(self) -> int:
-        return super().__hash__()
 
 
 @dataclass
@@ -105,14 +104,11 @@ class RepositoryVmPayload(BaseVmPayload, _RepositoryVmPayload):
 
         self.package_url = get_package_url(self.image_hash, image_url)
 
-    async def serialize(self) -> Tuple[Dict[str, Any], str]:
+    async def build_properties_and_constraints(self) -> Tuple[Properties, Constraints]:
         if self.package_url is None:
             await self._resolve_package_url()
 
-        return await super(RepositoryVmPayload, self).serialize()
-
-    def __hash__(self) -> int:
-        return super().__hash__()
+        return await super().build_properties_and_constraints()
 
 
 async def resolve_repository_url(
