@@ -278,7 +278,9 @@ class GolemNode:
         # TODO (?): https://github.com/golemfactory/golem-core-python/issues/35
 
         for allocation in allocations:
-            properties, constraints = await allocation.get_properties_and_constraints_for_demand()
+            properties, constraints = await allocation.get_properties_and_constraints_for_demand(
+                self._demand_offer_syntax_parser
+            )
             builder.add_constraints(constraints)
             builder.add_properties(properties)
 
