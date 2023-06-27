@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from golem_core.core.market_api import DemandBuilder, DemandOfferBaseModel, constraint, prop
-from golem_core.core.props_cons.constraints import Constraint, Constraints, ConstraintGroup
+from golem_core.core.props_cons.constraints import Constraint, ConstraintGroup, Constraints
 from golem_core.core.props_cons.properties import Properties
 
 
@@ -32,71 +32,96 @@ async def test_add():
         ]
     )
 
+
 def test_add_properties():
     demand_builder = DemandBuilder()
 
-    assert demand_builder.properties.get('foo') != 'bar'
+    assert demand_builder.properties.get("foo") != "bar"
 
-    demand_builder.add_properties(Properties({
-        'foo': 'bar',
-    }))
+    demand_builder.add_properties(
+        Properties(
+            {
+                "foo": "bar",
+            }
+        )
+    )
 
-    assert demand_builder.properties.get('foo') == 'bar'
+    assert demand_builder.properties.get("foo") == "bar"
 
-    demand_builder.add_properties(Properties({
-        'foo': '123',
-        'bat': 'man',
-    }))
+    demand_builder.add_properties(
+        Properties(
+            {
+                "foo": "123",
+                "bat": "man",
+            }
+        )
+    )
 
-    assert demand_builder.properties.get('foo') == '123'
-    assert demand_builder.properties.get('bat') == 'man'
+    assert demand_builder.properties.get("foo") == "123"
+    assert demand_builder.properties.get("bat") == "man"
+
 
 def test_add_constraints():
     demand_builder = DemandBuilder()
 
     assert demand_builder.constraints == Constraints()
 
-    demand_builder.add_constraints(Constraints([
-        Constraint('foo', '=', 'bar'),
-    ]))
+    demand_builder.add_constraints(
+        Constraints(
+            [
+                Constraint("foo", "=", "bar"),
+            ]
+        )
+    )
 
-    assert demand_builder.constraints == Constraints([
-        Constraint('foo', '=', 'bar'),
-    ])
+    assert demand_builder.constraints == Constraints(
+        [
+            Constraint("foo", "=", "bar"),
+        ]
+    )
 
-    demand_builder.add_constraints(Constraints([
-        Constraint('another.field', '<=', 'value1'),
-        Constraint('collection.to.add', '>=', 'value2'),
-    ]))
+    demand_builder.add_constraints(
+        Constraints(
+            [
+                Constraint("another.field", "<=", "value1"),
+                Constraint("collection.to.add", ">=", "value2"),
+            ]
+        )
+    )
 
-    assert demand_builder.constraints == Constraints([
-        Constraint('foo', '=', 'bar'),
-        Constraint('another.field', '<=', 'value1'),
-        Constraint('collection.to.add', '>=', 'value2'),
-    ])
+    assert demand_builder.constraints == Constraints(
+        [
+            Constraint("foo", "=", "bar"),
+            Constraint("another.field", "<=", "value1"),
+            Constraint("collection.to.add", ">=", "value2"),
+        ]
+    )
 
-    demand_builder.add_constraints(Constraint('single.field', '=', 'works too!'))
+    demand_builder.add_constraints(Constraint("single.field", "=", "works too!"))
 
-    assert demand_builder.constraints == Constraints([
-        Constraint('foo', '=', 'bar'),
-        Constraint('another.field', '<=', 'value1'),
-        Constraint('collection.to.add', '>=', 'value2'),
-        Constraint('single.field', '=', 'works too!'),
-    ])
+    assert demand_builder.constraints == Constraints(
+        [
+            Constraint("foo", "=", "bar"),
+            Constraint("another.field", "<=", "value1"),
+            Constraint("collection.to.add", ">=", "value2"),
+            Constraint("single.field", "=", "works too!"),
+        ]
+    )
 
-    demand_builder.add_constraints(ConstraintGroup([
-        Constraint('field.group', '=', 'works too!')
-    ], "|"))
+    demand_builder.add_constraints(
+        ConstraintGroup([Constraint("field.group", "=", "works too!")], "|")
+    )
 
-    assert demand_builder.constraints == Constraints([
-        Constraint('foo', '=', 'bar'),
-        Constraint('another.field', '<=', 'value1'),
-        Constraint('collection.to.add', '>=', 'value2'),
-        Constraint('single.field', '=', 'works too!'),
-        ConstraintGroup([
-            Constraint('field.group', '=', 'works too!')
-        ], "|"),
-    ])
+    assert demand_builder.constraints == Constraints(
+        [
+            Constraint("foo", "=", "bar"),
+            Constraint("another.field", "<=", "value1"),
+            Constraint("collection.to.add", ">=", "value2"),
+            Constraint("single.field", "=", "works too!"),
+            ConstraintGroup([Constraint("field.group", "=", "works too!")], "|"),
+        ]
+    )
+
 
 def test_repr():
     assert (
@@ -104,16 +129,29 @@ def test_repr():
         == "{'properties': {}, 'constraints': Constraints(items=[], operator='&')}"
     )
 
+
 def test_comparison():
-    builder_1 = DemandBuilder(Properties({
-        'foo': 'bar',
-    }))
-    builder_2 = DemandBuilder(Properties({
-        'foo': 'bar',
-    }))
-    builder_3 = DemandBuilder(Properties({
-        'foo': 123,
-    }))
+    builder_1 = DemandBuilder(
+        Properties(
+            {
+                "foo": "bar",
+            }
+        )
+    )
+    builder_2 = DemandBuilder(
+        Properties(
+            {
+                "foo": "bar",
+            }
+        )
+    )
+    builder_3 = DemandBuilder(
+        Properties(
+            {
+                "foo": 123,
+            }
+        )
+    )
 
     assert builder_1 == builder_2
     assert builder_1 != builder_3

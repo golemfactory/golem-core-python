@@ -69,7 +69,10 @@ class DemandBuilder:
 
     def add_constraints(self, constraints: Union[Constraint, ConstraintGroup]):
         """Add a constraint from given args to the demand definition."""
-        if isinstance(constraints, ConstraintGroup) and constraints.operator == self.constraints.operator:
+        if (
+            isinstance(constraints, ConstraintGroup)
+            and constraints.operator == self.constraints.operator
+        ):
             self.constraints.items.extend(constraints.items)
         else:
             self.constraints.items.append(constraints)

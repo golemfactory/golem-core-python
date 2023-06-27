@@ -42,7 +42,8 @@ def test_constraints_serialize():
         "\t(float_field=1.5)\n"
         "\t(datetime_field=1672614000000)\n"
         "\t(enum_field=BAR)\n"
-        "\t(list_field=[1672614000000, BAR])\n"
+        "\t(&(list_field=1672614000000)\n"
+        "\t(list_field=BAR))\n"
         "\t(|(some.other.field=works!)))"
     )
 

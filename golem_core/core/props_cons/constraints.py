@@ -44,7 +44,9 @@ class Constraint(MarketDemandOfferSyntaxElement):
             if not self.value:
                 return ""
 
-            serialized_value = "[{}]".format(", ".join(str(v) for v in serialized_value))
+            return ConstraintGroup(
+                [Constraint(self.property_name, self.operator, v) for v in serialized_value]
+            ).serialize()
 
         return f"({self.property_name}{self.operator}{serialized_value})"
 
