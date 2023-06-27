@@ -5,8 +5,8 @@ import string
 from typing import List, Union
 
 from examples.task_api_draft.task_api.execute_tasks import execute_tasks
-from golem_core.core.activity_api import Activity, Run
-from golem_core.core.market_api import RepositoryVmPayload
+from golem.resources.activity import Activity, Run
+from golem.resources.market import RepositoryVmPayload
 
 PAYLOAD = RepositoryVmPayload("055911c811e56da4d75ffc928361a78ed13077933ffa8320fb1ec2db")
 PASSWORD_LENGTH = 3

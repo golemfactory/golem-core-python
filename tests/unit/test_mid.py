@@ -2,7 +2,7 @@ from typing import Any, AsyncIterator, Callable, Tuple
 
 import pytest
 
-from golem_core.pipeline import Buffer, Chain, Limit, Map, Zip
+from golem.pipeline import Buffer, Chain, Limit, Map, Zip
 
 
 async def src() -> AsyncIterator[int]:

@@ -3,22 +3,22 @@ import logging.config
 from random import randint
 from typing import List
 
-from golem_core.core.golem_node.golem_node import GolemNode
-from golem_core.core.market_api import RepositoryVmPayload
-from golem_core.managers.activity.single_use import SingleUseActivityManager
-from golem_core.managers.agreement.single_use import SingleUseAgreementManager
-from golem_core.managers.base import WorkContext, WorkResult
-from golem_core.managers.negotiation import SequentialNegotiationManager
-from golem_core.managers.negotiation.plugins import AddChosenPaymentPlatform, BlacklistProviderId
-from golem_core.managers.payment.pay_all import PayAllPaymentManager
-from golem_core.managers.proposal import StackProposalManager
-from golem_core.managers.work.decorators import (
+from golem.resources.golem_node.golem_node import GolemNode
+from golem.resources.market import RepositoryVmPayload
+from golem.managers.activity.single_use import SingleUseActivityManager
+from golem.managers.agreement.single_use import SingleUseAgreementManager
+from golem.managers.base import WorkContext, WorkResult
+from golem.managers.negotiation import SequentialNegotiationManager
+from golem.managers.negotiation.plugins import AddChosenPaymentPlatform, BlacklistProviderId
+from golem.managers.payment.pay_all import PayAllPaymentManager
+from golem.managers.proposal import StackProposalManager
+from golem.managers.work.decorators import (
     redundancy_cancel_others_on_first_done,
     retry,
     work_decorator,
 )
-from golem_core.managers.work.sequential import SequentialWorkManager
-from golem_core.utils.logging import DEFAULT_LOGGING
+from golem.managers.work.sequential import SequentialWorkManager
+from golem.utils.logging import DEFAULT_LOGGING
 
 
 async def commands_work_example(context: WorkContext) -> str:

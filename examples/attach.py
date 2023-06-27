@@ -1,10 +1,11 @@
 import asyncio
 import sys
 
-from golem_core.core.activity_api import commands
-from golem_core.core.golem_node import GolemNode
-from golem_core.core.payment_api import DebitNote, NewDebitNote
-from golem_core.core.resources import NewResource
+from golem.resources.activity import commands
+from golem.resources.golem_node import GolemNode
+from golem.resources.payment import DebitNote
+from golem.resources.debit_note.events import NewDebitNote
+from golem.resources.resources import NewResource
 
 ACTIVITY_ID = sys.argv[1].strip()
 

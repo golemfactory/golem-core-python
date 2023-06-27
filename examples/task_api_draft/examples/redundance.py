@@ -2,8 +2,8 @@ import asyncio
 import random
 
 from examples.task_api_draft.task_api.execute_tasks import execute_tasks
-from golem_core.core.activity_api import Activity, commands
-from golem_core.core.market_api import RepositoryVmPayload
+from golem.resources.activity import Activity, commands
+from golem.resources.market import RepositoryVmPayload
 
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 

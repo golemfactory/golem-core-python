@@ -3,7 +3,7 @@ from enum import Enum
 
 import pytest
 
-from golem_core.core.props_cons.constraints import (
+from golem.payload.constraints import (
     Constraint,
     ConstraintException,
     ConstraintGroup,

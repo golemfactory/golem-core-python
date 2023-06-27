@@ -1,0 +1,2 @@
+class GolemException(Exception):
+    pass

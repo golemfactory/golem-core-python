@@ -20,19 +20,19 @@ $ poetry run python examples/rate_providers/rate_providers.py
 ## CLI
 
 ```bash
-$ python -m golem_core status
+$ python -m golem status
 
-$ python -m golem_core find-node --runtime vm
-$ python -m golem_core find-node --runtime vm --subnet public-beta 
-$ python -m golem_core find-node --runtime vm --timeout 7  # stops after 7  seconds
-$ python -m golem_core find-node --runtime vm --timeout 1m # stops after 60 seconds
+$ python -m golem find-node --runtime vm
+$ python -m golem find-node --runtime vm --subnet public-beta 
+$ python -m golem find-node --runtime vm --timeout 7  # stops after 7  seconds
+$ python -m golem find-node --runtime vm --timeout 1m # stops after 60 seconds
 
-$ python -m golem_core allocation list
+$ python -m golem allocation list
 
-$ python -m golem_core allocation new 1
-$ python -m golem_core allocation new 2 --driver erc20 --network goerli
+$ python -m golem allocation new 1
+$ python -m golem allocation new 2 --driver erc20 --network goerli
 
-$ python -m golem_core allocation clean
+$ python -m golem allocation clean
 ```
 
 ## Docs

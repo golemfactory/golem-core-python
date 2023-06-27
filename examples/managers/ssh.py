@@ -4,17 +4,17 @@ import random
 import string
 from uuid import uuid4
 
-from golem_core.core.golem_node.golem_node import GolemNode
-from golem_core.core.market_api import RepositoryVmPayload
-from golem_core.managers.activity.single_use import SingleUseActivityManager
-from golem_core.managers.agreement.single_use import SingleUseAgreementManager
-from golem_core.managers.base import WorkContext, WorkResult
-from golem_core.managers.negotiation import SequentialNegotiationManager
-from golem_core.managers.network.single import SingleNetworkManager
-from golem_core.managers.payment.pay_all import PayAllPaymentManager
-from golem_core.managers.proposal import StackProposalManager
-from golem_core.managers.work.sequential import SequentialWorkManager
-from golem_core.utils.logging import DEFAULT_LOGGING
+from golem.resources.golem_node.golem_node import GolemNode
+from golem.resources.market import RepositoryVmPayload
+from golem.managers.activity.single_use import SingleUseActivityManager
+from golem.managers.agreement.single_use import SingleUseAgreementManager
+from golem.managers.base import WorkContext, WorkResult
+from golem.managers.negotiation import SequentialNegotiationManager
+from golem.managers.network.single import SingleNetworkManager
+from golem.managers.payment.pay_all import PayAllPaymentManager
+from golem.managers.proposal import StackProposalManager
+from golem.managers.work.sequential import SequentialWorkManager
+from golem.utils.logging import DEFAULT_LOGGING
 
 
 def on_activity_start(get_network_deploy_args):

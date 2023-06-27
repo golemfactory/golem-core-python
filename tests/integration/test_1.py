@@ -5,10 +5,10 @@ from random import random
 import pytest
 import pytest_asyncio
 
-from golem_core.core.golem_node import GolemNode
-from golem_core.core.market_api import RepositoryVmPayload
-from golem_core.core.payment_api import NoMatchingAccount
-from golem_core.core.resources import ResourceNotFound
+from golem.resources.golem_node import GolemNode
+from golem.resources.market import RepositoryVmPayload
+from golem.resources.payment import NoMatchingAccount
+from golem.resources.resources import ResourceNotFound
 
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 

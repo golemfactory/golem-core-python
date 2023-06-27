@@ -1,8 +1,8 @@
 import pytest
 
-from golem_core.core.props_cons.constraints import Constraint, ConstraintException, ConstraintGroup
-from golem_core.core.props_cons.parsers.base import SyntaxException
-from golem_core.core.props_cons.parsers.textx.parser import TextXDemandOfferSyntaxParser
+from golem.payload.constraints import Constraint, ConstraintException, ConstraintGroup
+from golem.payload.parsers import SyntaxException
+from golem.payload.parsers import TextXDemandOfferSyntaxParser
 
 
 @pytest.fixture(scope="module")
@@ -12,7 +12,7 @@ def demand_offer_parser():
 
 def test_parse_raises_exception_on_bad_syntax(demand_offer_parser):
     with pytest.raises(SyntaxException):
-        demand_offer_parser.parse("NOT VALID SYNTAX")
+        demand_offer_parser.parse_constraints("NOT VALID SYNTAX")
 
 
 @pytest.mark.parametrize(
@@ -39,7 +39,7 @@ def test_parse_raises_exception_on_bad_syntax(demand_offer_parser):
     ),
 )
 def test_single_constraint(demand_offer_parser, input_string, output):
-    result = demand_offer_parser.parse(input_string)
+    result = demand_offer_parser.parse_constraints(input_string)
 
     assert result == output
 
@@ -72,7 +72,7 @@ def test_single_constraint(demand_offer_parser, input_string, output):
     ),
 )
 def test_constraint_groups(demand_offer_parser, input_string, output):
-    result = demand_offer_parser.parse(input_string)
+    result = demand_offer_parser.parse_constraints(input_string)
 
     assert result == output
 
@@ -86,14 +86,14 @@ def test_constraint_groups(demand_offer_parser, input_string, output):
     ),
 )
 def test_constraint_groups_empty(demand_offer_parser, input_string, output):
-    result = demand_offer_parser.parse(input_string)
+    result = demand_offer_parser.parse_constraints(input_string)
 
     assert result == output
 
 
 def test_error_not_operator_with_multiple_items(demand_offer_parser):
     with pytest.raises(ConstraintException):
-        result = demand_offer_parser.parse("(! (foo=1) (bar=1))")
+        result = demand_offer_parser.parse_constraints("(! (foo=1) (bar=1))")
 
 
 @pytest.mark.parametrize(
@@ -121,6 +121,6 @@ def test_error_not_operator_with_multiple_items(demand_offer_parser):
     ),
 )
 def test_constraint_groups_nested(demand_offer_parser, input_string, output):
-    result = demand_offer_parser.parse(input_string)
+    result = demand_offer_parser.parse_constraints(input_string)
 
     assert result == output

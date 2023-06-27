@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
-from golem_core.core.market_api import DemandBuilder, DemandOfferBaseModel, constraint, prop
-from golem_core.core.props_cons.constraints import Constraint, ConstraintGroup, Constraints
-from golem_core.core.props_cons.properties import Properties
+from golem.resources.market import DemandBuilder, DemandOfferBaseModel, constraint, prop
+from golem.payload.constraints import Constraint, Constraints, ConstraintGroup
+from golem.payload.properties import Properties
 
 
 @dataclass
@@ -162,7 +162,7 @@ async def test_create_demand(mocker):
 
     mocked_node = mocker.Mock()
     mocked_demand = mocker.patch(
-        "golem_core.core.market_api.resources.demand.demand_builder.Demand",
+        "golem.resources.market.resources.demand.demand_builder.Demand",
         **{"create_from_properties_constraints": mocker.AsyncMock(return_value="foobar")},
     )
 

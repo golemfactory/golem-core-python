@@ -1,9 +1,9 @@
 import asyncio
 
-from golem_core.core.activity_api import Activity, commands
-from golem_core.core.golem_node import GolemNode
-from golem_core.core.market_api import Agreement, Proposal, RepositoryVmPayload, default_negotiate
-from golem_core.pipeline import Chain, Map
+from golem.resources.activity import Activity, commands
+from golem.resources.golem_node import GolemNode
+from golem.resources.market import Agreement, Proposal, RepositoryVmPayload, default_negotiate
+from golem.pipeline import Chain, Map
 
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 

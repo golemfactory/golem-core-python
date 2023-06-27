@@ -3,8 +3,8 @@ import json
 from pathlib import Path
 
 from examples.task_api_draft.task_api.execute_tasks import execute_tasks
-from golem_core.core.activity_api import Activity, commands
-from golem_core.core.market_api import RepositoryVmPayload
+from golem.resources.activity import Activity, commands
+from golem.resources.market import RepositoryVmPayload
 
 FRAME_CONFIG_TEMPLATE = json.loads(Path(__file__).with_name("frame_params.json").read_text())
 FRAMES = list(range(0, 60, 10))

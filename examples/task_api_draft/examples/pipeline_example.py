@@ -4,19 +4,19 @@ from random import random
 from typing import AsyncIterator, Callable, Tuple
 
 from examples.task_api_draft.task_api.activity_pool import ActivityPool
-from golem_core.core.activity_api import Activity, commands
-from golem_core.core.events.base import Event
-from golem_core.core.golem_node import GolemNode
-from golem_core.core.market_api import (
+from golem.resources.activity import Activity, commands
+from golem.resources.events.base import Event
+from golem.resources.golem_node import GolemNode
+from golem.resources.market import (
     Proposal,
     RepositoryVmPayload,
     default_create_activity,
     default_create_agreement,
     default_negotiate,
 )
-from golem_core.managers import DefaultPaymentManager
-from golem_core.pipeline import Buffer, Chain, Map, Sort, Zip
-from golem_core.utils.logging import DefaultLogger
+from golem.managers import DefaultPaymentManager
+from golem.pipeline import Buffer, Chain, Map, Sort, Zip
+from golem.utils.logging import DefaultLogger
 
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 

@@ -3,9 +3,9 @@ import logging.config
 
 import pytest
 
-from golem_core.core.events.base import Event, EventBusError
-from golem_core.core.events.event_bus import InMemoryEventBus
-from golem_core.utils.logging import DEFAULT_LOGGING
+from golem.resources.events.base import Event, EventBusError
+from golem.event_bus.in_memory import InMemoryEventBus
+from golem.utils.logging import DEFAULT_LOGGING
 
 
 class ExampleEvent(Event):

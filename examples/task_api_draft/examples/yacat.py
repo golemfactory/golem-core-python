@@ -23,21 +23,21 @@ from examples.task_api_draft.examples.yacat_no_business_logic import (
     tasks_queue,
 )
 from examples.task_api_draft.task_api.activity_pool import ActivityPool
-from golem_core.core.activity_api import Activity, PoolingBatch, default_prepare_activity
-from golem_core.core.events import Event
-from golem_core.core.golem_node import GolemNode
-from golem_core.core.market_api import (
+from golem.resources.activity import Activity, PoolingBatch, default_prepare_activity
+from golem.event_bus import Event
+from golem.resources.golem_node import GolemNode
+from golem.resources.market import (
     Proposal,
     default_create_activity,
     default_create_agreement,
     default_negotiate,
 )
-from golem_core.core.payment_api import DebitNote
-from golem_core.core.payment_api.events import NewDebitNote
-from golem_core.core.resources import NewResource, ResourceClosed
-from golem_core.managers import DefaultPaymentManager
-from golem_core.pipeline import Buffer, Chain, Map, Sort, Zip
-from golem_core.utils.logging import DefaultLogger
+from golem.resources.payment import DebitNote
+from golem.resources.debit_note.events import NewDebitNote
+from golem.resources.resources import NewResource, ResourceClosed
+from golem.managers import DefaultPaymentManager
+from golem.pipeline import Buffer, Chain, Map, Sort, Zip
+from golem.utils.logging import DefaultLogger
 
 ###########################
 #   APP LOGIC CONFIG

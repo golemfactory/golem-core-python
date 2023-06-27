@@ -2,10 +2,10 @@ from datetime import timedelta
 from random import random
 from typing import AsyncIterator, Awaitable, Callable, Iterable, Optional, Tuple, TypeVar
 
-from golem_core.core.activity_api import Activity, default_prepare_activity
-from golem_core.core.events.base import Event
-from golem_core.core.golem_node import GolemNode
-from golem_core.core.market_api import (
+from golem.resources.activity import Activity, default_prepare_activity
+from golem.resources.events.base import Event
+from golem.resources.golem_node import GolemNode
+from golem.resources.market import (
     Demand,
     Payload,
     Proposal,
@@ -13,9 +13,9 @@ from golem_core.core.market_api import (
     default_create_agreement,
     default_negotiate,
 )
-from golem_core.managers import DefaultPaymentManager
-from golem_core.pipeline import Buffer, Chain, Map, Sort, Zip
-from golem_core.utils.logging import DefaultLogger
+from golem.managers import DefaultPaymentManager
+from golem.pipeline import Buffer, Chain, Map, Sort, Zip
+from golem.utils.logging import DefaultLogger
 
 from .activity_pool import ActivityPool
 from .redundance_manager import RedundanceManager

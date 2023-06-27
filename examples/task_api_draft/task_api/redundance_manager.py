@@ -12,8 +12,8 @@ from typing import (
     TypeVar,
 )
 
-from golem_core.core.activity_api import Activity
-from golem_core.core.market_api import Proposal
+from golem.resources.activity import Activity
+from golem.resources.market import Proposal
 
 from .task_data_stream import TaskDataStream
 

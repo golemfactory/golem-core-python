@@ -5,14 +5,14 @@ from typing import Dict, Optional
 
 import pytest
 
-from golem_core.core.market_api import (
+from golem.resources.market import (
     DemandOfferBaseModel,
     InvalidPropertiesError,
     constraint,
     prop,
 )
-from golem_core.core.props_cons.constraints import Constraint, Constraints
-from golem_core.core.props_cons.properties import Properties
+from golem.payload.constraints import Constraint, Constraints
+from golem.payload.properties import Properties
 
 
 class ExampleEnum(Enum):
