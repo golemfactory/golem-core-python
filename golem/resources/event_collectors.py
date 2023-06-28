@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Dict, Tuple, Union, TypeAlias
+from typing import TYPE_CHECKING, Any, Dict, Tuple, TypeAlias, Union
 
 from ya_payment import models
 
-from golem.resources.resources import Resource, YagnaEventCollector
+from golem.resources.base import Resource
+from golem.utils.low import YagnaEventCollector
 
 if TYPE_CHECKING:
-    from golem_core.core.golem_node.golem_node import GolemNode
+    from golem.node import GolemNode
 
 InvoiceEvent: TypeAlias = Union[
     models.InvoiceReceivedEvent,

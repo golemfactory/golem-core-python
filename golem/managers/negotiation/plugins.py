@@ -1,11 +1,10 @@
 import logging
 from typing import Sequence, Set
 
-from golem.resources.demand.demand import DemandData
-from golem.resources.market.proposal import ProposalData
-from golem.payload.properties import Properties
 from golem.managers.base import NegotiationPlugin
 from golem.managers.negotiation.sequential import RejectProposal
+from golem.payload import Properties
+from golem.resources import DemandData, ProposalData
 
 logger = logging.getLogger(__name__)
 

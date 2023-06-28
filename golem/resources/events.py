@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict, Generic, Tuple, TypeVar
 from golem.event_bus import Event
 
 if TYPE_CHECKING:
-    from golem.resources.base import Resource
+    from golem.resources.base import Resource  # noqa
 
 TResourceEvent = TypeVar("TResourceEvent", bound="ResourceEvent")
 TResource = TypeVar("TResource", bound="Resource")

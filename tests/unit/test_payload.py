@@ -5,14 +5,15 @@ from typing import Dict, Optional
 
 import pytest
 
-from golem.resources.market import (
-    DemandOfferBaseModel,
-    InvalidPropertiesError,
+from golem.payload import (
+    Constraint,
+    Constraints,
+    InvalidProperties,
+    Payload,
+    Properties,
     constraint,
     prop,
 )
-from golem.payload.constraints import Constraint, Constraints
-from golem.payload.properties import Properties
 
 
 class ExampleEnum(Enum):
@@ -21,7 +22,7 @@ class ExampleEnum(Enum):
 
 
 @dataclass
-class Foo(DemandOfferBaseModel):
+class Foo(Payload):
     bar: str = prop("bar.dotted.path", default="cafebiba")
     max_baz: int = constraint("baz", "<=", default=100)
     min_baz: int = constraint("baz", ">=", default=1)
@@ -29,7 +30,7 @@ class Foo(DemandOfferBaseModel):
 
 
 @dataclass
-class FooToo(DemandOfferBaseModel):
+class FooToo(Payload):
     text: str = prop("some.path")
     baz: int = constraint("baz", "=", default=21)
     en: ExampleEnum = prop("some_enum", default=ExampleEnum.TWO)
@@ -46,7 +47,7 @@ FooTooFields: Dict[str, Field] = {f.name: f for f in fields(FooToo)}
 
 
 @dataclass
-class FooZero(DemandOfferBaseModel):
+class FooZero(Payload):
     pass
 
 
@@ -117,7 +118,7 @@ def test_from_properties():
 
 
 def test_from_properties_missing_key():
-    with pytest.raises(InvalidPropertiesError, match="Missing key"):
+    with pytest.raises(InvalidProperties, match="Missing key"):
         FooToo.from_properties(
             {
                 "some_enum": "one",
@@ -128,7 +129,7 @@ def test_from_properties_missing_key():
 
 
 def test_from_properties_custom_validation():
-    with pytest.raises(InvalidPropertiesError, match="validation error"):
+    with pytest.raises(InvalidProperties, match="validation error"):
         FooToo.from_properties(
             {
                 "some.path": "blow up please!",

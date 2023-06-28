@@ -6,21 +6,29 @@ from decimal import Decimal
 from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Set, Type, Union
 from uuid import uuid4
 
-from golem.resources.activity import Activity, PoolingBatch
-from golem.event_bus import EventBus, InMemoryEventBus
+from golem.event_bus import EventBus
+from golem.event_bus.in_memory import InMemoryEventBus
 from golem.node.events import SessionStarted, ShutdownFinished, ShutdownStarted
-from golem.resources.market import Agreement, Demand, DemandBuilder, Payload, Proposal
-from golem.resources.market.resources.demand.demand_offer_base import defaults as dobm_defaults
-from golem.resources.network import Network
-from golem.resources.payment import (
+from golem.payload import Payload
+from golem.payload import defaults as payload_defaults
+from golem.payload.parsers.textx import TextXPayloadSyntaxParser
+from golem.resources import (
+    Activity,
+    Agreement,
     Allocation,
     DebitNote,
     DebitNoteEventCollector,
+    Demand,
+    DemandBuilder,
     Invoice,
     InvoiceEventCollector,
+    Network,
+    PoolingBatch,
+    Proposal,
+    Resource,
+    TResource,
 )
-from golem.payload.parsers import TextXDemandOfferSyntaxParser
-from golem.resources.resources import ApiConfig, ApiFactory, Resource, TResource
+from golem.utils.low import ApiConfig, ApiFactory
 
 PAYMENT_DRIVER: str = os.getenv("YAGNA_PAYMENT_DRIVER", "erc20").lower()
 PAYMENT_NETWORK: str = os.getenv("YAGNA_PAYMENT_NETWORK", "goerli").lower()
@@ -85,7 +93,7 @@ class GolemNode:
         self._resources: DefaultDict[Type[Resource], Dict[str, Resource]] = defaultdict(dict)
         self._autoclose_resources: Set[Resource] = set()
         self._event_bus = InMemoryEventBus()
-        self._demand_offer_syntax_parser = TextXDemandOfferSyntaxParser()
+        self._demand_offer_syntax_parser = TextXPayloadSyntaxParser()
 
         self._invoice_event_collector = InvoiceEventCollector(self)
         self._debit_note_event_collector = DebitNoteEventCollector(self)
@@ -228,8 +236,8 @@ class GolemNode:
             expiration = datetime.now(timezone.utc) + DEFAULT_EXPIRATION_TIMEOUT
 
         builder = DemandBuilder()
-        await builder.add(dobm_defaults.ActivityInfo(expiration=expiration, multi_activity=True))
-        await builder.add(dobm_defaults.NodeInfo(subnet_tag=subnet))
+        await builder.add(payload_defaults.ActivityInfo(expiration=expiration, multi_activity=True))
+        await builder.add(payload_defaults.NodeInfo(subnet_tag=subnet))
 
         await builder.add(payload)
         await self._add_builder_allocations(builder, allocations)

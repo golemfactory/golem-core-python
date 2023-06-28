@@ -4,17 +4,19 @@ from os import path
 from tempfile import TemporaryDirectory
 from typing import AsyncGenerator, Optional
 
-from golem.resources.activity import (
+from golem.node import GolemNode
+from golem.payload import RepositoryVmPayload
+from golem.resources import (
     Activity,
     BatchError,
     CommandCancelled,
     CommandFailed,
+    NewResource,
+    ResourceClosed,
+    ResourceEvent,
     Script,
-    commands,
 )
-from golem.resources.golem_node import GolemNode
-from golem.resources.market import RepositoryVmPayload
-from golem.resources.resources import NewResource, ResourceClosed, ResourceEvent
+from golem.resources.activity import commands
 
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 

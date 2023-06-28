@@ -6,14 +6,11 @@ from typing import AsyncIterator, Awaitable, Callable, List, Optional, Sequence,
 
 from ya_market import ApiException
 
-from golem.resources.golem_node.golem_node import GolemNode
-from golem.resources.market import Demand, DemandBuilder, Payload, Proposal
-from golem.resources.demand.demand import DemandData
-from golem.resources.market.proposal import ProposalData
-from golem.resources.payment import Allocation
-from golem.payload.parsers import TextXDemandOfferSyntaxParser
-from golem.payload.properties import Properties
 from golem.managers.base import ManagerException, NegotiationManager, NegotiationPlugin
+from golem.node import GolemNode
+from golem.payload import Payload, Properties
+from golem.payload.parsers.textx import TextXPayloadSyntaxParser
+from golem.resources import Allocation, Demand, DemandBuilder, DemandData, Proposal, ProposalData
 from golem.utils.asyncio import create_task_with_logging
 
 logger = logging.getLogger(__name__)
@@ -38,7 +35,7 @@ class SequentialNegotiationManager(NegotiationManager):
         self._negotiation_loop_task: Optional[asyncio.Task] = None
         self._plugins: List[NegotiationPlugin] = list(plugins) if plugins is not None else []
         self._eligible_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
-        self._demand_offer_parser = TextXDemandOfferSyntaxParser()
+        self._demand_offer_parser = TextXPayloadSyntaxParser()
 
     def register_plugin(self, plugin: NegotiationPlugin):
         self._plugins.append(plugin)

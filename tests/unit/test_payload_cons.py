@@ -3,12 +3,7 @@ from enum import Enum
 
 import pytest
 
-from golem.payload.constraints import (
-    Constraint,
-    ConstraintException,
-    ConstraintGroup,
-    Constraints,
-)
+from golem.payload import Constraint, ConstraintException, ConstraintGroup, Constraints
 
 
 class ExampleEnum(Enum):

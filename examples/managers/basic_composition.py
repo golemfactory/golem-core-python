@@ -3,8 +3,6 @@ import logging.config
 from random import randint
 from typing import List
 
-from golem.resources.golem_node.golem_node import GolemNode
-from golem.resources.market import RepositoryVmPayload
 from golem.managers.activity.single_use import SingleUseActivityManager
 from golem.managers.agreement.single_use import SingleUseAgreementManager
 from golem.managers.base import WorkContext, WorkResult
@@ -18,6 +16,8 @@ from golem.managers.work.decorators import (
     work_decorator,
 )
 from golem.managers.work.sequential import SequentialWorkManager
+from golem.node import GolemNode
+from golem.payload import RepositoryVmPayload
 from golem.utils.logging import DEFAULT_LOGGING
 
 
@@ -80,7 +80,7 @@ async def main():
     async with golem:
         async with payment_manager, negotiation_manager, proposal_manager:
             results: List[WorkResult] = await work_manager.do_work_list(work_list)
-            print(f"\nWORK MANAGER RESULTS:{[result.result for result in results]}\n")
+            print(f"\nWORK MANAGER RESULTS:{[result.result for result in results]}\n", flush=True)
 
 
 if __name__ == "__main__":

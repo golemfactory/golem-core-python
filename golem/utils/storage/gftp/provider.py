@@ -29,8 +29,8 @@ import semantic_version
 from async_exit_stack import AsyncExitStack
 from typing_extensions import Literal, Protocol, TypedDict
 
-from golem.storage.base import Content, Destination, Source, StorageProvider
-from golem.storage.utils import strtobool
+from golem.utils.storage.base import Content, Destination, Source, StorageProvider
+from golem.utils.storage.utils import strtobool
 
 _logger = logging.getLogger(__name__)
 

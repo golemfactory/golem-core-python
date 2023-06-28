@@ -22,7 +22,7 @@ from ya_payment import ApiException as PaymentApiException
 
 from golem.resources.events import ResourceDataChanged
 from golem.resources.exceptions import ResourceNotFound
-from golem.node import TRequestorApi, get_requestor_api
+from golem.utils.low import TRequestorApi, get_requestor_api
 
 if TYPE_CHECKING:
     from golem.node import GolemNode

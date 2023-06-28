@@ -8,14 +8,14 @@ from golem.resources.activity.commands import (
     SendFile,
     Start,
 )
-from golem.resources.activity.events import NewActivity, ActivityDataChanged, ActivityClosed
+from golem.resources.activity.events import ActivityClosed, ActivityDataChanged, NewActivity
 from golem.resources.activity.pipeline import default_prepare_activity
 
 __all__ = (
     "Activity",
-    'NewActivity',
-    'ActivityDataChanged',
-    'ActivityClosed',
+    "NewActivity",
+    "ActivityDataChanged",
+    "ActivityClosed",
     "Command",
     "Script",
     "Deploy",

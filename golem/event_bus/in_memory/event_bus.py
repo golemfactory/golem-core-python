@@ -4,9 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Awaitable, Callable, DefaultDict, List, Optional, Type
 
-from golem.resources.events.base import Event
-from golem.resources.events.base import EventBus as BaseEventBus
-from golem.resources.events.base import EventBusError, TCallbackHandler, TEvent
+from golem.event_bus.base import Event, EventBus, EventBusError, TCallbackHandler, TEvent
 from golem.utils.asyncio import create_task_with_logging
 
 logger = logging.getLogger(__name__)
@@ -19,7 +17,7 @@ class _CallbackInfo:
     once: bool
 
 
-class InMemoryEventBus(BaseEventBus):
+class InMemoryEventBus(EventBus):
     def __init__(self):
         self._callbacks: DefaultDict[Type[TEvent], List[_CallbackInfo]] = defaultdict(list)
         self._event_queue = asyncio.Queue()

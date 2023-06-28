@@ -12,8 +12,7 @@ from typing import (
     TypeVar,
 )
 
-from golem.resources.activity import Activity
-from golem.resources.market import Proposal
+from golem.resources import Activity, Proposal
 
 from .task_data_stream import TaskDataStream
 

@@ -1,10 +1,10 @@
-from typing import Callable, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Tuple
 
-from golem.resources.event_collectors import PaymentEventCollector, InvoiceEvent
+from golem.resources.event_collectors import InvoiceEvent, PaymentEventCollector
 from golem.resources.invoice.invoice import Invoice
 
 if TYPE_CHECKING:
-    from golem_core.core.market_api import Agreement
+    from golem.resources.agreement import Agreement
 
 
 class InvoiceEventCollector(PaymentEventCollector):

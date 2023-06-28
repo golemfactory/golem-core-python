@@ -3,11 +3,9 @@ import logging
 from typing import Dict
 from urllib.parse import urlparse
 
-from golem.resources.golem_node.golem_node import GolemNode
-from golem.resources.agreement.events import NewAgreement
-from golem.resources.network import Network
-from golem.resources.network.network import DeployArgsType
 from golem.managers.base import NetworkManager
+from golem.node import GolemNode
+from golem.resources import DeployArgsType, Network, NewAgreement
 
 logger = logging.getLogger(__name__)
 

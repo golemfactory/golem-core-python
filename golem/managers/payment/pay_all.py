@@ -3,14 +3,17 @@ import logging
 from decimal import Decimal
 from typing import Optional
 
-from golem.resources.golem_node.golem_node import PAYMENT_DRIVER, PAYMENT_NETWORK, GolemNode
-from golem.resources.agreement.events import NewAgreement, AgreementClosed
-from golem.resources.payment.events import NewInvoice
-from golem.resources.debit_note.events import NewDebitNote
-from golem.resources.allocation.allocation import Allocation
-from golem.resources.debit_note.debit_note import DebitNote
-from golem.resources.payment.resources.invoice import Invoice
 from golem.managers.base import PaymentManager
+from golem.node import PAYMENT_DRIVER, PAYMENT_NETWORK, GolemNode
+from golem.resources import (
+    AgreementClosed,
+    Allocation,
+    DebitNote,
+    Invoice,
+    NewAgreement,
+    NewDebitNote,
+    NewInvoice,
+)
 
 logger = logging.getLogger(__name__)
 

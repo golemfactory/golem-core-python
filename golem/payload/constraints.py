@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Literal, MutableSequence, Union
+from typing import Any, Literal, MutableSequence, TypeAlias, Union
 
-from golem.payload.base import PropertyName
 from golem.payload.mixins import PropsConsSerializerMixin
+
+PropertyName: TypeAlias = str
+PropertyValue: TypeAlias = Any
 
 
 class ConstraintException(Exception):
@@ -36,7 +38,7 @@ class PayloadSyntaxElement(PropsConsSerializerMixin, ABC):
 class Constraint(PayloadSyntaxElement):
     property_name: PropertyName
     operator: ConstraintOperator
-    value: Any
+    value: PropertyValue
 
     def _serialize(self) -> str:
         serialized_value = self._serialize_value(self.value)

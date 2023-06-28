@@ -4,14 +4,13 @@ from typing import TYPE_CHECKING, Optional, Union
 
 from ya_payment import RequestorApi, models
 
-from golem.resources.payment.events import NewInvoice
 from golem.resources.allocation.allocation import Allocation
-from golem.resources.resources import _NULL, Resource, api_call_wrapper
-from golem.resources.resources.base import TModel
+from golem.resources.base import _NULL, Resource, TModel, api_call_wrapper
+from golem.resources.invoice.events import NewInvoice
 
 if TYPE_CHECKING:
-    from golem.resources.golem_node import GolemNode
-    from golem.resources.agreement.agreement import Agreement  # noqa
+    from golem.node import GolemNode
+    from golem.resources.agreement import Agreement  # noqa
 
 
 class Invoice(Resource[RequestorApi, models.Invoice, "Agreement", _NULL, _NULL]):

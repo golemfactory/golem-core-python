@@ -1,4 +1,5 @@
-from golem.resources.market.resources import Agreement, Proposal
+from golem.resources.agreement import Agreement
+from golem.resources.proposal.proposal import Proposal
 
 
 async def default_negotiate(proposal: Proposal) -> Proposal:
@@ -18,5 +19,3 @@ async def default_create_agreement(proposal: Proposal) -> Agreement:
     if approved:
         return agreement
     raise Exception(f"Agreement {agreement} created from {proposal} was not approved")
-
-

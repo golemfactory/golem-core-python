@@ -8,9 +8,7 @@ from typing import Awaitable, Callable, List, Optional, TypeVar
 from prettytable import PrettyTable
 from typing_extensions import Concatenate, ParamSpec
 
-from golem.resources.golem_node import GolemNode
-from golem.resources.market import RUNTIME_NAME, Demand, Payload, Proposal, constraint
-from golem.resources.payment import Allocation
+from golem.node import GolemNode
 
 
 def format_allocations(allocations: List[Allocation]) -> str:

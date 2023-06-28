@@ -4,8 +4,6 @@ import random
 import string
 from uuid import uuid4
 
-from golem.resources.golem_node.golem_node import GolemNode
-from golem.resources.market import RepositoryVmPayload
 from golem.managers.activity.single_use import SingleUseActivityManager
 from golem.managers.agreement.single_use import SingleUseAgreementManager
 from golem.managers.base import WorkContext, WorkResult
@@ -14,6 +12,8 @@ from golem.managers.network.single import SingleNetworkManager
 from golem.managers.payment.pay_all import PayAllPaymentManager
 from golem.managers.proposal import StackProposalManager
 from golem.managers.work.sequential import SequentialWorkManager
+from golem.node import GolemNode
+from golem.payload import RepositoryVmPayload
 from golem.utils.logging import DEFAULT_LOGGING
 
 

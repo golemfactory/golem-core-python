@@ -1,10 +1,10 @@
-from golem.resources.network.events import NewNetwork, NetworkDataChanged, NetworkClosed
-from golem.resources.network.exceptions import NetworkFull, NetworkException
-from golem.resources.network.network import Network
-
+from golem.resources.network.events import NetworkClosed, NetworkDataChanged, NewNetwork
+from golem.resources.network.exceptions import NetworkException, NetworkFull
+from golem.resources.network.network import DeployArgsType, Network
 
 __all__ = (
     "Network",
+    "DeployArgsType",
     "NetworkException",
     "NetworkFull",
     "NewNetwork",

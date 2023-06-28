@@ -3,10 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from golem.resources.market.resources.demand.demand_offer_base.model import (
-    DemandOfferBaseModel,
-    prop,
-)
+from golem.payload.base import Payload, prop
 
 RUNTIME_NAME = "golem.runtime.name"
 RUNTIME_CAPABILITIES = "golem.runtime.capabilities"
@@ -16,7 +13,7 @@ INF_STORAGE = "golem.inf.storage.gib"
 
 
 @dataclass
-class NodeInfo(DemandOfferBaseModel):
+class NodeInfo(Payload):
     """Properties describing the information regarding the node."""
 
     name: Optional[str] = prop("golem.node.id.name", default=None)
@@ -27,7 +24,7 @@ class NodeInfo(DemandOfferBaseModel):
 
 
 @dataclass
-class ActivityInfo(DemandOfferBaseModel):
+class ActivityInfo(Payload):
     """Activity-related Properties."""
 
     cost_cap: Optional[Decimal] = prop("golem.activity.cost_cap", default=None)
@@ -59,6 +56,6 @@ class ActivityInfo(DemandOfferBaseModel):
 
 
 @dataclass
-class PaymentInfo(DemandOfferBaseModel):
+class PaymentInfo(Payload):
     chosen_payment_platform: Optional[str] = prop("golem.com.payment.chosen-platform", default=None)
     """Payment platform selected to be used for this demand."""

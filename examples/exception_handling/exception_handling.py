@@ -1,17 +1,19 @@
 import asyncio
 from typing import Callable, Tuple
 
-from golem.resources.activity import Activity, BatchError, BatchTimeoutError, commands
-from golem.resources.events.base import Event
-from golem.resources.golem_node import GolemNode
-from golem.resources.market import (
-    RepositoryVmPayload,
+from golem.event_bus import Event
+from golem.managers import DefaultPaymentManager
+from golem.node import GolemNode
+from golem.payload import RepositoryVmPayload
+from golem.pipeline import Buffer, Chain, Limit, Map
+from golem.resources import (
+    BatchError,
+    BatchTimeoutError,
     default_create_activity,
     default_create_agreement,
     default_negotiate,
 )
-from golem.managers import DefaultPaymentManager
-from golem.pipeline import Buffer, Chain, Limit, Map
+from golem.resources.activity import Activity, commands
 from golem.utils.logging import DefaultLogger
 
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")

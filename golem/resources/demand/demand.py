@@ -6,21 +6,14 @@ from typing import TYPE_CHECKING, AsyncIterator, Callable, Dict, List, Optional,
 from ya_market import RequestorApi
 from ya_market import models as models
 
-from golem.resources.demand.events import NewDemand, DemandClosed
-from golem.resources.market.proposal import Proposal
-from golem.payload.constraints import Constraints
-from golem.payload.properties import Properties
-from golem.resources.resources import (
-    _NULL,
-    Resource,
-    ResourceNotFound,
-    YagnaEventCollector,
-    api_call_wrapper,
-)
-from golem.resources.resources.base import TModel
+from golem.payload import Constraints, Properties
+from golem.resources.base import _NULL, Resource, ResourceNotFound, TModel, api_call_wrapper
+from golem.resources.demand.events import DemandClosed, NewDemand
+from golem.resources.proposal import Proposal
+from golem.utils.low import YagnaEventCollector
 
 if TYPE_CHECKING:
-    from golem.resources.golem_node import GolemNode
+    from golem.node import GolemNode
 
 
 @dataclass

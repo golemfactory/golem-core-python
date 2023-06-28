@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from golem.event_bus import Event
 
 if TYPE_CHECKING:
-    from golem.resources.golem_node import GolemNode
+    from golem.node import GolemNode
 
 
 class GolemNodeEvent(Event, ABC):

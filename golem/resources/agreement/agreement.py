@@ -7,12 +7,12 @@ from ya_market import models as models
 from ya_market.exceptions import ApiException
 
 from golem.resources.activity import Activity
-from golem.resources.agreement.events import NewAgreement, AgreementClosed
-from golem.resources.payment import Invoice
-from golem.resources.resources import _NULL, Resource, api_call_wrapper
-from golem.resources.resources.base import TModel
+from golem.resources.agreement.events import AgreementClosed, NewAgreement
+from golem.resources.base import _NULL, Resource, TModel, api_call_wrapper
+from golem.resources.invoice import Invoice
 
 if TYPE_CHECKING:
+    from golem.node import GolemNode
     from golem.resources.market.proposal import Proposal  # noqa
 
 
@@ -70,7 +70,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
         :param autoclose: Destroy the activity when the :any:`GolemNode` closes.
         :param timeout: Request timeout.
         """
-        from golem.resources.activity.resources import Activity
+        from golem.resources import Activity
 
         activity = await Activity.create(self.node, self.id, timeout)
         if autoclose:

@@ -3,20 +3,11 @@ from typing import TYPE_CHECKING
 from golem.exceptions import GolemException
 
 if TYPE_CHECKING:
-    from golem.resources.resources.base import Resource
+    from golem.resources.base import TResource
 
 
 class ResourceException(GolemException):
     pass
-
-
-class MissingConfiguration(ResourceException):
-    def __init__(self, key: str, description: str):
-        self._key = key
-        self._description = description
-
-    def __str__(self) -> str:
-        return f"Missing configuration for {self._description}. Please set env var {self._key}."
 
 
 class ResourceNotFound(ResourceException):
@@ -35,13 +26,13 @@ class ResourceNotFound(ResourceException):
 
     """
 
-    def __init__(self, resource: "Resource"):
+    def __init__(self, resource: "TResource"):
         self._resource = resource
 
         msg = f"{resource} doesn't exist"
         super().__init__(msg)
 
     @property
-    def resource(self) -> "Resource":
+    def resource(self) -> "TResource":
         """Resource that caused the exception."""
         return self._resource

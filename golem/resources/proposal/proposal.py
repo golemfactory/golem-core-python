@@ -6,16 +6,14 @@ from typing import TYPE_CHECKING, AsyncIterator, Literal, Optional, Union
 from ya_market import RequestorApi
 from ya_market import models as models
 
-from golem.resources.market.events import NewProposal
-from golem.resources.agreement.agreement import Agreement
-from golem.payload.constraints import Constraints
-from golem.payload.properties import Properties
-from golem.resources.resources import Resource
-from golem.resources.resources.base import TModel, api_call_wrapper
+from golem.payload import Constraints, Properties
+from golem.resources.agreement import Agreement
+from golem.resources.base import Resource, TModel, api_call_wrapper
+from golem.resources.proposal.events import NewProposal
 
 if TYPE_CHECKING:
-    from golem.resources.golem_node import GolemNode
-    from golem.resources.market.resources.demand import Demand
+    from golem.node import GolemNode
+    from golem.resources.demand import Demand
 
 
 ProposalState = Literal["Initial", "Draft", "Rejected", "Accepted", "Expired"]
@@ -91,7 +89,7 @@ class Proposal(
         # and then _demand is always set, or a Proposal-parent or a Demand-parent.
 
         # FIXME: remove local import
-        from golem.resources.market.resources.demand import Demand
+        from golem.resources import Demand
 
         if self._demand is not None:
             return self._demand

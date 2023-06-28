@@ -2,16 +2,16 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Iterable, Optional, Union
 
-from golem.resources.demand.demand import Demand
-from golem.resources.market.resources.demand.demand_offer_base import defaults as dobm_defaults
-from golem.resources.market.resources.demand.demand_offer_base.model import DemandOfferBaseModel
-from golem.resources.allocation.allocation import Allocation
+from golem.payload import Payload
+from golem.payload import defaults as payload_defaults
 from golem.payload.constraints import Constraint, ConstraintGroup, Constraints
 from golem.payload.parsers.base import PayloadSyntaxParser
 from golem.payload.properties import Properties
+from golem.resources.allocation.allocation import Allocation
+from golem.resources.demand.demand import Demand
 
 if TYPE_CHECKING:
-    from golem.resources.golem_node import GolemNode
+    from golem.node import GolemNode
 
 
 class DemandBuilder:
@@ -21,7 +21,8 @@ class DemandBuilder:
     example usage:
 
     ```python
-    >>> from golem.resources.market import DemandBuilder, pipeline
+    >>> from golem.resources import DemandBuilder
+    >>> from golem.payload import defaults
     >>> from datetime import datetime, timezone
     >>> builder = DemandBuilder()
     >>> await builder.add(defaults.NodeInfo(name="a node", subnet_tag="testnet"))
@@ -55,10 +56,10 @@ class DemandBuilder:
             and self.constraints == other.constraints
         )
 
-    async def add(self, model: DemandOfferBaseModel):
-        """Add properties and constraints from the given model to this demand definition."""
+    async def add(self, payload: Payload):
+        """Add properties and constraints from the given payload to this demand definition."""
 
-        properties, constraints = await model.build_properties_and_constraints()
+        properties, constraints = await payload.build_properties_and_constraints()
 
         self.add_properties(properties)
         self.add_constraints(constraints)
@@ -92,7 +93,7 @@ class DemandBuilder:
         :param allocations: Allocations that will be included in the description of this demand.
         """
         # FIXME: get rid of local import
-        from golem.resources.golem_node.golem_node import DEFAULT_EXPIRATION_TIMEOUT, SUBNET
+        from golem.node import DEFAULT_EXPIRATION_TIMEOUT, SUBNET
 
         if subnet is None:
             subnet = SUBNET
@@ -100,8 +101,8 @@ class DemandBuilder:
         if expiration is None:
             expiration = datetime.now(timezone.utc) + DEFAULT_EXPIRATION_TIMEOUT
 
-        await self.add(dobm_defaults.ActivityInfo(expiration=expiration, multi_activity=True))
-        await self.add(dobm_defaults.NodeInfo(subnet_tag=subnet))
+        await self.add(payload_defaults.ActivityInfo(expiration=expiration, multi_activity=True))
+        await self.add(payload_defaults.NodeInfo(subnet_tag=subnet))
 
         for allocation in allocations:
             properties, constraints = await allocation.get_properties_and_constraints_for_demand(

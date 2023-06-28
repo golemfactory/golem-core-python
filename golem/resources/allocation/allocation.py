@@ -1,20 +1,20 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from typing import TYPE_CHECKING, Optional, Tuple
 
-from decimal import Decimal
 from ya_payment import RequestorApi, models
 
-from golem.resources.allocation.events import NewAllocation
-from golem.resources.allocation.exceptions import NoMatchingAccount
 from golem.payload.constraints import Constraints
 from golem.payload.parsers.base import PayloadSyntaxParser
 from golem.payload.properties import Properties
-from golem.resources.resources import _NULL, Resource, ResourceClosed, api_call_wrapper
-from golem.resources.resources.base import TModel
+from golem.resources.allocation.events import NewAllocation
+from golem.resources.allocation.exceptions import NoMatchingAccount
+from golem.resources.base import _NULL, Resource, TModel, api_call_wrapper
+from golem.resources.events import ResourceClosed
 
 if TYPE_CHECKING:
-    from golem.resources.golem_node import GolemNode
+    from golem.node import GolemNode
 
 
 class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL]):

@@ -7,7 +7,8 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 from ya_activity import models
 
-from golem.storage import Destination, GftpProvider, Source
+from golem.utils.storage import Destination, Source
+from golem.utils.storage.gftp import GftpProvider
 
 ArgsDict = Mapping[str, Union[str, List, Dict[str, Any]]]
 

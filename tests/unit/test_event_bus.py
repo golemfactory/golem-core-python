@@ -3,7 +3,7 @@ import logging.config
 
 import pytest
 
-from golem.resources.events.base import Event, EventBusError
+from golem.event_bus import Event, EventBusError
 from golem.event_bus.in_memory import InMemoryEventBus
 from golem.utils.logging import DEFAULT_LOGGING
 

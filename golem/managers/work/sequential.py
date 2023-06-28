@@ -1,8 +1,8 @@
 import logging
 from typing import List
 
-from golem.resources.golem_node.golem_node import GolemNode
 from golem.managers.base import DoWorkCallable, Work, WorkManager, WorkResult
+from golem.node import GolemNode
 
 logger = logging.getLogger(__name__)
 

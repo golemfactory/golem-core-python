@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
 
-from golem.resources.resources import NewResource, ResourceClosed, ResourceDataChanged
+from golem.resources.events import NewResource, ResourceClosed, ResourceDataChanged
 
 if TYPE_CHECKING:
-    pass
+    from golem.resources.network.network import Network  # noqa
 
 
 class NewNetwork(NewResource["Network"]):

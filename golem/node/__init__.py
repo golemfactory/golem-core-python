@@ -1,11 +1,11 @@
-from golem.node.events import (
-    GolemNodeEvent,
-    SessionStarted,
-    ShutdownFinished,
-    ShutdownStarted,
+from golem.node.events import GolemNodeEvent, SessionStarted, ShutdownFinished, ShutdownStarted
+from golem.node.node import (
+    DEFAULT_EXPIRATION_TIMEOUT,
+    PAYMENT_DRIVER,
+    PAYMENT_NETWORK,
+    SUBNET,
+    GolemNode,
 )
-
-from golem.node.node import GolemNode, PAYMENT_NETWORK, PAYMENT_DRIVER, SUBNET
 
 __all__ = (
     "GolemNode",
@@ -16,4 +16,5 @@ __all__ = (
     "PAYMENT_DRIVER",
     "PAYMENT_NETWORK",
     "SUBNET",
+    "DEFAULT_EXPIRATION_TIMEOUT",
 )

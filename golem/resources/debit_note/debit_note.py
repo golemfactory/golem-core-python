@@ -4,20 +4,19 @@ from typing import TYPE_CHECKING, Optional, Union
 from _decimal import Decimal
 from ya_payment import RequestorApi, models
 
+from golem.resources.allocation import Allocation
+from golem.resources.base import _NULL, Resource, TModel, api_call_wrapper
 from golem.resources.debit_note.events import NewDebitNote
-from golem.resources.allocation.allocation import Allocation
-from golem.resources.resources import _NULL, Resource, api_call_wrapper
-from golem.resources.resources.base import TModel
 
 if TYPE_CHECKING:
+    from golem.node import GolemNode
     from golem.resources.activity import Activity  # noqa
-    from golem.resources.golem_node import GolemNode
 
 
 class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NULL]):
     """A single debit note on the Golem Network.
 
-    Ususally created by a :any:`GolemNode` initialized with `collect_payment_events = True`.
+    Usually created by a :any:`GolemNode` initialized with `collect_payment_events = True`.
     """
 
     def __init__(self, node: "GolemNode", id_: str, data: Optional[TModel] = None):

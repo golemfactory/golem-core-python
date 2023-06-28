@@ -1,7 +1,6 @@
-from golem.utils.storage.gftp import GftpProvider
+from golem.utils.storage.base import Destination, Source
 
 __all__ = (
     "Destination",
     "Source",
-    "GftpProvider",
 )

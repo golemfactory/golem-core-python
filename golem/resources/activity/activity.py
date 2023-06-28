@@ -7,13 +7,14 @@ from ya_activity import models
 
 from golem.resources.activity.commands import Command, Script
 from golem.resources.activity.events import ActivityClosed, NewActivity
-from golem.resources.pooling_batch.pooling_batch import PoolingBatch
-from golem.resources.payment import DebitNote
-from golem.resources.resources import _NULL, ActivityApi, Resource, api_call_wrapper
+from golem.resources.base import _NULL, Resource, api_call_wrapper
+from golem.resources.debit_note import DebitNote
+from golem.resources.pooling_batch import PoolingBatch
+from golem.utils.low import ActivityApi
 
 if TYPE_CHECKING:
-    from golem.resources.golem_node.golem_node import GolemNode
-    from golem.resources.market import Agreement  # noqa
+    from golem.node import GolemNode
+    from golem.resources.agreement import Agreement  # noqa
 
 
 class Activity(Resource[ActivityApi, _NULL, "Agreement", PoolingBatch, _NULL]):

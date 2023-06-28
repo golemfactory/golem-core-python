@@ -2,7 +2,7 @@ from typing import List, Union
 
 import pytest
 
-from golem.resources.activity import Run
+from golem.resources import Run
 
 list_c = ["echo", "foo"]
 str_c = "echo foo"

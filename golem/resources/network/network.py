@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING, Dict, List, Optional, TypedDict, Union
 
 from ya_net import RequestorApi, models
 
-from golem.resources.network.events import NewNetwork
+from golem.resources.base import _NULL, Resource, api_call_wrapper
+from golem.resources.network.events import NetworkClosed, NewNetwork
 from golem.resources.network.exceptions import NetworkFull
-from golem.resources.resources import _NULL, Resource, ResourceClosed, api_call_wrapper
 
 if TYPE_CHECKING:
-    from golem.resources.golem_node import GolemNode
+    from golem.node import GolemNode
 
 IpAddress = Union[IPv4Address, IPv6Address]
 IpNetwork = Union[IPv4Network, IPv6Network]
@@ -70,7 +70,7 @@ class Network(Resource[RequestorApi, models.Network, _NULL, _NULL, _NULL]):
     async def remove(self) -> None:
         """Remove the network."""
         await self.api.remove_network(self.id)
-        await self.node.event_bus.emit(ResourceClosed(self))
+        await self.node.event_bus.emit(NetworkClosed(self))
 
     @api_call_wrapper()
     async def create_node(self, provider_id: str, node_ip: Optional[str] = None) -> str:

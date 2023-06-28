@@ -9,9 +9,8 @@ from dns.exception import DNSException
 from srvresolver.srv_record import SRVRecord
 from srvresolver.srv_resolver import SRVResolver
 
-from golem.resources.market.resources.demand.demand_offer_base import defaults
-from golem.resources.market.resources.demand.demand_offer_base.model import constraint, prop
-from golem.resources.market.resources.demand.demand_offer_base.payload.base import Payload
+from golem.payload import defaults
+from golem.payload.base import Payload, constraint, prop
 from golem.payload.constraints import Constraints
 from golem.payload.properties import Properties
 from golem.utils.http import make_http_get_request, make_http_head_request

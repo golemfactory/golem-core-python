@@ -8,11 +8,11 @@ import ya_market
 import ya_net
 import ya_payment
 
-from golem.resources.resources.exceptions import MissingConfiguration
+from golem.exceptions import MissingConfiguration
 
 if TYPE_CHECKING:
-    from golem.resources.golem_node import GolemNode
-    from golem.resources.resources import Resource
+    from golem.node import GolemNode
+    from golem.resources import Resource
 
 
 TRequestorApi = TypeVar("TRequestorApi")

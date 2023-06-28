@@ -2,8 +2,8 @@ import asyncio
 import inspect
 from typing import AsyncIterator, Awaitable, List, Union
 
-from golem.resources.activity import Activity
-from golem.pipeline.exceptions import InputStreamExhausted
+from golem.pipeline import InputStreamExhausted
+from golem.resources import Activity
 
 
 class ActivityPool:

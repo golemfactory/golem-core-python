@@ -2,15 +2,11 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Awaitable, Callable, Optional
 
-from golem.resources.activity import Activity
-from golem.resources.golem_node.golem_node import GolemNode
-from golem.resources.market import Agreement
-from golem.managers.activity.defaults import (
-    default_on_activity_start,
-    default_on_activity_stop,
-)
+from golem.managers.activity.defaults import default_on_activity_start, default_on_activity_stop
 from golem.managers.agreement import AgreementReleased
 from golem.managers.base import ActivityManager, Work, WorkContext, WorkResult
+from golem.node import GolemNode
+from golem.resources import Activity, Agreement
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,5 @@
+from golem.resources.activity.activity import Activity
 from golem.resources.activity.commands import Deploy, Start
-from golem.resources.activity.resources import Activity
 
 
 # TODO: Move default functions to Activity class

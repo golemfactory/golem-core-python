@@ -2,13 +2,18 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
-from golem.resources.activity import Activity, Script, commands
-from golem.resources.market import Agreement, Proposal
-from golem.resources.demand.demand import DemandData
-from golem.resources.market.proposal import ProposalData
-from golem.resources.payment import Allocation
-from golem.resources.resources import ResourceEvent
 from golem.exceptions import GolemException
+from golem.resources import (
+    Activity,
+    Agreement,
+    Allocation,
+    DemandData,
+    Proposal,
+    ProposalData,
+    ResourceEvent,
+    Script,
+)
+from golem.resources.activity import commands
 
 
 class Batch:

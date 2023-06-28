@@ -4,18 +4,19 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 from ya_activity import models
 
-from golem.resources.pooling_batch.events import NewPoolingBatch, BatchFinished
+from golem.resources.base import _NULL, Resource
+from golem.resources.pooling_batch.events import BatchFinished, NewPoolingBatch
 from golem.resources.pooling_batch.exceptions import (
     BatchError,
     BatchTimeoutError,
     CommandCancelled,
     CommandFailed,
 )
-from golem.resources.resources import _NULL, ActivityApi, Resource, YagnaEventCollector
+from golem.utils.low import ActivityApi, YagnaEventCollector
 
 if TYPE_CHECKING:
+    from golem.node import GolemNode
     from golem.resources.activity.activity import Activity  # noqa
-    from golem.resources.golem_node import GolemNode
 
 
 class PoolingBatch(

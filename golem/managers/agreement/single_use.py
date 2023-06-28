@@ -1,10 +1,10 @@
 import logging
 from typing import Awaitable, Callable
 
-from golem.resources.golem_node.golem_node import GolemNode
-from golem.resources.market import Agreement, Proposal
 from golem.managers.agreement.events import AgreementReleased
 from golem.managers.base import AgreementManager
+from golem.node import GolemNode
+from golem.resources import Agreement, Proposal
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class SingleUseAgreementManager(AgreementManager):
                 await self._event_bus.on_once(
                     AgreementReleased,
                     self._terminate_agreement,
-                    lambda e: e.resource.id == agreement.id,
+                    lambda event: event.resource.id == agreement.id,
                 )
 
                 logger.debug(f"Getting agreement done with `{agreement}`")

@@ -1,7 +1,7 @@
-from typing import Callable, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Tuple
 
 from golem.resources.debit_note import DebitNote
-from golem.resources.event_collectors import PaymentEventCollector, DebitNoteEvent
+from golem.resources.event_collectors import DebitNoteEvent, PaymentEventCollector
 
 if TYPE_CHECKING:
     from golem.resources.activity import Activity

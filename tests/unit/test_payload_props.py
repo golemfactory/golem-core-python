@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 
-from golem.payload.properties import Properties
+from golem.payload import Properties
 
 
 class ExampleEnum(Enum):

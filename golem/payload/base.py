@@ -1,18 +1,13 @@
 import abc
 import dataclasses
 import enum
-from typing import Any, Dict, Final, List, Tuple, Type, TypeVar, TypeAlias
+from typing import Any, Dict, Final, List, Tuple, Type, TypeVar
 
-from golem.payload.exceptions import (
-    InvalidProperties,
-)
 from golem.payload.constraints import Constraint, ConstraintOperator, Constraints
+from golem.payload.exceptions import InvalidProperties
 from golem.payload.properties import Properties
 
 TPayload = TypeVar("TPayload", bound="Payload")
-
-PropertyName: TypeAlias = str
-PropertyValue: TypeAlias = Any
 
 PROP_KEY: Final[str] = "key"
 PROP_OPERATOR: Final[str] = "operator"
@@ -106,9 +101,7 @@ class Payload(abc.ABC):
         ]
 
     @classmethod
-    def from_properties(
-        cls: Type[TPayload], props: Dict[str, Any]
-    ) -> TPayload:
+    def from_properties(cls: Type[TPayload], props: Dict[str, Any]) -> TPayload:
         """Initialize the model with properties from given dictionary.
 
         Only properties defined in model will be picked up from given dictionary, ignoring other
@@ -116,8 +109,7 @@ class Payload(abc.ABC):
         will only load their own data.
         """
         field_map = {
-            field.metadata[PROP_KEY]: field
-            for field in cls._get_fields(PayloadFieldType.property)
+            field.metadata[PROP_KEY]: field for field in cls._get_fields(PayloadFieldType.property)
         }
         data = {
             field_map[key].name: Properties._deserialize_value(val, field_map[key])

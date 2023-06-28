@@ -2,9 +2,9 @@ import asyncio
 import logging
 from typing import Optional
 
-from golem.resources.golem_node.golem_node import GolemNode
-from golem.resources.market import Proposal
 from golem.managers.base import ManagerException, ProposalManager
+from golem.node import GolemNode
+from golem.resources import Proposal
 from golem.utils.asyncio import create_task_with_logging
 
 logger = logging.getLogger(__name__)

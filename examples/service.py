@@ -5,17 +5,18 @@ from typing import Awaitable, Callable, Tuple
 from urllib.parse import urlparse
 from uuid import uuid4
 
-from golem.resources.activity import Activity, commands
-from golem.resources.events.base import Event
-from golem.resources.golem_node import GolemNode
-from golem.resources.market import (
-    RepositoryVmPayload,
+from golem.event_bus import Event
+from golem.node import GolemNode
+from golem.payload import RepositoryVmPayload
+from golem.pipeline import Buffer, Chain, Limit, Map
+from golem.resources import (
+    Activity,
     default_create_activity,
     default_create_agreement,
     default_negotiate,
 )
+from golem.resources.activity import commands
 from golem.resources.network import Network
-from golem.pipeline import Buffer, Chain, Limit, Map
 from golem.utils.logging import DefaultLogger
 
 PAYLOAD = RepositoryVmPayload(

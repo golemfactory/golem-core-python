@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import TypeVar, Type, Callable, Awaitable, Optional
+from typing import Awaitable, Callable, Optional, Type, TypeVar
 
 from golem.exceptions import GolemException
 
 TCallbackHandler = TypeVar("TCallbackHandler")
 
 TEvent = TypeVar("TEvent", bound="Event")
+
 
 class Event(ABC):
     """Base class for all events."""
