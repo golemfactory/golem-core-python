@@ -152,7 +152,13 @@ class WorkManager(Manager, ABC):
     ...
 
 
+class RejectProposal(Exception):
+    pass
+
+
 class NegotiationPlugin(ABC):
     @abstractmethod
-    async def __call__(self, demand_data: DemandData, proposal_data: ProposalData) -> None:
+    def __call__(
+        self, demand_data: DemandData, proposal_data: ProposalData
+    ) -> Union[Awaitable[Optional[RejectProposal]], Optional[RejectProposal]]:
         ...

@@ -6,7 +6,12 @@ from typing import AsyncIterator, Awaitable, Callable, List, Optional, Sequence,
 
 from ya_market import ApiException
 
-from golem.managers.base import ManagerException, NegotiationManager, NegotiationPlugin
+from golem.managers.base import (
+    ManagerException,
+    NegotiationManager,
+    NegotiationPlugin,
+    RejectProposal,
+)
 from golem.node import GolemNode
 from golem.payload import Payload, Properties
 from golem.payload.parsers.textx import TextXPayloadSyntaxParser
@@ -14,10 +19,6 @@ from golem.resources import Allocation, Demand, DemandBuilder, DemandData, Propo
 from golem.utils.asyncio import create_task_with_logging
 
 logger = logging.getLogger(__name__)
-
-
-class RejectProposal(Exception):
-    pass
 
 
 class SequentialNegotiationManager(NegotiationManager):
@@ -138,7 +139,13 @@ class SequentialNegotiationManager(NegotiationManager):
                 logger.debug(f"Applying plugins on `{offer_proposal}`...")
 
                 for plugin in self._plugins:
-                    await plugin(demand_data_after_plugins, proposal_data)
+                    plugin_result = plugin(demand_data_after_plugins, proposal_data)
+                    if asyncio.iscoroutine(plugin_result):
+                        plugin_result = await plugin_result
+                    if isinstance(plugin_result, RejectProposal):
+                        raise plugin_result
+                    if plugin_result is False:
+                        raise RejectProposal()
 
             except RejectProposal as e:
                 logger.debug(

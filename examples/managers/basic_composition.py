@@ -1,11 +1,11 @@
 import asyncio
 import logging.config
 from random import randint
-from typing import List
+from typing import List, Optional
 
 from golem.managers.activity.single_use import SingleUseActivityManager
 from golem.managers.agreement.single_use import SingleUseAgreementManager
-from golem.managers.base import WorkContext, WorkResult
+from golem.managers.base import RejectProposal, WorkContext, WorkResult
 from golem.managers.negotiation import SequentialNegotiationManager
 from golem.managers.negotiation.plugins import AddChosenPaymentPlatform, BlacklistProviderId
 from golem.managers.payment.pay_all import PayAllPaymentManager
@@ -18,7 +18,23 @@ from golem.managers.work.decorators import (
 from golem.managers.work.sequential import SequentialWorkManager
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
+from golem.resources.demand.demand import DemandData
+from golem.resources.proposal.proposal import ProposalData
 from golem.utils.logging import DEFAULT_LOGGING
+
+BLACKLISTED_PROVIDERS = [
+    "0x3b0f605fcb0690458064c10346af0c5f6b7202a5",
+    "0x7ad8ce2f95f69be197d136e308303d2395e68379",
+    "0x40f401ead13eabe677324bf50605c68caabb22c7",
+]
+
+
+async def blacklist_func(
+    demand_data: DemandData, proposal_data: ProposalData
+) -> Optional[RejectProposal]:
+    provider_id = proposal_data.issuer_id
+    if provider_id in BLACKLISTED_PROVIDERS:
+        raise RejectProposal(f"Provider ID `{provider_id}` is blacklisted by the requestor")
 
 
 async def commands_work_example(context: WorkContext) -> str:
@@ -63,13 +79,16 @@ async def main():
         payload,
         plugins=[
             AddChosenPaymentPlatform(),
-            BlacklistProviderId(
-                [
-                    "0x3b0f605fcb0690458064c10346af0c5f6b7202a5",
-                    "0x7ad8ce2f95f69be197d136e308303d2395e68379",
-                    "0x40f401ead13eabe677324bf50605c68caabb22c7",
-                ]
-            ),
+            # class based plugin
+            BlacklistProviderId(BLACKLISTED_PROVIDERS),
+            # func plugin
+            blacklist_func,
+            # lambda plugin
+            lambda _, proposal_data: proposal_data.issuer_id not in BLACKLISTED_PROVIDERS,
+            # lambda plugin with reject reason
+            lambda _, proposal_data: RejectProposal(f"Blacklisting {proposal_data.issuer_id}")
+            if proposal_data.issuer_id in BLACKLISTED_PROVIDERS
+            else None,
         ],
     )
     proposal_manager = StackProposalManager(golem, negotiation_manager.get_proposal)
