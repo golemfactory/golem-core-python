@@ -3,7 +3,7 @@ from abc import ABC
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Final, List, Literal, Optional, Tuple, TypeAlias
+from typing import Final, List, Literal, Optional, Tuple
 
 from dns.exception import DNSException
 from srvresolver.srv_record import SRVRecord
@@ -19,7 +19,7 @@ DEFAULT_REPO_URL_SRV: Final[str] = "_girepo._tcp.dev.golem.network"
 DEFAULT_REPO_URL_FALLBACK: Final[str] = "http://girepo.dev.golem.network:8000"
 DEFAULT_REPO_URL_TIMEOUT: Final[timedelta] = timedelta(seconds=10)
 
-VmCaps: TypeAlias = Literal["vpn", "inet", "manifest-support"]
+VmCaps = Literal["vpn", "inet", "manifest-support"]
 
 logger = logging.getLogger(__name__)
 

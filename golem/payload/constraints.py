@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Literal, MutableSequence, TypeAlias, Union
+from typing import Any, Literal, MutableSequence, Type, Union
 
 from golem.payload.mixins import PropsConsSerializerMixin
 
-PropertyName: TypeAlias = str
-PropertyValue: TypeAlias = Any
+PropertyName: Type[str] = str
+PropertyValue: Type[Any] = Any
 
 
 class ConstraintException(Exception):
