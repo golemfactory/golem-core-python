@@ -10,11 +10,7 @@ from golem.managers.negotiation import SequentialNegotiationManager
 from golem.managers.negotiation.plugins import AddChosenPaymentPlatform, BlacklistProviderId
 from golem.managers.payment.pay_all import PayAllPaymentManager
 from golem.managers.proposal import StackProposalManager
-from golem.managers.work.decorators import (
-    redundancy_cancel_others_on_first_done,
-    retry,
-    work_decorator,
-)
+from golem.managers.work.plugins import redundancy_cancel_others_on_first_done, retry, work_plugin
 from golem.managers.work.sequential import SequentialWorkManager
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
@@ -46,8 +42,7 @@ async def commands_work_example(context: WorkContext) -> str:
     return result
 
 
-@work_decorator(redundancy_cancel_others_on_first_done(size=2))
-@work_decorator(retry(tries=5))
+@work_plugin(redundancy_cancel_others_on_first_done(size=2))
 async def batch_work_example(context: WorkContext):
     if randint(0, 1):
         raise Exception("Random fail")
@@ -94,7 +89,7 @@ async def main():
     proposal_manager = StackProposalManager(golem, negotiation_manager.get_proposal)
     agreement_manager = SingleUseAgreementManager(golem, proposal_manager.get_proposal)
     activity_manager = SingleUseActivityManager(golem, agreement_manager.get_agreement)
-    work_manager = SequentialWorkManager(golem, activity_manager.do_work)
+    work_manager = SequentialWorkManager(golem, activity_manager.do_work, plugins=[retry(tries=5)])
 
     async with golem:
         async with payment_manager, negotiation_manager, proposal_manager:

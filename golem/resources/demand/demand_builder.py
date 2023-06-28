@@ -85,7 +85,8 @@ class DemandBuilder:
         expiration: Optional[datetime] = None,
         allocations: Iterable[Allocation] = (),
     ) -> None:
-        """
+        """Add default parameters for Demand.
+
         :param payload: Details of the demand
         :param subnet: Subnet tag
         :param expiration: Timestamp when all agreements based on this demand will expire

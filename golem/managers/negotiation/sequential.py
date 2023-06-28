@@ -108,7 +108,7 @@ class SequentialNegotiationManager(NegotiationManager):
 
         await demand_builder.add(self._payload)
 
-        logger.debug(f"Preparing demand done")
+        logger.debug("Preparing demand done")
 
         return demand_builder
 
@@ -199,7 +199,8 @@ class SequentialNegotiationManager(NegotiationManager):
         return offer_proposal
 
     async def _get_demand_data_from_demand(self, demand: Demand) -> DemandData:
-        # FIXME: Unnecessary serialisation from DemandBuilder to Demand, and from Demand to ProposalData
+        # FIXME: Unnecessary serialisation from DemandBuilder to Demand,
+        #  and from Demand to ProposalData
         data = await demand.get_data()
 
         constraints = self._demand_offer_parser.parse_constraints(data.constraints)

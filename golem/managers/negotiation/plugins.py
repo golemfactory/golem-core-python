@@ -44,7 +44,7 @@ class AddChosenPaymentPlatform(NegotiationPlugin):
         common_platforms = list(demand_platforms.intersection(proposal_platforms))
 
         if not common_platforms:
-            raise RejectProposal(f"No common payment platform!")
+            raise RejectProposal("No common payment platform!")
 
         chosen_platform = common_platforms[0]
 

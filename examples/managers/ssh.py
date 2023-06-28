@@ -45,7 +45,9 @@ def work(app_key, get_provider_uri):
 
         print(
             "Connect with:\n"
-            f"  ssh -o ProxyCommand='websocat asyncstdio: {await get_provider_uri(context._activity.parent.parent.data.issuer_id, 'ws')} --binary "
+            "  ssh -o ProxyCommand='websocat asyncstdio: "
+            f"{await get_provider_uri(context._activity.parent.parent.data.issuer_id, 'ws')}"
+            f" --binary "
             f'-H=Authorization:"Bearer {app_key}"\' root@{uuid4().hex} '
         )
         print(f"PASSWORD: {password}")

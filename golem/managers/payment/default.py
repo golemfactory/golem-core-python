@@ -39,7 +39,7 @@ class DefaultPaymentManager:
         """
 
         # FIXME: Resolve local import due to cyclic imports
-        from golem.resources.market import Agreement
+        from golem.resources import Agreement
 
         self._node = node
         self.allocation = allocation

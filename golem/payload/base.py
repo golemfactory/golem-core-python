@@ -21,7 +21,7 @@ class PayloadFieldType(enum.Enum):
 
 @dataclasses.dataclass
 class Payload(abc.ABC):
-    """Base class for convenient declaration of Golem's property and constraints syntax.
+    r"""Base class for convenient declaration of Golem's property and constraints syntax.
 
     Provides helper methods to translate fields between python class and Golem's property and
     constraints syntax.
@@ -61,7 +61,7 @@ class Payload(abc.ABC):
 
 
 
-    """
+    """  # noqa
 
     def __init__(self, **kwargs):  # pragma: no cover
         pass

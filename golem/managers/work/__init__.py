@@ -1,13 +1,9 @@
-from golem.managers.work.decorators import (
-    redundancy_cancel_others_on_first_done,
-    retry,
-    work_decorator,
-)
+from golem.managers.work.plugins import redundancy_cancel_others_on_first_done, retry, work_plugin
 from golem.managers.work.sequential import SequentialWorkManager
 
 __all__ = (
     "SequentialWorkManager",
-    "work_decorator",
+    "work_plugin",
     "redundancy_cancel_others_on_first_done",
     "retry",
 )

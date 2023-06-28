@@ -28,13 +28,16 @@ DEFAULT_LOGGING = {
             "level": "INFO",
         },
         "golem.managers": {
-            "level": "DEBUG",
+            "level": "INFO",
         },
         "golem.managers.negotiation": {
             "level": "INFO",
         },
         "golem.managers.proposal": {
             "level": "INFO",
+        },
+        "golem.managers.work": {
+            "level": "DEBUG",
         },
     },
 }

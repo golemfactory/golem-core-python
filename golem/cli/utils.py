@@ -9,6 +9,9 @@ from prettytable import PrettyTable
 from typing_extensions import Concatenate, ParamSpec
 
 from golem.node import GolemNode
+from golem.payload import Payload, constraint
+from golem.payload.defaults import RUNTIME_NAME
+from golem.resources import Allocation, Demand, Proposal
 
 
 def format_allocations(allocations: List[Allocation]) -> str:

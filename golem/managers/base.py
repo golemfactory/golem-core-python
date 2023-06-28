@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
+from typing import Any, Awaitable, Callable, Dict, Generic, List, Optional, Sequence, TypeVar, Union
 
 from golem.exceptions import GolemException
 from golem.resources import (
@@ -78,17 +78,22 @@ class WorkResult:
     extras: Dict = field(default_factory=dict)
 
 
-WorkDecorator = Callable[["DoWorkCallable"], "DoWorkCallable"]
+WORK_PLUGIN_FIELD_NAME = "_work_plugins"
 
 
 class Work(ABC):
-    _work_decorators: Optional[List[WorkDecorator]]
+    _work_plugins: Optional[List["WorkPlugin"]]
 
     def __call__(self, context: WorkContext) -> Awaitable[Optional[WorkResult]]:
         ...
 
 
 DoWorkCallable = Callable[[Work], Awaitable[WorkResult]]
+
+
+class WorkPlugin(ABC):
+    def __call__(self, do_work: DoWorkCallable) -> DoWorkCallable:
+        ...
 
 
 class ManagerEvent(ResourceEvent, ABC):
@@ -112,6 +117,22 @@ class Manager(ABC):
 
     async def stop(self):
         ...
+
+
+TPlugin = TypeVar("TPlugin")
+
+
+class ManagerPluginsMixin(Generic[TPlugin]):
+    def __init__(self, plugins: Optional[Sequence[TPlugin]] = None, *args, **kwargs) -> None:
+        self._plugins: List[TPlugin] = list(plugins) if plugins is not None else []
+
+        super().__init__(*args, **kwargs)
+
+    def register_plugin(self, plugin: TPlugin):
+        self._plugins.append(plugin)
+
+    def unregister_plugin(self, plugin: TPlugin):
+        self._plugins.remove(plugin)
 
 
 class NetworkManager(Manager, ABC):

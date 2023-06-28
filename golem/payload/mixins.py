@@ -10,7 +10,8 @@ from golem.utils.typing import match_type_union_aware
 class PropsConsSerializerMixin:
     @classmethod
     def _serialize_value(cls, value: Any) -> Any:
-        """Return value in primitive format compatible with Golem's property and constraint syntax."""
+        """Return value in primitive format compatible with Golem's property \
+        and constraint syntax."""
 
         if isinstance(value, (list, tuple)):
             return type(value)(cls._serialize_value(v) for v in value)

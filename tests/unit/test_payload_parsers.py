@@ -92,7 +92,7 @@ def test_constraint_groups_empty(demand_offer_parser, input_string, output):
 
 def test_error_not_operator_with_multiple_items(demand_offer_parser):
     with pytest.raises(ConstraintException):
-        result = demand_offer_parser.parse_constraints("(! (foo=1) (bar=1))")
+        demand_offer_parser.parse_constraints("(! (foo=1) (bar=1))")
 
 
 @pytest.mark.parametrize(

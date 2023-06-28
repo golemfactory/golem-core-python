@@ -13,7 +13,7 @@ from golem.resources.invoice import Invoice
 
 if TYPE_CHECKING:
     from golem.node import GolemNode
-    from golem.resources.market.proposal import Proposal  # noqa
+    from golem.resources.proposal import Proposal  # noqa
 
 
 class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _NULL]):

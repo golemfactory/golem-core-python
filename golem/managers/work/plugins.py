@@ -1,19 +1,19 @@
 import asyncio
 from functools import wraps
 
-from golem.managers.base import DoWorkCallable, Work, WorkDecorator, WorkResult
+from golem.managers.base import WORK_PLUGIN_FIELD_NAME, DoWorkCallable, Work, WorkPlugin, WorkResult
 
 
-def work_decorator(decorator: WorkDecorator):
-    def _work_decorator(work: Work):
-        if not hasattr(work, "_work_decorators"):
-            work._work_decorators = []
+def work_plugin(plugin: WorkPlugin):
+    def _work_plugin(work: Work):
+        if not hasattr(work, WORK_PLUGIN_FIELD_NAME):
+            work._work_plugins = []
 
-        work._work_decorators.append(decorator)
+        work._work_plugins.append(plugin)
 
         return work
 
-    return _work_decorator
+    return _work_plugin
 
 
 def retry(tries: int):

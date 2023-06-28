@@ -1,11 +1,11 @@
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Optional
 
+from golem.node import GolemNode
+from golem.payload import RepositoryVmPayload
 from golem.pipeline import Chain, Map
-from golem.resources.activity import Activity
-from golem.resources.golem_node import GolemNode
-from golem.resources.market import RepositoryVmPayload
-from golem.resources.market.pipeline import (
+from golem.resources import (
+    Activity,
     default_create_activity,
     default_create_agreement,
     default_negotiate,

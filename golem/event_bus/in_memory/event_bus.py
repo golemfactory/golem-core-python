@@ -65,7 +65,8 @@ class InMemoryEventBus(EventBus):
         filter_func: Optional[Callable[[TEvent], bool]] = None,
     ) -> TCallbackHandler:
         logger.debug(
-            f"Adding callback handler for `{event_type}` with callback `{callback}` and filter `{filter_func}`..."
+            f"Adding callback handler for `{event_type}` with callback `{callback}`"
+            f" and filter `{filter_func}`..."
         )
 
         callback_info = _CallbackInfo(
@@ -89,7 +90,8 @@ class InMemoryEventBus(EventBus):
         filter_func: Optional[Callable[[TEvent], bool]] = None,
     ) -> TCallbackHandler:
         logger.debug(
-            f"Adding one-time callback handler for `{event_type}` with callback `{callback}` and filter `{filter_func}`..."
+            f"Adding one-time callback handler for `{event_type}` with callback `{callback}`"
+            f" and filter `{filter_func}`..."
         )
 
         callback_info = _CallbackInfo(
@@ -158,7 +160,8 @@ class InMemoryEventBus(EventBus):
 
         if not isinstance(event, event_type):
             logger.debug(
-                f"Processing event `{event}` on event type `{event_type}` ignored as event is not a instance of event type"
+                f"Processing event `{event}` on event type `{event_type}` ignored as event is"
+                f" not a instance of event type"
             )
             return
 
@@ -175,9 +178,10 @@ class InMemoryEventBus(EventBus):
                     if not callback_info.filter_func(event):
                         logger.debug("Calling filter function done, ignoring callback")
                         continue
-                except:
+                except Exception:
                     logger.exception(
-                        f"Encountered an error in `{callback_info.filter_func}` filter function while handling `{event}`!"
+                        f"Encountered an error in `{callback_info.filter_func}` filter function"
+                        f" while handling `{event}`!"
                     )
                     continue
                 else:
@@ -192,7 +196,8 @@ class InMemoryEventBus(EventBus):
                 logger.debug(f"Calling {callback_info.callback} failed with `{e}")
 
                 logger.exception(
-                    f"Encountered an error in `{callback_info.callback}` callback while handling `{event}`!"
+                    f"Encountered an error in `{callback_info.callback}` callback"
+                    f" while handling `{event}`!"
                 )
                 continue
             else:

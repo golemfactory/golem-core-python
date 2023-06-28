@@ -11,7 +11,7 @@ classifiers = [
     "Topic :: System :: Distributed Computing"
 ]
 repository = "https://github.com/golemfactory/golem-core-python"
-packages = [{ include = "golem_core" }]
+packages = [{ include = "golem" }]
 
 [build-system]
 requires = ["poetry_core>=1.0.0"]
@@ -58,7 +58,7 @@ poethepoet = "^0.8"
 [tool.poe.tasks]
 checks = {sequence = ["checks_codestyle", "checks_typing", "checks_license"], help = "Run all available code checks"}
 checks_codestyle = {sequence = ["_checks_codestyle_flake8", "_checks_codestyle_isort", "_checks_codestyle_black"], help = "Run only code style checks"}
-_checks_codestyle_flake8 = "flake8 golem_core tests examples"
+_checks_codestyle_flake8 = "flake8 golem tests examples"
 _checks_codestyle_isort = "isort --check-only --diff ."
 _checks_codestyle_black = "black --check --diff ."
 checks_typing  = {cmd = "mypy .", help = "Run only code typing checks" }
@@ -149,7 +149,7 @@ target-version = ['py38']
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-addopts = "--cov golem_core --cov-report html --cov-report term-missing -sv"
+addopts = "--cov golem --cov-report html --cov-report term-missing -sv"
 testspaths = [
     "tests",
 ]
