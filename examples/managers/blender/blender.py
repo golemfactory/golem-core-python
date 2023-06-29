@@ -11,8 +11,8 @@ from golem.managers.negotiation import SequentialNegotiationManager
 from golem.managers.negotiation.plugins import AddChosenPaymentPlatform
 from golem.managers.payment.pay_all import PayAllPaymentManager
 from golem.managers.proposal import StackProposalManager
+from golem.managers.work.asynchronous import AsynchronousWorkManager
 from golem.managers.work.plugins import retry
-from golem.managers.work.sequential import SequentialWorkManager
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
 from golem.utils.logging import DEFAULT_LOGGING
@@ -70,7 +70,9 @@ async def main():
     activity_manager = ActivityPoolManager(
         golem, agreement_manager.get_agreement, size=3, on_activity_start=load_blend_file
     )
-    work_manager = SequentialWorkManager(golem, activity_manager.do_work, plugins=[retry(tries=3)])
+    work_manager = AsynchronousWorkManager(
+        golem, activity_manager.do_work, plugins=[retry(tries=3)]
+    )
 
     async with golem:
         async with payment_manager, negotiation_manager, proposal_manager, activity_manager:

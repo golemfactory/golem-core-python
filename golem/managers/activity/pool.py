@@ -38,7 +38,9 @@ class ActivityPoolManager(ActivityManager):
             asyncio.create_task(self._prepare_activity_and_put_in_pool())
 
     async def _prepare_activity_and_put_in_pool(self):
-        await self._pool.put(await self._prepare_activity())
+        activity = await self._prepare_activity()
+        await self._pool.put(activity)
+        logger.info(f"Activity `{activity}` added to the pool")
 
     async def stop(self):
         stop_tasks = []
@@ -77,10 +79,10 @@ class ActivityPoolManager(ActivityManager):
     @asynccontextmanager
     async def _get_activity_from_pool(self):
         activity = await self._pool.get()
-        logger.info(f"Activity `{activity}` taken from pool")
+        logger.info(f"Activity `{activity}` taken from the pool")
         yield activity
         self._pool.put_nowait(activity)
-        logger.info(f"Activity `{activity}` back in pool")
+        logger.info(f"Activity `{activity}` back in the pool")
 
     async def do_work(self, work: Work) -> WorkResult:
         async with self._get_activity_from_pool() as activity:
