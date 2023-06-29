@@ -27,6 +27,12 @@ class Batch:
     def start(self):
         self._script.add_command(commands.Start())
 
+    def send_file(self, src_path: str, dst_path: str):
+        self._script.add_command(commands.SendFile(src_path, dst_path))
+
+    def download_file(self, src_path: str, dst_path: str):
+        self._script.add_command(commands.DownloadFile(src_path, dst_path))
+
     def run(
         self,
         command: Union[str, List[str]],

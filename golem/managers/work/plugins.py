@@ -1,7 +1,10 @@
 import asyncio
+import logging
 from functools import wraps
 
 from golem.managers.base import WORK_PLUGIN_FIELD_NAME, DoWorkCallable, Work, WorkPlugin, WorkResult
+
+logger = logging.getLogger(__name__)
 
 
 def work_plugin(plugin: WorkPlugin):
@@ -32,6 +35,10 @@ def retry(tries: int):
 
                 count += 1
                 errors.append(work_result.exception)
+
+                logger.info(
+                    f"Got an exception {work_result.exception} on {count} attempt {tries-count} attempts left"
+                )
 
             work_result.extras["retry"] = {
                 "tries": count,
