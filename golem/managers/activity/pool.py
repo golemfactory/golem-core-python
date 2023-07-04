@@ -8,11 +8,12 @@ from golem.managers.agreement import AgreementReleased
 from golem.managers.base import ActivityManager, Work, WorkContext, WorkResult
 from golem.node import GolemNode
 from golem.resources import Activity, Agreement
+from golem.utils.asyncio import create_task_with_logging
 
 logger = logging.getLogger(__name__)
 
 
-class ActivityPoolManager(ActivityManager):
+class ActivityPoolManager(ActivityManager):  # TODO ActivityPrepeareReleaseMixin
     def __init__(
         self,
         golem: GolemNode,
@@ -35,7 +36,7 @@ class ActivityPoolManager(ActivityManager):
 
     async def start(self):
         for _ in range(self._pool_size):
-            asyncio.create_task(self._prepare_activity_and_put_in_pool())
+            create_task_with_logging(self._prepare_activity_and_put_in_pool())
 
     async def _prepare_activity_and_put_in_pool(self):
         activity = await self._prepare_activity()
@@ -43,11 +44,12 @@ class ActivityPoolManager(ActivityManager):
         logger.info(f"Activity `{activity}` added to the pool")
 
     async def stop(self):
-        stop_tasks = []
-        for _ in range(self._pool_size):
-            stop_tasks.append(asyncio.create_task(self._release_activity(await self._pool.get())))
-        for task in stop_tasks:
-            await task
+        await asyncio.gather(
+            *[
+                create_task_with_logging(self._release_activity(await self._pool.get()))
+                for _ in range(self._pool_size)
+            ]
+        )
         assert self._pool.empty()
 
     async def _prepare_activity(self) -> Activity:

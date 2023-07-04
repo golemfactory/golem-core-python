@@ -74,10 +74,9 @@ async def main():
         golem, activity_manager.do_work, plugins=[retry(tries=3)]
     )
 
-    async with golem:
-        async with payment_manager, negotiation_manager, proposal_manager, activity_manager:
-            results: List[WorkResult] = await work_manager.do_work_list(work_list)
-            print(f"\nWORK MANAGER RESULTS:{[result.result for result in results]}\n", flush=True)
+    async with golem, payment_manager, negotiation_manager, proposal_manager, activity_manager:
+        results: List[WorkResult] = await work_manager.do_work_list(work_list)
+        print(f"\nWORK MANAGER RESULTS:{[result.result for result in results]}\n", flush=True)
 
 
 if __name__ == "__main__":
