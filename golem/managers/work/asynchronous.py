@@ -2,13 +2,8 @@ import asyncio
 import logging
 from typing import List
 
-from golem.managers.base import (
-    DoWorkCallable,
-    Work,
-    WorkManager,
-    WorkManagerPluginsMixin,
-    WorkResult,
-)
+from golem.managers.base import DoWorkCallable, Work, WorkManager, WorkResult
+from golem.managers.work.mixins import WorkManagerPluginsMixin
 from golem.node import GolemNode
 
 logger = logging.getLogger(__name__)
