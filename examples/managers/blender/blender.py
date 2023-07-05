@@ -18,7 +18,7 @@ from golem.payload import RepositoryVmPayload
 from golem.utils.logging import DEFAULT_LOGGING
 
 FRAME_CONFIG_TEMPLATE = json.loads(Path(__file__).with_name("frame_params.json").read_text())
-FRAMES = list(range(0, 60, 10))
+FRAMES = list(range(0, 60, 1))
 
 
 async def load_blend_file(context: WorkContext):
@@ -29,12 +29,12 @@ async def load_blend_file(context: WorkContext):
     await batch()
 
 
-def blender_frame_work(frame_ix: int):
-    async def _blender_frame_work(context: WorkContext) -> str:
+def render_blender_frame(frame_ix: int):
+    async def _render_blender_frame(context: WorkContext) -> str:
         frame_config = FRAME_CONFIG_TEMPLATE.copy()
         frame_config["frames"] = [frame_ix]
         fname = f"out{frame_ix:04d}.png"
-        fname_path = str(Path(__file__).parent / fname)
+        fname_path = str(Path(__file__).parent / "frames" / fname)
 
         print(f"BLENDER: Running {fname_path}")
 
@@ -45,14 +45,14 @@ def blender_frame_work(frame_ix: int):
         await batch()
         return fname_path
 
-    return _blender_frame_work
+    return _render_blender_frame
 
 
 async def main():
     logging.config.dictConfig(DEFAULT_LOGGING)
     payload = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
-    work_list = [blender_frame_work(frame_ix) for frame_ix in FRAMES]
+    work_list = [render_blender_frame(frame_ix) for frame_ix in FRAMES]
 
     golem = GolemNode()
 
@@ -68,7 +68,7 @@ async def main():
     proposal_manager = StackProposalManager(golem, negotiation_manager.get_proposal)
     agreement_manager = SingleUseAgreementManager(golem, proposal_manager.get_proposal)
     activity_manager = ActivityPoolManager(
-        golem, agreement_manager.get_agreement, size=3, on_activity_start=load_blend_file
+        golem, agreement_manager.get_agreement, size=10, on_activity_start=load_blend_file
     )
     work_manager = AsynchronousWorkManager(
         golem, activity_manager.do_work, plugins=[retry(tries=3)]

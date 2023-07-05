@@ -39,6 +39,9 @@ DEFAULT_LOGGING = {
         "golem.managers.work": {
             "level": "INFO",
         },
+        "golem.managers.agreement": {
+            "level": "INFO",
+        },
     },
 }
 
