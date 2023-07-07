@@ -2,14 +2,15 @@ import asyncio
 import logging
 from copy import deepcopy
 from datetime import datetime
-from typing import AsyncIterator, Awaitable, Callable, List, Optional, Sequence, cast
+from typing import AsyncIterator, Awaitable, Callable, Optional, cast
 
 from ya_market import ApiException
 
 from golem.managers.base import (
     ManagerException,
+    ManagerPluginsMixin,
     NegotiationManager,
-    NegotiationPlugin,
+    NegotiationManagerPlugin,
     RejectProposal,
 )
 from golem.node import GolemNode
@@ -21,28 +22,26 @@ from golem.utils.asyncio import create_task_with_logging
 logger = logging.getLogger(__name__)
 
 
-class SequentialNegotiationManager(NegotiationManager):
+class SequentialNegotiationManager(
+    ManagerPluginsMixin[NegotiationManagerPlugin], NegotiationManager
+):
     def __init__(
         self,
         golem: GolemNode,
         get_allocation: Callable[[], Awaitable[Allocation]],
         payload: Payload,
-        plugins: Optional[Sequence[NegotiationPlugin]] = None,
+        *args,
+        **kwargs,
     ) -> None:
         self._golem = golem
         self._get_allocation = get_allocation
         self._payload = payload
 
         self._negotiation_loop_task: Optional[asyncio.Task] = None
-        self._plugins: List[NegotiationPlugin] = list(plugins) if plugins is not None else []
         self._eligible_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
         self._demand_offer_parser = TextXPayloadSyntaxParser()
 
-    def register_plugin(self, plugin: NegotiationPlugin):
-        self._plugins.append(plugin)
-
-    def unregister_plugin(self, plugin: NegotiationPlugin):
-        self._plugins.remove(plugin)
+        super().__init__(*args, **kwargs)
 
     async def get_proposal(self) -> Proposal:
         logger.debug("Getting proposal...")
@@ -140,10 +139,14 @@ class SequentialNegotiationManager(NegotiationManager):
 
                 for plugin in self._plugins:
                     plugin_result = plugin(demand_data_after_plugins, proposal_data)
+
                     if asyncio.iscoroutine(plugin_result):
                         plugin_result = await plugin_result
+
                     if isinstance(plugin_result, RejectProposal):
                         raise plugin_result
+
+                    # Note: Explicit identity to False desired here, not "falsy" check
                     if plugin_result is False:
                         raise RejectProposal()
 
@@ -180,7 +183,7 @@ class SequentialNegotiationManager(NegotiationManager):
                 try:
                     new_offer_proposal = await demand_proposal.responses().__anext__()
                 except StopAsyncIteration:
-                    logger.debug("Waiting for response failed with rejection")
+                    logger.debug("Waiting for response failed with provider rejection")
                     return None
 
                 logger.debug(f"Waiting for response done with `{new_offer_proposal}`")

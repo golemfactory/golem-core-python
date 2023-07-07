@@ -10,7 +10,7 @@ from golem.managers.base import WorkContext, WorkResult
 from golem.managers.negotiation import SequentialNegotiationManager
 from golem.managers.network.single import SingleNetworkManager
 from golem.managers.payment.pay_all import PayAllPaymentManager
-from golem.managers.proposal import StackProposalManager
+from golem.managers.proposal import ScoredAheadOfTimeProposalManager
 from golem.managers.work.sequential import SequentialWorkManager
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
@@ -74,7 +74,7 @@ async def main():
     negotiation_manager = SequentialNegotiationManager(
         golem, payment_manager.get_allocation, payload
     )
-    proposal_manager = StackProposalManager(golem, negotiation_manager.get_proposal)
+    proposal_manager = ScoredAheadOfTimeProposalManager(golem, negotiation_manager.get_proposal)
     agreement_manager = SingleUseAgreementManager(golem, proposal_manager.get_proposal)
     activity_manager = SingleUseActivityManager(
         golem,

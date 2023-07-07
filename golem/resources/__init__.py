@@ -83,6 +83,7 @@ from golem.resources.proposal import (
     ProposalClosed,
     ProposalData,
     ProposalDataChanged,
+    ProposalId,
     default_create_agreement,
     default_negotiate,
 )
@@ -143,6 +144,7 @@ __all__ = (
     "CommandCancelled",
     "BatchTimeoutError",
     "Proposal",
+    "ProposalId",
     "ProposalData",
     "NewProposal",
     "ProposalDataChanged",

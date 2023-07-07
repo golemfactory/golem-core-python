@@ -1,15 +1,14 @@
 import logging
 from typing import Sequence, Set
 
-from golem.managers.base import NegotiationPlugin
-from golem.managers.negotiation.sequential import RejectProposal
+from golem.managers.base import NegotiationManagerPlugin, PricingCallable, RejectProposal
 from golem.payload import Properties
 from golem.resources import DemandData, ProposalData
 
 logger = logging.getLogger(__name__)
 
 
-class BlacklistProviderId(NegotiationPlugin):
+class BlacklistProviderId(NegotiationManagerPlugin):
     def __init__(self, blacklist: Sequence[str]) -> None:
         self._blacklist = blacklist
 
@@ -29,7 +28,7 @@ class BlacklistProviderId(NegotiationPlugin):
         )
 
 
-class AddChosenPaymentPlatform(NegotiationPlugin):
+class AddChosenPaymentPlatform(NegotiationManagerPlugin):
     async def __call__(self, demand_data: DemandData, proposal_data: ProposalData) -> None:
         logger.debug("Calling chosen payment platform plugin...")
 
@@ -60,6 +59,19 @@ class AddChosenPaymentPlatform(NegotiationPlugin):
         }
 
 
-class MidAgreementPayment(NegotiationPlugin):
+class RejectIfCostsExceeds(NegotiationManagerPlugin):
+    def __init__(
+        self, cost: float, pricing_callable: PricingCallable, reject_on_unpricable=True
+    ) -> None:
+        self._cost = cost
+        self._pricing_callable = pricing_callable
+        self.reject_on_unpricable = reject_on_unpricable
+
     async def __call__(self, demand_data: DemandData, proposal_data: ProposalData) -> None:
-        ...
+        cost = self._pricing_callable(proposal_data)
+
+        if cost is None and self.reject_on_unpricable:
+            raise RejectProposal("Can't estimate costs!")
+
+        if self._cost <= cost:
+            raise RejectProposal(f"Exceeds estimated costs of `{self._cost}`!")

@@ -1,7 +1,7 @@
 import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, AsyncIterator, Literal, Optional, Union
+from typing import TYPE_CHECKING, AsyncIterator, Literal, Optional, Type, Union
 
 from ya_market import RequestorApi
 from ya_market import models as models
@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from golem.resources.demand import Demand
 
 
+ProposalId: Type[str] = str
 ProposalState = Literal["Initial", "Draft", "Rejected", "Accepted", "Expired"]
 
 
@@ -23,7 +24,7 @@ ProposalState = Literal["Initial", "Draft", "Rejected", "Accepted", "Expired"]
 class ProposalData:
     properties: Properties
     constraints: Constraints
-    proposal_id: str
+    proposal_id: ProposalId
     issuer_id: str
     state: ProposalState
     timestamp: datetime

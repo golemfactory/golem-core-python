@@ -1,19 +1,27 @@
 import asyncio
 import logging.config
-from random import randint
-from typing import List, Optional
+from datetime import timedelta
+from random import randint, random
+from typing import List
 
 from golem.managers.activity.single_use import SingleUseActivityManager
 from golem.managers.agreement.single_use import SingleUseAgreementManager
 from golem.managers.base import RejectProposal, WorkContext, WorkResult
 from golem.managers.negotiation import SequentialNegotiationManager
-from golem.managers.negotiation.plugins import AddChosenPaymentPlatform, BlacklistProviderId
+from golem.managers.negotiation.plugins import (
+    AddChosenPaymentPlatform,
+    BlacklistProviderId,
+    RejectIfCostsExceeds,
+)
 from golem.managers.payment.pay_all import PayAllPaymentManager
-from golem.managers.proposal import StackProposalManager
+from golem.managers.proposal import ScoredAheadOfTimeProposalManager
+from golem.managers.proposal.plugins import MapScore, PropertyValueLerpScore, RandomScore
+from golem.managers.proposal.pricings import LinearAverageCostPricing
 from golem.managers.work.plugins import redundancy_cancel_others_on_first_done, retry, work_plugin
 from golem.managers.work.sequential import SequentialWorkManager
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
+from golem.payload.defaults import INF_MEM
 from golem.resources.demand.demand import DemandData
 from golem.resources.proposal.proposal import ProposalData
 from golem.utils.logging import DEFAULT_LOGGING
@@ -25,9 +33,7 @@ BLACKLISTED_PROVIDERS = [
 ]
 
 
-async def blacklist_func(
-    demand_data: DemandData, proposal_data: ProposalData
-) -> Optional[RejectProposal]:
+async def blacklist_func(demand_data: DemandData, proposal_data: ProposalData) -> None:
     provider_id = proposal_data.issuer_id
     if provider_id in BLACKLISTED_PROVIDERS:
         raise RejectProposal(f"Provider ID `{provider_id}` is blacklisted by the requestor")
@@ -67,6 +73,10 @@ async def main():
 
     golem = GolemNode()
 
+    linear_average_cost = LinearAverageCostPricing(
+        average_cpu_load=0.2, average_duration=timedelta(seconds=5)
+    )
+
     payment_manager = PayAllPaymentManager(golem, budget=1.0)
     negotiation_manager = SequentialNegotiationManager(
         golem,
@@ -76,6 +86,7 @@ async def main():
             AddChosenPaymentPlatform(),
             # class based plugin
             BlacklistProviderId(BLACKLISTED_PROVIDERS),
+            RejectIfCostsExceeds(1, linear_average_cost),
             # func plugin
             blacklist_func,
             # lambda plugin
@@ -86,10 +97,26 @@ async def main():
             else None,
         ],
     )
-    proposal_manager = StackProposalManager(golem, negotiation_manager.get_proposal)
+    proposal_manager = ScoredAheadOfTimeProposalManager(
+        golem,
+        negotiation_manager.get_proposal,
+        plugins=[
+            MapScore(linear_average_cost, normalize=True, normalize_flip=True),
+            [0.5, PropertyValueLerpScore(INF_MEM, zero_at=1, one_at=8)],
+            [0.1, RandomScore()],
+            [0.0, lambda proposals_data: [random() for _ in range(len(proposals_data))]],
+            [0.0, MapScore(lambda proposal_data: random())],
+        ],
+    )
     agreement_manager = SingleUseAgreementManager(golem, proposal_manager.get_proposal)
     activity_manager = SingleUseActivityManager(golem, agreement_manager.get_agreement)
-    work_manager = SequentialWorkManager(golem, activity_manager.do_work, plugins=[retry(tries=5)])
+    work_manager = SequentialWorkManager(
+        golem,
+        activity_manager.do_work,
+        plugins=[
+            retry(tries=5),
+        ],
+    )
 
     async with golem:
         async with payment_manager, negotiation_manager, proposal_manager:

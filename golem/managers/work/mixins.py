@@ -1,25 +1,18 @@
 import logging
-from typing import List, Optional, Sequence
 
 from golem.managers.base import (
     WORK_PLUGIN_FIELD_NAME,
     DoWorkCallable,
     ManagerPluginsMixin,
-    TPlugin,
     Work,
-    WorkPlugin,
+    WorkManagerPlugin,
     WorkResult,
 )
 
 logger = logging.getLogger(__name__)
 
 
-class WorkManagerPluginsMixin(ManagerPluginsMixin[WorkPlugin]):
-    def __init__(self, plugins: Optional[Sequence[TPlugin]] = None, *args, **kwargs) -> None:
-        self._plugins: List[TPlugin] = list(plugins) if plugins is not None else []
-
-        super().__init__(*args, **kwargs)
-
+class WorkManagerPluginsMixin(ManagerPluginsMixin[WorkManagerPlugin]):
     def _apply_plugins_from_manager(self, do_work: DoWorkCallable) -> DoWorkCallable:
         do_work_with_plugins = do_work
 

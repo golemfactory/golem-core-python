@@ -2,12 +2,18 @@ import asyncio
 import logging
 from functools import wraps
 
-from golem.managers.base import WORK_PLUGIN_FIELD_NAME, DoWorkCallable, Work, WorkPlugin, WorkResult
+from golem.managers.base import (
+    WORK_PLUGIN_FIELD_NAME,
+    DoWorkCallable,
+    Work,
+    WorkManagerPlugin,
+    WorkResult,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def work_plugin(plugin: WorkPlugin):
+def work_plugin(plugin: WorkManagerPlugin):
     def _work_plugin(work: Work):
         if not hasattr(work, WORK_PLUGIN_FIELD_NAME):
             work._work_plugins = []

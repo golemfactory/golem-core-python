@@ -1,3 +1,3 @@
-from golem.managers.proposal.stack import StackProposalManager
+from golem.managers.proposal.scored_aot import ScoredAheadOfTimeProposalManager
 
-__all__ = ("StackProposalManager",)
+__all__ = ("ScoredAheadOfTimeProposalManager",)

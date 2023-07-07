@@ -1,5 +1,12 @@
 from golem.payload.base import Payload, constraint, prop
-from golem.payload.constraints import Constraint, ConstraintException, ConstraintGroup, Constraints
+from golem.payload.constraints import (
+    Constraint,
+    ConstraintException,
+    ConstraintGroup,
+    Constraints,
+    PropertyName,
+    PropertyValue,
+)
 from golem.payload.exceptions import InvalidProperties, PayloadException
 from golem.payload.parsers import PayloadSyntaxParser, SyntaxException
 from golem.payload.properties import Properties
@@ -22,4 +29,6 @@ __all__ = (
     "InvalidProperties",
     "SyntaxException",
     "PayloadSyntaxParser",
+    "PropertyName",
+    "PropertyValue",
 )

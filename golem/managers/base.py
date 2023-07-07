@@ -1,6 +1,18 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Dict, Generic, List, Optional, Sequence, TypeVar, Union
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from golem.exceptions import GolemException
 from golem.resources import (
@@ -88,7 +100,7 @@ WORK_PLUGIN_FIELD_NAME = "_work_plugins"
 
 
 class Work(ABC):
-    _work_plugins: Optional[List["WorkPlugin"]]
+    _work_plugins: Optional[List["WorkManagerPlugin"]]
 
     def __call__(self, context: WorkContext) -> Awaitable[Optional[WorkResult]]:
         ...
@@ -97,16 +109,15 @@ class Work(ABC):
 DoWorkCallable = Callable[[Work], Awaitable[WorkResult]]
 
 
-class WorkPlugin(ABC):
-    def __call__(self, do_work: DoWorkCallable) -> DoWorkCallable:
-        ...
-
-
 class ManagerEvent(ResourceEvent, ABC):
     pass
 
 
 class ManagerException(GolemException):
+    pass
+
+
+class ManagerPluginException(ManagerException):
     pass
 
 
@@ -179,13 +190,37 @@ class WorkManager(Manager, ABC):
     ...
 
 
-class RejectProposal(Exception):
+class RejectProposal(ManagerPluginException):
     pass
 
 
-class NegotiationPlugin(ABC):
+class NegotiationManagerPlugin(ABC):
     @abstractmethod
     def __call__(
         self, demand_data: DemandData, proposal_data: ProposalData
     ) -> Union[Awaitable[Optional[RejectProposal]], Optional[RejectProposal]]:
         ...
+
+
+ProposalPluginResult = Sequence[Optional[float]]
+
+
+class ProposalManagerPlugin(ABC):
+    @abstractmethod
+    def __call__(
+        self, proposals_data: Sequence[ProposalData]
+    ) -> Union[Awaitable[ProposalPluginResult], ProposalPluginResult]:
+        ...
+
+
+ProposalManagerPluginWithOptionalWeight = Union[
+    ProposalManagerPlugin, Tuple[float, ProposalManagerPlugin]
+]
+
+
+class WorkManagerPlugin(ABC):
+    def __call__(self, do_work: DoWorkCallable) -> DoWorkCallable:
+        ...
+
+
+PricingCallable = Callable[[ProposalData], Optional[float]]

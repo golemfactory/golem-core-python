@@ -13,7 +13,12 @@ DEFAULT_LOGGING = {
             "format": "[%(asctime)s %(levelname)s %(name)s] %(message)s",
         },
     },
-    "handlers": {"console": {"formatter": "default", "class": "logging.StreamHandler"}},
+    "handlers": {
+        "console": {
+            "formatter": "default",
+            "class": "logging.StreamHandler",
+        },
+    },
     "loggers": {
         "": {
             "level": "INFO",
@@ -34,7 +39,7 @@ DEFAULT_LOGGING = {
             "level": "INFO",
         },
         "golem.managers.proposal": {
-            "level": "INFO",
+            "level": "DEBUG",
         },
         "golem.managers.work": {
             "level": "INFO",
