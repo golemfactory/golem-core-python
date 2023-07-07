@@ -24,28 +24,49 @@ class ActivityPoolManager(ActivityPrepareReleaseMixin, ActivityManager):
         self._get_agreement = get_agreement
         self._event_bus = golem.event_bus
 
-        self._pool_size = size
-        self._pool = asyncio.Queue(maxsize=self._pool_size)
+        self._pool_target_size = size
+        self._pool = asyncio.Queue()
         super().__init__(*args, **kwargs)
 
     async def start(self):
-        for _ in range(self._pool_size):
-            create_task_with_logging(self._prepare_activity_and_put_in_pool())
+        self._manage_pool_task = create_task_with_logging(self._manage_pool())
+
+    async def stop(self):
+        self._pool_target_size = 0
+        # TODO cancel prepare_activity tasks
+        await self._manage_pool_task
+        assert self._pool.empty()
+
+    async def _manage_pool(self):
+        pool_current_size = 0
+        release_tasks = []
+        prepare_tasks = []
+        while self._pool_target_size > 0 or pool_current_size > 0:
+            # TODO observe tasks status and add fallback
+            if pool_current_size > self._pool_target_size:
+                pool_current_size -= 1
+                logger.debug(f"Releasing activity from the pool, new size: {pool_current_size}")
+                release_tasks.append(
+                    create_task_with_logging(self._release_activity_and_pop_from_pool())
+                )
+            elif pool_current_size < self._pool_target_size:
+                pool_current_size += 1
+                logger.debug(f"Adding activity to the pool, new size: {pool_current_size}")
+                prepare_tasks.append(
+                    create_task_with_logging(self._prepare_activity_and_put_in_pool())
+                )
+            await asyncio.sleep(0.01)
+
+    async def _release_activity_and_pop_from_pool(self):
+        activity = await self._pool.get()
+        await self._release_activity(activity)
+        logger.info(f"Activity `{activity}` removed from the pool")
 
     async def _prepare_activity_and_put_in_pool(self):
         agreement = await self._get_agreement()
         activity = await self._prepare_activity(agreement)
         await self._pool.put(activity)
         logger.info(f"Activity `{activity}` added to the pool")
-
-    async def stop(self):
-        await asyncio.gather(
-            *[
-                create_task_with_logging(self._release_activity(await self._pool.get()))
-                for _ in range(self._pool_size)
-            ]
-        )
-        assert self._pool.empty()
 
     @asynccontextmanager
     async def _get_activity_from_pool(self):
