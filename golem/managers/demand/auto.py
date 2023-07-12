@@ -18,6 +18,7 @@ from golem.resources import Allocation, Proposal, ProposalData
 from golem.resources.demand.demand_builder import DemandBuilder
 from golem.resources.proposal.proposal import Proposal
 from golem.utils.asyncio import create_task_with_logging
+from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
@@ -44,19 +45,17 @@ class AutoDemandManager(ManagerPluginsMixin[ManagerPluginWithOptionalWeight], De
 
         super().__init__(*args, **kwargs)
 
+    @trace_span()
     async def start(self) -> None:
         if self.is_started():
-            message = "Already started!"
-            logger.debug(f"Starting failed with `{message}`")
-            raise ManagerException(message)
+            raise ManagerException("Already started!")
 
         self._manager_loop_task = create_task_with_logging(self._manager_loop())
 
+    @trace_span()
     async def stop(self) -> None:
         if not self.is_started():
-            message = "Already stopped!"
-            logger.debug(f"Stopping failed with `{message}`")
-            raise ManagerException(message)
+            raise ManagerException("Already stopped!")
 
         self._manager_loop_task.cancel()
         self._manager_loop_task = None
@@ -72,6 +71,7 @@ class AutoDemandManager(ManagerPluginsMixin[ManagerPluginWithOptionalWeight], De
 
         return proposal
 
+    @trace_span()
     async def _manager_loop(self) -> None:
         allocation = await self._get_allocation()
         demand_builder = await self._prepare_demand_builder(allocation)
@@ -81,7 +81,7 @@ class AutoDemandManager(ManagerPluginsMixin[ManagerPluginWithOptionalWeight], De
 
         try:
             async for initial_proposal in demand.initial_proposals():
-                await self._manage_initial(initial_proposal)
+                await self._manage_scoring(initial_proposal)
         finally:
             await demand.unsubscribe()
 
@@ -97,7 +97,8 @@ class AutoDemandManager(ManagerPluginsMixin[ManagerPluginWithOptionalWeight], De
 
         return demand_builder
 
-    async def _manage_initial(self, proposal: Proposal) -> None:
+    @trace_span()
+    async def _manage_scoring(self, proposal: Proposal) -> None:
         async with self._scored_proposals_condition:
             all_proposals = list(sp[1] for sp in self._scored_proposals)
             all_proposals.append(proposal)
@@ -115,6 +116,7 @@ class AutoDemandManager(ManagerPluginsMixin[ManagerPluginWithOptionalWeight], De
 
         return scored_proposals
 
+    @trace_span()
     async def _run_plugins(
         self, proposals_data: Sequence[ProposalData]
     ) -> Sequence[Tuple[float, Sequence[float]]]:

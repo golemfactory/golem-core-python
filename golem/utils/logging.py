@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from functools import wraps
 from typing import TYPE_CHECKING, Optional
 
-
 if TYPE_CHECKING:
     from golem.event_bus import Event
 
@@ -31,12 +30,24 @@ DEFAULT_LOGGING = {
             ],
         },
         "asyncio": {
-            "level": "DEBUG",
+            "level": "INFO",
         },
         "golem": {
             "level": "INFO",
         },
+        "golem.utils.logging": {
+            "level": "INFO",
+        },
         "golem.managers": {
+            "level": "INFO",
+        },
+        "golem.managers.payment": {
+            "level": "INFO",
+        },
+        "golem.managers.network": {
+            "level": "INFO",
+        },
+        "golem.managers.demand": {
             "level": "INFO",
         },
         "golem.managers.negotiation": {
@@ -45,16 +56,21 @@ DEFAULT_LOGGING = {
         "golem.managers.proposal": {
             "level": "INFO",
         },
-        "golem.managers.work": {
+        "golem.managers.agreement": {
             "level": "INFO",
         },
-        "golem.managers.agreement": {
+        "golem.managers.activity": {
+            "level": "INFO",
+        },
+        "golem.managers.work": {
             "level": "INFO",
         },
     },
 }
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
+
+
 class _YagnaDatetimeFormatter(logging.Formatter):
     """Custom log Formatter that formats datetime using the same convention yagna uses."""
 
@@ -124,9 +140,9 @@ def trace_span(name: Optional[str] = None, show_arguments: bool = False, show_re
         @wraps(f)
         def sync_wrapped(*args, **kwargs):
             if show_arguments:
-                args_str = ', '.join(repr(a) for a in args)
-                kwargs_str = ', '.join('{}={}'.format(k, repr(v)) for (k, v) in kwargs.items())
-                final_name = f'{span_name}({args_str}, {kwargs_str})'
+                args_str = ", ".join(repr(a) for a in args)
+                kwargs_str = ", ".join("{}={}".format(k, repr(v)) for (k, v) in kwargs.items())
+                final_name = f"{span_name}({args_str}, {kwargs_str})"
             else:
                 final_name = span_name
 
@@ -148,9 +164,9 @@ def trace_span(name: Optional[str] = None, show_arguments: bool = False, show_re
         @wraps(f)
         async def async_wrapped(*args, **kwargs):
             if show_arguments:
-                args_str = ', '.join(repr(a) for a in args)
-                kwargs_str = ', '.join('{}={}'.format(k, repr(v)) for (k, v) in kwargs.items())
-                final_name = f'{span_name}({args_str}, {kwargs_str})'
+                args_str = ", ".join(repr(a) for a in args)
+                kwargs_str = ", ".join("{}={}".format(k, repr(v)) for (k, v) in kwargs.items())
+                final_name = f"{span_name}({args_str}, {kwargs_str})"
             else:
                 final_name = span_name
 

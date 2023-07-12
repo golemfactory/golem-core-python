@@ -2,7 +2,7 @@ import asyncio
 import logging
 from copy import deepcopy
 from datetime import datetime
-from typing import AsyncIterator, Awaitable, Callable, Optional, cast
+from typing import Awaitable, Callable, Optional, cast
 
 from ya_market import ApiException
 
@@ -16,7 +16,7 @@ from golem.managers.base import (
 from golem.node import GolemNode
 from golem.payload import Properties
 from golem.payload.parsers.textx import TextXPayloadSyntaxParser
-from golem.resources import Allocation, DemandData, Proposal, ProposalData
+from golem.resources import DemandData, Proposal, ProposalData
 from golem.utils.asyncio import create_task_with_logging
 from golem.utils.logging import trace_span
 
@@ -30,7 +30,7 @@ class SequentialNegotiationManager(
     def __init__(
         self,
         golem: GolemNode,
-        get_initial_proposal: Callable[[], Awaitable[Allocation]],
+        get_initial_proposal: Callable[[], Awaitable[Proposal]],
         *args,
         **kwargs,
     ) -> None:
@@ -43,18 +43,18 @@ class SequentialNegotiationManager(
 
         super().__init__(*args, **kwargs)
 
-    @trace_span("Getting proposal")
+    @trace_span()
     async def get_draft_proposal(self) -> Proposal:
         return await self._eligible_proposals.get()
 
-    @trace_span('Starting')
+    @trace_span()
     async def start(self) -> None:
         if self.is_started():
             raise ManagerException("Already started!")
 
         self._negotiation_loop_task = create_task_with_logging(self._negotiation_loop())
 
-    @trace_span('Stopping')
+    @trace_span()
     async def stop(self) -> None:
         if not self.is_started():
             raise ManagerException("Already stopped!")
@@ -65,27 +65,19 @@ class SequentialNegotiationManager(
     def is_started(self) -> bool:
         return self._negotiation_loop_task is not None and not self._negotiation_loop_task.done()
 
+    @trace_span()
     async def _negotiation_loop(self) -> None:
         while True:  # TODO add buffer
             proposal = await self._get_initial_proposal()
-            offer_proposal = await self._negotiate(proposal)
+
+            demand_data = await self._get_demand_data_from_proposal(proposal)
+
+            offer_proposal = await self._negotiate_proposal(demand_data, proposal)
+
             if offer_proposal is not None:
                 await self._eligible_proposals.put(offer_proposal)
 
-    async def _negotiate(self, initial_proposal: Proposal) -> AsyncIterator[Proposal]:
-        demand_data = await self._get_demand_data_from_proposal(initial_proposal)
-
-        offer_proposal = await self._negotiate_proposal(demand_data, initial_proposal)
-
-        if offer_proposal is None:
-            logger.debug(
-                f"Negotiating proposal `{initial_proposal}` done and proposal was rejected"
-            )
-            return
-
-        return offer_proposal
-
-    @trace_span("Negotiating proposal")
+    @trace_span()
     async def _negotiate_proposal(
         self, demand_data: DemandData, offer_proposal: Proposal
     ) -> Optional[Proposal]:
@@ -102,42 +94,27 @@ class SequentialNegotiationManager(
 
                 return None
 
-            if offer_proposal.initial or demand_data_after_plugins != demand_data:
-                logger.debug("Sending demand proposal...")
+            if not offer_proposal.initial and demand_data_after_plugins == demand_data:
+                return offer_proposal
 
-                demand_data = demand_data_after_plugins
+            demand_data = demand_data_after_plugins
 
-                try:
-                    demand_proposal = await offer_proposal.respond(
-                        demand_data_after_plugins.properties,
-                        demand_data_after_plugins.constraints,
-                    )
-                except (ApiException, asyncio.TimeoutError) as e:
-                    logger.debug(f"Sending demand proposal failed with `{e}`")
-                    return None
+            try:
+                demand_proposal = await self._send_demand_proposal(offer_proposal, demand_data)
+            except (ApiException, asyncio.TimeoutError):
+                return None
 
-                logger.debug("Sending demand proposal done")
+            try:
+                new_offer_proposal = await self._wait_for_proposal_response(demand_proposal)
+            except StopAsyncIteration:
+                return None
 
-                logger.debug("Waiting for response...")
+            logger.debug(
+                f"Proposal `{offer_proposal}` received counter proposal `{new_offer_proposal}`"
+            )
 
-                try:
-                    new_offer_proposal = await demand_proposal.responses().__anext__()
-                except StopAsyncIteration:
-                    logger.debug("Waiting for response failed with provider rejection")
-                    return None
+            offer_proposal = new_offer_proposal
 
-                logger.debug(f"Waiting for response done with `{new_offer_proposal}`")
-
-                logger.debug(
-                    f"Proposal `{offer_proposal}` received counter proposal `{new_offer_proposal}`"
-                )
-                offer_proposal = new_offer_proposal
-
-                continue
-            else:
-                break
-
-        return offer_proposal
     @trace_span()
     async def _apply_plugins(self, demand_data_after_plugins: DemandData, offer_proposal: Proposal):
         proposal_data = await self._get_proposal_data_from_proposal(offer_proposal)
@@ -155,6 +132,18 @@ class SequentialNegotiationManager(
             if plugin_result is False:
                 raise RejectProposal()
 
+    @trace_span()
+    async def _send_demand_proposal(
+        self, offer_proposal: Proposal, demand_data: DemandData
+    ) -> Proposal:
+        return await offer_proposal.respond(
+            demand_data.properties,
+            demand_data.constraints,
+        )
+
+    @trace_span()
+    async def _wait_for_proposal_response(self, demand_proposal: Proposal) -> Proposal:
+        return await demand_proposal.responses().__anext__()
 
     async def _get_demand_data_from_proposal(self, proposal: Proposal) -> DemandData:
         # FIXME: Unnecessary serialisation from DemandBuilder to Demand,

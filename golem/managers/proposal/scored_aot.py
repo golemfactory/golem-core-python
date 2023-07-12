@@ -15,6 +15,7 @@ from golem.payload import Properties
 from golem.payload.parsers.textx import TextXPayloadSyntaxParser
 from golem.resources import Proposal, ProposalData
 from golem.utils.asyncio import create_task_with_logging
+from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
@@ -42,30 +43,20 @@ class ScoredAheadOfTimeProposalManager(
 
         super().__init__(*args, **kwargs)
 
+    @trace_span()
     async def start(self) -> None:
-        logger.debug("Starting...")
-
         if self.is_started():
-            message = "Already started!"
-            logger.debug(f"Starting failed with `{message}`")
-            raise ManagerException(message)
+            raise ManagerException("Already started!")
 
         self._consume_proposals_task = create_task_with_logging(self._consume_proposals())
 
-        logger.debug("Starting done")
-
+    @trace_span()
     async def stop(self) -> None:
-        logger.debug("Stopping...")
-
         if not self.is_started():
-            message = "Already stopped!"
-            logger.debug(f"Stopping failed with `{message}`")
-            raise ManagerException(message)
+            raise ManagerException("Already stopped!")
 
         self._consume_proposals_task.cancel()
         self._consume_proposals_task = None
-
-        logger.debug("Stopping done")
 
     def is_started(self) -> bool:
         return self._consume_proposals_task is not None and not self._consume_proposals_task.done()
@@ -74,29 +65,26 @@ class ScoredAheadOfTimeProposalManager(
         while True:
             proposal = await self._get_init_proposal()
 
-            logger.debug(f"Adding proposal `{proposal}` on the scoring...")
+            await self._manage_scoring(proposal)
 
-            async with self._scored_proposals_condition:
-                all_proposals = list(sp[1] for sp in self._scored_proposals)
-                all_proposals.append(proposal)
+    @trace_span()
+    async def _manage_scoring(self, proposal: Proposal) -> None:
+        async with self._scored_proposals_condition:
+            all_proposals = list(sp[1] for sp in self._scored_proposals)
+            all_proposals.append(proposal)
 
-                self._scored_proposals = await self._do_scoring(all_proposals)
+            self._scored_proposals = await self._do_scoring(all_proposals)
 
-                self._scored_proposals_condition.notify_all()
+            self._scored_proposals_condition.notify_all()
 
-            logger.debug(f"Adding proposal `{proposal}` on the scoring done")
-
+    @trace_span()
     async def get_draft_proposal(self) -> Proposal:
-        logger.debug("Getting proposal...")
-
         async with self._scored_proposals_condition:
             await self._scored_proposals_condition.wait_for(lambda: 0 < len(self._scored_proposals))
 
             score, proposal = self._scored_proposals.pop(0)
 
-        logger.debug(f"Getting proposal done with `{proposal}` with score `{score}`")
-
-        logger.info(f"Proposal `{proposal}` picked")
+        logger.info(f"Proposal `{proposal}` picked with score `{score}`")
 
         return proposal
 
@@ -109,6 +97,7 @@ class ScoredAheadOfTimeProposalManager(
 
         return scored_proposals
 
+    @trace_span()
     async def _run_plugins(
         self, proposals_data: Sequence[ProposalData]
     ) -> Sequence[Tuple[float, Sequence[float]]]:
