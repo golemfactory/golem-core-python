@@ -65,6 +65,7 @@ class PayAllPaymentManager(PaymentManager):
             self._golem, Decimal(self._budget), self._network, self._driver
         )
 
+        # TODO: We should not rely on golem node with cleanups, manager should do it by itself
         self._golem.add_autoclose_resource(self._allocation)
 
     @trace_span()

@@ -115,6 +115,7 @@ class Proposal(
         if isinstance(event, models.ProposalRejectedEvent):
             self.set_no_more_children()
 
+    # TODO: Add support for rejection reason from provider
     async def responses(self) -> AsyncIterator["Proposal"]:
         """Yield responses to this proposal.
 

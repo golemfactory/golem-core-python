@@ -85,7 +85,7 @@ class SequentialNegotiationManager(
             demand_data_after_plugins = deepcopy(demand_data)
 
             try:
-                await self._apply_plugins(demand_data_after_plugins, offer_proposal)
+                await self._run_plugins(demand_data_after_plugins, offer_proposal)
             except RejectProposal as e:
                 logger.debug(f"Proposal `{offer_proposal}` was rejected by plugins")
 
@@ -99,14 +99,12 @@ class SequentialNegotiationManager(
 
             demand_data = demand_data_after_plugins
 
-            try:
-                demand_proposal = await self._send_demand_proposal(offer_proposal, demand_data)
-            except (ApiException, asyncio.TimeoutError):
+            demand_proposal = await self._send_demand_proposal(offer_proposal, demand_data)
+            if demand_proposal is None:
                 return None
 
-            try:
-                new_offer_proposal = await self._wait_for_proposal_response(demand_proposal)
-            except StopAsyncIteration:
+            new_offer_proposal = await self._wait_for_proposal_response(demand_proposal)
+            if new_offer_proposal is None:
                 return None
 
             logger.debug(
@@ -116,7 +114,7 @@ class SequentialNegotiationManager(
             offer_proposal = new_offer_proposal
 
     @trace_span()
-    async def _apply_plugins(self, demand_data_after_plugins: DemandData, offer_proposal: Proposal):
+    async def _run_plugins(self, demand_data_after_plugins: DemandData, offer_proposal: Proposal):
         proposal_data = await self._get_proposal_data_from_proposal(offer_proposal)
 
         for plugin in self._plugins:
@@ -135,15 +133,21 @@ class SequentialNegotiationManager(
     @trace_span()
     async def _send_demand_proposal(
         self, offer_proposal: Proposal, demand_data: DemandData
-    ) -> Proposal:
-        return await offer_proposal.respond(
-            demand_data.properties,
-            demand_data.constraints,
-        )
+    ) -> Optional[Proposal]:
+        try:
+            return await offer_proposal.respond(
+                demand_data.properties,
+                demand_data.constraints,
+            )
+        except (ApiException, asyncio.TimeoutError):
+            return None
 
     @trace_span()
-    async def _wait_for_proposal_response(self, demand_proposal: Proposal) -> Proposal:
-        return await demand_proposal.responses().__anext__()
+    async def _wait_for_proposal_response(self, demand_proposal: Proposal) -> Optional[Proposal]:
+        try:
+            return await demand_proposal.responses().__anext__()
+        except StopAsyncIteration:
+            return None
 
     async def _get_demand_data_from_proposal(self, proposal: Proposal) -> DemandData:
         # FIXME: Unnecessary serialisation from DemandBuilder to Demand,

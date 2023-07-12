@@ -44,6 +44,7 @@ class ActivityPoolManager(ActivityPrepareReleaseMixin, ActivityManager):
         pool_current_size = 0
         release_tasks = []
         prepare_tasks = []
+        # TODO: After reducing to zero its not possible to manage pool afterwards
         while self._pool_target_size > 0 or pool_current_size > 0:
             # TODO observe tasks status and add fallback
             if pool_current_size > self._pool_target_size:
@@ -58,6 +59,8 @@ class ActivityPoolManager(ActivityPrepareReleaseMixin, ActivityManager):
                 prepare_tasks.append(
                     create_task_with_logging(self._prepare_activity_and_put_in_pool())
                 )
+
+            # TODO: Use events instead of sleep
             await asyncio.sleep(0.01)
 
     @trace_span()
