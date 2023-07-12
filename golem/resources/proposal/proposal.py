@@ -98,7 +98,7 @@ class Proposal(
             if isinstance(self.parent, Demand):
                 return self.parent
             else:
-                return self.parent.demand
+                return self.parent.demand  # TODO recursion
 
     @demand.setter
     def demand(self, demand: "Demand") -> None:

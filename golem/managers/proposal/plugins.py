@@ -1,7 +1,7 @@
 from random import random
 from typing import Callable, Optional, Sequence, Tuple, Type, Union
 
-from golem.managers.base import ManagerPluginException, ProposalManagerPlugin, ProposalPluginResult
+from golem.managers.base import ManagerPluginException, ManagerScorePlugin, ProposalPluginResult
 from golem.payload.constraints import PropertyName
 from golem.resources import ProposalData
 
@@ -9,7 +9,7 @@ PropertyValueNumeric: Type[Union[int, float]] = Union[int, float]
 BoundaryValues = Tuple[Tuple[float, PropertyValueNumeric], Tuple[float, PropertyValueNumeric]]
 
 
-class PropertyValueLerpScore(ProposalManagerPlugin):
+class PropertyValueLerpScore(ManagerScorePlugin):
     def __init__(
         self,
         property_name: PropertyName,
@@ -53,7 +53,7 @@ class PropertyValueLerpScore(ProposalManagerPlugin):
 
             return None
 
-        if not isinstance(property_value, PropertyValueNumeric):
+        if not isinstance(property_value, (int, float)):
             if self._raise_on_bad_value:
                 raise ManagerPluginException(
                     f"Field `{self._property_name}` value type must be an `int` or `float`!"
@@ -90,12 +90,12 @@ class PropertyValueLerpScore(ProposalManagerPlugin):
         return bounds_min, bounds_max
 
 
-class RandomScore(ProposalManagerPlugin):
+class RandomScore(ManagerScorePlugin):
     def __call__(self, proposals_data: Sequence[ProposalData]) -> ProposalPluginResult:
         return [random() for _ in range(len(proposals_data))]
 
 
-class MapScore(ProposalManagerPlugin):
+class MapScore(ManagerScorePlugin):
     def __init__(
         self,
         callback: Callable[[ProposalData], Optional[float]],

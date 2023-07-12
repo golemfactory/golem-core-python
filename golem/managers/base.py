@@ -162,15 +162,21 @@ class PaymentManager(Manager, ABC):
         ...
 
 
+class DemandManager(Manager, ABC):
+    @abstractmethod
+    async def get_initial_proposal(self) -> Proposal:
+        ...
+
+
 class NegotiationManager(Manager, ABC):
     @abstractmethod
-    async def get_proposal(self) -> Proposal:
+    async def get_draft_proposal(self) -> Proposal:
         ...
 
 
 class ProposalManager(Manager, ABC):
     @abstractmethod
-    async def get_proposal(self) -> Proposal:
+    async def get_draft_proposal(self) -> Proposal:
         ...
 
 
@@ -205,7 +211,7 @@ class NegotiationManagerPlugin(ABC):
 ProposalPluginResult = Sequence[Optional[float]]
 
 
-class ProposalManagerPlugin(ABC):
+class ManagerScorePlugin(ABC):
     @abstractmethod
     def __call__(
         self, proposals_data: Sequence[ProposalData]
@@ -213,9 +219,7 @@ class ProposalManagerPlugin(ABC):
         ...
 
 
-ProposalManagerPluginWithOptionalWeight = Union[
-    ProposalManagerPlugin, Tuple[float, ProposalManagerPlugin]
-]
+ManagerPluginWithOptionalWeight = Union[ManagerScorePlugin, Tuple[float, ManagerScorePlugin]]
 
 
 class WorkManagerPlugin(ABC):

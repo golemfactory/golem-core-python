@@ -5,100 +5,106 @@ from datetime import datetime
 from typing import Awaitable, Callable, List, Optional, Sequence, Tuple, cast
 
 from golem.managers.base import (
+    DemandManager,
     ManagerException,
     ManagerPluginsMixin,
     ManagerPluginWithOptionalWeight,
-    ProposalManager,
 )
 from golem.node import GolemNode
-from golem.payload import Properties
-from golem.payload.parsers.textx import TextXPayloadSyntaxParser
-from golem.resources import Proposal, ProposalData
+from golem.node.node import GolemNode
+from golem.payload import Payload, Properties
+from golem.payload.parsers.textx.parser import TextXPayloadSyntaxParser
+from golem.resources import Allocation, Proposal, ProposalData
+from golem.resources.demand.demand_builder import DemandBuilder
+from golem.resources.proposal.proposal import Proposal
 from golem.utils.asyncio import create_task_with_logging
 
 logger = logging.getLogger(__name__)
 
 
-class IgnoreProposal(Exception):
-    pass
-
-
-class ScoredAheadOfTimeProposalManager(
-    ManagerPluginsMixin[ManagerPluginWithOptionalWeight], ProposalManager
-):
+class AutoDemandManager(ManagerPluginsMixin[ManagerPluginWithOptionalWeight], DemandManager):
     def __init__(
         self,
         golem: GolemNode,
-        get_init_proposal: Callable[[], Awaitable[Proposal]],
+        get_allocation: Callable[[], Awaitable[Allocation]],
+        payload: Payload,
         *args,
         **kwargs,
     ) -> None:
-        self._get_init_proposal = get_init_proposal
-        self._consume_proposals_task: Optional[asyncio.Task] = None
+        self._golem = golem
+        self._get_allocation = get_allocation
+        self._payload = payload
+
         self._demand_offer_parser = TextXPayloadSyntaxParser()
 
         self._scored_proposals: List[Tuple[float, Proposal]] = []
         self._scored_proposals_condition = asyncio.Condition()
 
+        self._manager_loop_task: Optional[asyncio.Task] = None
+
         super().__init__(*args, **kwargs)
 
     async def start(self) -> None:
-        logger.debug("Starting...")
-
         if self.is_started():
             message = "Already started!"
             logger.debug(f"Starting failed with `{message}`")
             raise ManagerException(message)
 
-        self._consume_proposals_task = create_task_with_logging(self._consume_proposals())
-
-        logger.debug("Starting done")
+        self._manager_loop_task = create_task_with_logging(self._manager_loop())
 
     async def stop(self) -> None:
-        logger.debug("Stopping...")
-
         if not self.is_started():
             message = "Already stopped!"
             logger.debug(f"Stopping failed with `{message}`")
             raise ManagerException(message)
 
-        self._consume_proposals_task.cancel()
-        self._consume_proposals_task = None
-
-        logger.debug("Stopping done")
+        self._manager_loop_task.cancel()
+        self._manager_loop_task = None
 
     def is_started(self) -> bool:
-        return self._consume_proposals_task is not None and not self._consume_proposals_task.done()
+        return self._manager_loop_task is not None and not self._manager_loop_task.done()
 
-    async def _consume_proposals(self) -> None:
-        while True:
-            proposal = await self._get_init_proposal()
-
-            logger.debug(f"Adding proposal `{proposal}` on the scoring...")
-
-            async with self._scored_proposals_condition:
-                all_proposals = list(sp[1] for sp in self._scored_proposals)
-                all_proposals.append(proposal)
-
-                self._scored_proposals = await self._do_scoring(all_proposals)
-
-                self._scored_proposals_condition.notify_all()
-
-            logger.debug(f"Adding proposal `{proposal}` on the scoring done")
-
-    async def get_draft_proposal(self) -> Proposal:
-        logger.debug("Getting proposal...")
-
+    async def get_initial_proposal(self) -> Proposal:
         async with self._scored_proposals_condition:
             await self._scored_proposals_condition.wait_for(lambda: 0 < len(self._scored_proposals))
 
             score, proposal = self._scored_proposals.pop(0)
 
-        logger.debug(f"Getting proposal done with `{proposal}` with score `{score}`")
-
-        logger.info(f"Proposal `{proposal}` picked")
-
         return proposal
+
+    async def _manager_loop(self) -> None:
+        allocation = await self._get_allocation()
+        demand_builder = await self._prepare_demand_builder(allocation)
+
+        demand = await demand_builder.create_demand(self._golem)
+        demand.start_collecting_events()
+
+        try:
+            async for initial_proposal in demand.initial_proposals():
+                await self._manage_initial(initial_proposal)
+        finally:
+            await demand.unsubscribe()
+
+    async def _prepare_demand_builder(self, allocation: Allocation) -> DemandBuilder:
+        # FIXME: Code looks duplicated as GolemNode.create_demand does the same
+        demand_builder = DemandBuilder()
+
+        await demand_builder.add_default_parameters(
+            self._demand_offer_parser, allocations=[allocation]
+        )
+
+        await demand_builder.add(self._payload)
+
+        return demand_builder
+
+    async def _manage_initial(self, proposal: Proposal) -> None:
+        async with self._scored_proposals_condition:
+            all_proposals = list(sp[1] for sp in self._scored_proposals)
+            all_proposals.append(proposal)
+
+            self._scored_proposals = await self._do_scoring(all_proposals)
+
+            self._scored_proposals_condition.notify_all()
 
     async def _do_scoring(self, proposals: Sequence[Proposal]):
         proposals_data = await self._get_proposals_data_from_proposals(proposals)
@@ -145,16 +151,6 @@ class ScoredAheadOfTimeProposalManager(
             for proposal_index, proposal in enumerate(proposals)
         ]
 
-    def _transpose_plugin_scores(
-        self, proposal_index: int, plugin_scores: Sequence[Tuple[float, Sequence[float]]]
-    ) -> Sequence[Tuple[float, float]]:
-        # FIXME: can this be refactored?
-        return [
-            (plugin_weight, plugin_scores[proposal_index])
-            for plugin_weight, plugin_scores in plugin_scores
-            if plugin_scores[proposal_index] is None
-        ]
-
     def _calculate_weighted_score(
         self, proposal_weighted_scores: Sequence[Tuple[float, float]]
     ) -> float:
@@ -166,7 +162,16 @@ class ScoredAheadOfTimeProposalManager(
 
         return weighted_sum / weights_sum
 
-    # FIXME: This should be already provided by low level
+    def _transpose_plugin_scores(
+        self, proposal_index: int, plugin_scores: Sequence[Tuple[float, Sequence[float]]]
+    ) -> Sequence[Tuple[float, float]]:
+        # FIXME: can this be refactored?
+        return [
+            (plugin_weight, plugin_scores[proposal_index])
+            for plugin_weight, plugin_scores in plugin_scores
+            if plugin_scores[proposal_index] is None
+        ]
+
     async def _get_proposals_data_from_proposals(
         self, proposals: Sequence[Proposal]
     ) -> Sequence[ProposalData]:

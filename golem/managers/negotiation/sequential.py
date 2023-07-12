@@ -14,9 +14,9 @@ from golem.managers.base import (
     RejectProposal,
 )
 from golem.node import GolemNode
-from golem.payload import Payload, Properties
+from golem.payload import Properties
 from golem.payload.parsers.textx import TextXPayloadSyntaxParser
-from golem.resources import Allocation, Demand, DemandBuilder, DemandData, Proposal, ProposalData
+from golem.resources import Allocation, DemandData, Proposal, ProposalData
 from golem.utils.asyncio import create_task_with_logging
 
 logger = logging.getLogger(__name__)
@@ -25,17 +25,16 @@ logger = logging.getLogger(__name__)
 class SequentialNegotiationManager(
     ManagerPluginsMixin[NegotiationManagerPlugin], NegotiationManager
 ):
+    # TODO remove unused methods
     def __init__(
         self,
         golem: GolemNode,
-        get_allocation: Callable[[], Awaitable[Allocation]],
-        payload: Payload,
+        get_initial_proposal: Callable[[], Awaitable[Allocation]],
         *args,
         **kwargs,
     ) -> None:
         self._golem = golem
-        self._get_allocation = get_allocation
-        self._payload = payload
+        self._get_initial_proposal = get_initial_proposal
 
         self._negotiation_loop_task: Optional[asyncio.Task] = None
         self._eligible_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
@@ -43,7 +42,7 @@ class SequentialNegotiationManager(
 
         super().__init__(*args, **kwargs)
 
-    async def get_proposal(self) -> Proposal:
+    async def get_draft_proposal(self) -> Proposal:
         logger.debug("Getting proposal...")
 
         proposal = await self._eligible_proposals.get()
@@ -81,49 +80,24 @@ class SequentialNegotiationManager(
         return self._negotiation_loop_task is not None and not self._negotiation_loop_task.done()
 
     async def _negotiation_loop(self) -> None:
-        allocation = await self._get_allocation()
-        demand_builder = await self._prepare_demand_builder(allocation)
+        while True:  # TODO add buffer
+            proposal = await self._get_initial_proposal()
+            offer_proposal = await self._negotiate(proposal)
+            if offer_proposal is not None:
+                await self._eligible_proposals.put(offer_proposal)
 
-        demand = await demand_builder.create_demand(self._golem)
-        demand.start_collecting_events()
+    async def _negotiate(self, initial_proposal: Proposal) -> AsyncIterator[Proposal]:
+        demand_data = await self._get_demand_data_from_proposal(initial_proposal)
 
-        logger.debug("Demand published, waiting for proposals...")
+        offer_proposal = await self._negotiate_proposal(demand_data, initial_proposal)
 
-        try:
-            async for proposal in self._negotiate(demand):
-                await self._eligible_proposals.put(proposal)
-        finally:
-            await demand.unsubscribe()
+        if offer_proposal is None:
+            logger.debug(
+                f"Negotiating proposal `{initial_proposal}` done and proposal was rejected"
+            )
+            return
 
-    async def _prepare_demand_builder(self, allocation: Allocation) -> DemandBuilder:
-        logger.debug("Preparing demand...")
-
-        # FIXME: Code looks duplicated as GolemNode.create_demand does the same
-        demand_builder = DemandBuilder()
-
-        await demand_builder.add_default_parameters(
-            self._demand_offer_parser, allocations=[allocation]
-        )
-
-        await demand_builder.add(self._payload)
-
-        logger.debug("Preparing demand done")
-
-        return demand_builder
-
-    async def _negotiate(self, demand: Demand) -> AsyncIterator[Proposal]:
-        demand_data = await self._get_demand_data_from_demand(demand)
-
-        async for initial_proposal in demand.initial_proposals():
-            offer_proposal = await self._negotiate_proposal(demand_data, initial_proposal)
-
-            if offer_proposal is None:
-                logger.debug(
-                    f"Negotiating proposal `{initial_proposal}` done and proposal was rejected"
-                )
-                continue
-
-            yield offer_proposal
+        return offer_proposal
 
     async def _negotiate_proposal(
         self, demand_data: DemandData, offer_proposal: Proposal
@@ -201,10 +175,10 @@ class SequentialNegotiationManager(
 
         return offer_proposal
 
-    async def _get_demand_data_from_demand(self, demand: Demand) -> DemandData:
+    async def _get_demand_data_from_proposal(self, proposal: Proposal) -> DemandData:
         # FIXME: Unnecessary serialisation from DemandBuilder to Demand,
         #  and from Demand to ProposalData
-        data = await demand.get_data()
+        data = await proposal.demand.get_data()
 
         constraints = self._demand_offer_parser.parse_constraints(data.constraints)
 

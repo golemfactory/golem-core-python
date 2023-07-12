@@ -7,6 +7,7 @@ from typing import List
 from golem.managers.activity.single_use import SingleUseActivityManager
 from golem.managers.agreement.single_use import SingleUseAgreementManager
 from golem.managers.base import RejectProposal, WorkContext, WorkResult
+from golem.managers.demand.auto import AutoDemandManager
 from golem.managers.negotiation import SequentialNegotiationManager
 from golem.managers.negotiation.plugins import (
     AddChosenPaymentPlatform,
@@ -78,10 +79,14 @@ async def main():
     )
 
     payment_manager = PayAllPaymentManager(golem, budget=1.0)
-    negotiation_manager = SequentialNegotiationManager(
+    demand_manager = AutoDemandManager(
         golem,
         payment_manager.get_allocation,
         payload,
+    )
+    negotiation_manager = SequentialNegotiationManager(
+        golem,
+        demand_manager.get_initial_proposal,
         plugins=[
             AddChosenPaymentPlatform(),
             # class based plugin
@@ -99,7 +104,7 @@ async def main():
     )
     proposal_manager = ScoredAheadOfTimeProposalManager(
         golem,
-        negotiation_manager.get_proposal,
+        negotiation_manager.get_draft_proposal,
         plugins=[
             MapScore(linear_average_cost, normalize=True, normalize_flip=True),
             [0.5, PropertyValueLerpScore(INF_MEM, zero_at=1, one_at=8)],
@@ -108,7 +113,7 @@ async def main():
             [0.0, MapScore(lambda proposal_data: random())],
         ],
     )
-    agreement_manager = SingleUseAgreementManager(golem, proposal_manager.get_proposal)
+    agreement_manager = SingleUseAgreementManager(golem, proposal_manager.get_draft_proposal)
     activity_manager = SingleUseActivityManager(golem, agreement_manager.get_agreement)
     work_manager = SequentialWorkManager(
         golem,
@@ -119,7 +124,7 @@ async def main():
     )
 
     async with golem:
-        async with payment_manager, negotiation_manager, proposal_manager:
+        async with payment_manager, demand_manager, negotiation_manager, proposal_manager:
             results: List[WorkResult] = await work_manager.do_work_list(work_list)
             print(f"\nWORK MANAGER RESULTS:{[result.result for result in results]}\n", flush=True)
 
