@@ -1,9 +1,13 @@
+import inspect
 import logging
 from datetime import datetime, timezone
+from functools import wraps
 from typing import TYPE_CHECKING, Optional
+
 
 if TYPE_CHECKING:
     from golem.event_bus import Event
+
 
 DEFAULT_LOGGING = {
     "version": 1,
@@ -50,7 +54,7 @@ DEFAULT_LOGGING = {
     },
 }
 
-
+logger = logging.getLogger()
 class _YagnaDatetimeFormatter(logging.Formatter):
     """Custom log Formatter that formats datetime using the same convention yagna uses."""
 
@@ -111,3 +115,60 @@ class DefaultLogger:
     async def on_event(self, event: "Event") -> None:
         """Handle event produced by :any:`EventBus.on`."""
         self.logger.info(event)
+
+
+def trace_span(name: Optional[str] = None, show_arguments: bool = False, show_results: bool = True):
+    def wrapper(f):
+        span_name = name if name is not None else f.__name__
+
+        @wraps(f)
+        def sync_wrapped(*args, **kwargs):
+            if show_arguments:
+                args_str = ', '.join(repr(a) for a in args)
+                kwargs_str = ', '.join('{}={}'.format(k, repr(v)) for (k, v) in kwargs.items())
+                final_name = f'{span_name}({args_str}, {kwargs_str})'
+            else:
+                final_name = span_name
+
+            logger.debug(f"{final_name}...")
+
+            try:
+                result = f(*args, **kwargs)
+            except Exception as e:
+                logger.debug(f"{final_name} failed with `{e}`")
+                raise
+
+            if show_results:
+                logger.debug(f"{final_name} done with `{result}`")
+            else:
+                logger.debug(f"{final_name} done")
+
+            return result
+
+        @wraps(f)
+        async def async_wrapped(*args, **kwargs):
+            if show_arguments:
+                args_str = ', '.join(repr(a) for a in args)
+                kwargs_str = ', '.join('{}={}'.format(k, repr(v)) for (k, v) in kwargs.items())
+                final_name = f'{span_name}({args_str}, {kwargs_str})'
+            else:
+                final_name = span_name
+
+            logger.debug(f"{final_name}...")
+
+            try:
+                result = await f(*args, **kwargs)
+            except Exception as e:
+                logger.debug(f"{final_name} failed with `{e}`")
+                raise
+
+            if show_results:
+                logger.debug(f"{final_name} done with `{result}`")
+            else:
+                logger.debug(f"{final_name} done")
+
+            return result
+
+        return async_wrapped if inspect.iscoroutinefunction(f) else sync_wrapped
+
+    return wrapper

@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 
 
 ProposalId: Type[str] = str
+
+# TODO: Use Enum
 ProposalState = Literal["Initial", "Draft", "Rejected", "Accepted", "Expired"]
 
 

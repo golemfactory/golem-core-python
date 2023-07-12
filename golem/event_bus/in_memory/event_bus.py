@@ -191,6 +191,7 @@ class InMemoryEventBus(EventBus):
 
             logger.debug(f"Calling {callback_info.callback}...")
             try:
+                # TODO: Support sync callbacks
                 await callback_info.callback(event)
             except Exception as e:
                 logger.debug(f"Calling {callback_info.callback} failed with `{e}")
