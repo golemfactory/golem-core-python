@@ -4,6 +4,7 @@ from typing import List
 from golem.managers.base import DoWorkCallable, Work, WorkManager, WorkResult
 from golem.managers.work.mixins import WorkManagerPluginsMixin
 from golem.node import GolemNode
+from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,7 @@ class SequentialWorkManager(WorkManagerPluginsMixin, WorkManager):
 
         super().__init__(*args, **kwargs)
 
+    @trace_span()
     async def do_work(self, work: Work) -> WorkResult:
         result = await self._do_work_with_plugins(self._do_work, work)
 
@@ -21,18 +23,11 @@ class SequentialWorkManager(WorkManagerPluginsMixin, WorkManager):
 
         return result
 
+    @trace_span()
     async def do_work_list(self, work_list: List[Work]) -> List[WorkResult]:
-        logger.debug(f"Running work sequence `{work_list}`...")
-
         results = []
 
         for i, work in enumerate(work_list):
-            logger.debug(f"Doing work sequence #{i}...")
-
             results.append(await self.do_work(work))
-
-            logger.debug(f"Doing work sequence #{i} done")
-
-        logger.debug(f"Running work sequence `{work_list}` done")
 
         return results

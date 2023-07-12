@@ -8,6 +8,7 @@ from golem.managers.base import ActivityManager, Work, WorkContext, WorkResult
 from golem.node import GolemNode
 from golem.resources import Agreement
 from golem.utils.asyncio import create_task_with_logging
+from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +29,11 @@ class ActivityPoolManager(ActivityPrepareReleaseMixin, ActivityManager):
         self._pool = asyncio.Queue()
         super().__init__(*args, **kwargs)
 
+    @trace_span()
     async def start(self):
         self._manage_pool_task = create_task_with_logging(self._manage_pool())
 
+    @trace_span()
     async def stop(self):
         self._pool_target_size = 0
         # TODO cancel prepare_activity tasks
@@ -57,11 +60,13 @@ class ActivityPoolManager(ActivityPrepareReleaseMixin, ActivityManager):
                 )
             await asyncio.sleep(0.01)
 
+    @trace_span()
     async def _release_activity_and_pop_from_pool(self):
         activity = await self._pool.get()
         await self._release_activity(activity)
         logger.info(f"Activity `{activity}` removed from the pool")
 
+    @trace_span()
     async def _prepare_activity_and_put_in_pool(self):
         agreement = await self._get_agreement()
         activity = await self._prepare_activity(agreement)
@@ -76,6 +81,7 @@ class ActivityPoolManager(ActivityPrepareReleaseMixin, ActivityManager):
         self._pool.put_nowait(activity)
         logger.info(f"Activity `{activity}` back in the pool")
 
+    @trace_span()
     async def do_work(self, work: Work) -> WorkResult:
         async with self._get_activity_from_pool() as activity:
             work_context = WorkContext(activity)

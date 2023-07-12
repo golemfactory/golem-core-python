@@ -5,6 +5,7 @@ from typing import List
 from golem.managers.base import DoWorkCallable, Work, WorkManager, WorkResult
 from golem.managers.work.mixins import WorkManagerPluginsMixin
 from golem.node import GolemNode
+from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
@@ -15,13 +16,13 @@ class AsynchronousWorkManager(WorkManagerPluginsMixin, WorkManager):
 
         super().__init__(*args, **kwargs)
 
+    @trace_span()
     async def do_work(self, work: Work) -> WorkResult:
         result = await self._do_work_with_plugins(self._do_work, work)
-
         logger.info(f"Work `{work}` completed")
-
         return result
 
+    @trace_span()
     async def do_work_list(self, work_list: List[Work]) -> List[WorkResult]:
         results = await asyncio.gather(*[self.do_work(work) for work in work_list])
         return results

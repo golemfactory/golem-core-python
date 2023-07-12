@@ -8,11 +8,13 @@ from golem.managers.base import (
     WorkManagerPlugin,
     WorkResult,
 )
+from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
 
 class WorkManagerPluginsMixin(ManagerPluginsMixin[WorkManagerPlugin]):
+    @trace_span()
     def _apply_plugins_from_manager(self, do_work: DoWorkCallable) -> DoWorkCallable:
         do_work_with_plugins = do_work
 
@@ -21,6 +23,7 @@ class WorkManagerPluginsMixin(ManagerPluginsMixin[WorkManagerPlugin]):
 
         return do_work_with_plugins
 
+    @trace_span()
     def _apply_plugins_from_work(self, do_work: DoWorkCallable, work: Work) -> DoWorkCallable:
         work_plugins = getattr(work, WORK_PLUGIN_FIELD_NAME, [])
 
@@ -34,6 +37,7 @@ class WorkManagerPluginsMixin(ManagerPluginsMixin[WorkManagerPlugin]):
 
         return do_work_with_plugins
 
+    @trace_span()
     async def _do_work_with_plugins(self, do_work: DoWorkCallable, work: Work) -> WorkResult:
         do_work_with_plugins = self._apply_plugins_from_manager(do_work)
         do_work_with_plugins = self._apply_plugins_from_work(do_work_with_plugins, work)

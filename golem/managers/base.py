@@ -26,6 +26,7 @@ from golem.resources import (
     Script,
 )
 from golem.resources.activity import commands
+from golem.utils.logging import trace_span
 
 
 class Batch:
@@ -145,9 +146,11 @@ class ManagerPluginsMixin(Generic[TPlugin]):
 
         super().__init__(*args, **kwargs)
 
+    @trace_span()
     def register_plugin(self, plugin: TPlugin):
         self._plugins.append(plugin)
 
+    @trace_span()
     def unregister_plugin(self, plugin: TPlugin):
         self._plugins.remove(plugin)
 

@@ -5,6 +5,7 @@ from golem.managers.activity.defaults import default_on_activity_start, default_
 from golem.managers.agreement.events import AgreementReleased
 from golem.managers.base import WorkContext
 from golem.resources import Activity
+from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ class ActivityPrepareReleaseMixin:
 
         super().__init__(*args, **kwargs)
 
+    @trace_span()
     async def _prepare_activity(self, agreement) -> Activity:
         activity = await agreement.create_activity()
         logger.info(f"Activity `{activity}` created")
@@ -34,6 +36,7 @@ class ActivityPrepareReleaseMixin:
             await self._on_activity_start(work_context)
         return activity
 
+    @trace_span()
     async def _release_activity(self, activity: Activity) -> None:
         if self._on_activity_stop:
             work_context = WorkContext(activity)
