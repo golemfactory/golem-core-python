@@ -8,6 +8,7 @@ from typing import List
 from golem.managers.activity.pool import ActivityPoolManager
 from golem.managers.agreement.single_use import SingleUseAgreementManager
 from golem.managers.base import WorkContext, WorkResult
+from golem.managers.demand.auto import AutoDemandManager
 from golem.managers.negotiation import SequentialNegotiationManager
 from golem.managers.negotiation.plugins import AddChosenPaymentPlatform
 from golem.managers.payment.pay_all import PayAllPaymentManager
@@ -22,7 +23,7 @@ from golem.utils.logging import DEFAULT_LOGGING
 
 BLENDER_IMAGE_HASH = "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
 FRAME_CONFIG_TEMPLATE = json.loads(Path(__file__).with_name("frame_params.json").read_text())
-FRAMES = list(range(0, 60, 3))
+FRAMES = list(range(0, 60, 5))
 
 
 async def run_on_golem(
@@ -40,10 +41,14 @@ async def run_on_golem(
     golem = GolemNode()
 
     payment_manager = PayAllPaymentManager(golem, budget=budget)
-    negotiation_manager = SequentialNegotiationManager(
+    demand_manager = AutoDemandManager(
         golem,
         payment_manager.get_allocation,
         payload,
+    )
+    negotiation_manager = SequentialNegotiationManager(
+        golem,
+        demand_manager.get_initial_proposal,
         plugins=market_plugins,
     )
     proposal_manager = ScoredAheadOfTimeProposalManager(
@@ -55,7 +60,7 @@ async def run_on_golem(
     )
     work_manager = AsynchronousWorkManager(golem, activity_manager.do_work, plugins=task_plugins)
 
-    async with golem, payment_manager, negotiation_manager, proposal_manager, activity_manager:
+    async with golem, payment_manager, demand_manager, negotiation_manager, proposal_manager, activity_manager:
         results: List[WorkResult] = await work_manager.do_work_list(task_list)
     return results
 
