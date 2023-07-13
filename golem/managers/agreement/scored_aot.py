@@ -4,37 +4,36 @@ import logging
 from datetime import datetime
 from typing import Awaitable, Callable, List, Optional, Sequence, Tuple, cast
 
+from golem.managers.agreement.events import AgreementReleased
 from golem.managers.base import (
+    AgreementManager,
     ManagerException,
     ManagerPluginsMixin,
     ManagerPluginWithOptionalWeight,
-    ProposalManager,
 )
 from golem.node import GolemNode
 from golem.payload import Properties
 from golem.payload.parsers.textx import TextXPayloadSyntaxParser
-from golem.resources import Proposal, ProposalData
+from golem.resources import Agreement, Proposal, ProposalData
 from golem.utils.asyncio import create_task_with_logging
 from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
 
-class IgnoreProposal(Exception):
-    pass
-
-
-class ScoredAheadOfTimeProposalManager(
-    ManagerPluginsMixin[ManagerPluginWithOptionalWeight], ProposalManager
+class ScoredAheadOfTimeAgreementManager(
+    ManagerPluginsMixin[ManagerPluginWithOptionalWeight], AgreementManager
 ):
     def __init__(
         self,
         golem: GolemNode,
-        get_init_proposal: Callable[[], Awaitable[Proposal]],
+        get_draft_proposal: Callable[[], Awaitable[Proposal]],
         *args,
         **kwargs,
-    ) -> None:
-        self._get_init_proposal = get_init_proposal
+    ):
+        self._get_draft_proposal = get_draft_proposal
+        self._event_bus = golem.event_bus
+
         self._consume_proposals_task: Optional[asyncio.Task] = None
         self._demand_offer_parser = TextXPayloadSyntaxParser()
 
@@ -63,7 +62,7 @@ class ScoredAheadOfTimeProposalManager(
 
     async def _consume_proposals(self) -> None:
         while True:
-            proposal = await self._get_init_proposal()
+            proposal = await self._get_draft_proposal()
 
             await self._manage_scoring(proposal)
 
@@ -78,7 +77,7 @@ class ScoredAheadOfTimeProposalManager(
             self._scored_proposals_condition.notify_all()
 
     @trace_span()
-    async def get_draft_proposal(self) -> Proposal:
+    async def _get_scored_proposal(self):
         async with self._scored_proposals_condition:
             await self._scored_proposals_condition.wait_for(lambda: 0 < len(self._scored_proposals))
 
@@ -87,6 +86,33 @@ class ScoredAheadOfTimeProposalManager(
         logger.info(f"Proposal `{proposal}` picked with score `{score}`")
 
         return proposal
+
+    @trace_span()
+    async def get_agreement(self) -> Agreement:
+        while True:
+            proposal = await self._get_scored_proposal()
+            try:
+                agreement = await proposal.create_agreement()
+                await agreement.confirm()
+                await agreement.wait_for_approval()
+            except Exception as e:
+                logger.debug(f"Creating agreement failed with `{e}`. Retrying...")
+            else:
+                logger.info(f"Agreement `{agreement}` created")
+
+                # TODO: Support removing callback on resource close
+                await self._event_bus.on_once(
+                    AgreementReleased,
+                    self._terminate_agreement,
+                    lambda event: event.resource.id == agreement.id,
+                )
+                return agreement
+
+    @trace_span()
+    async def _terminate_agreement(self, event: AgreementReleased) -> None:
+        agreement: Agreement = event.resource
+        await agreement.terminate()
+        logger.info(f"Agreement `{agreement}` closed")
 
     async def _do_scoring(self, proposals: Sequence[Proposal]):
         proposals_data = await self._get_proposals_data_from_proposals(proposals)

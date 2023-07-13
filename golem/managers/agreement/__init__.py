@@ -1,7 +1,7 @@
 from golem.managers.agreement.events import AgreementReleased
-from golem.managers.agreement.single_use import SingleUseAgreementManager
+from golem.managers.agreement.scored_aot import ScoredAheadOfTimeAgreementManager
 
 __all__ = (
     "AgreementReleased",
-    "SingleUseAgreementManager",
+    "ScoredAheadOfTimeAgreementManager",
 )

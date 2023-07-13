@@ -5,13 +5,12 @@ import string
 from uuid import uuid4
 
 from golem.managers.activity.single_use import SingleUseActivityManager
-from golem.managers.agreement.single_use import SingleUseAgreementManager
+from golem.managers.agreement.scored_aot import ScoredAheadOfTimeAgreementManager
 from golem.managers.base import WorkContext, WorkResult
 from golem.managers.demand.auto import AutoDemandManager
 from golem.managers.negotiation import SequentialNegotiationManager
 from golem.managers.network.single import SingleNetworkManager
 from golem.managers.payment.pay_all import PayAllPaymentManager
-from golem.managers.proposal import ScoredAheadOfTimeProposalManager
 from golem.managers.work.sequential import SequentialWorkManager
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
@@ -78,10 +77,9 @@ async def main():
         payload,
     )
     negotiation_manager = SequentialNegotiationManager(golem, demand_manager.get_initial_proposal)
-    proposal_manager = ScoredAheadOfTimeProposalManager(
+    agreement_manager = ScoredAheadOfTimeAgreementManager(
         golem, negotiation_manager.get_draft_proposal
     )
-    agreement_manager = SingleUseAgreementManager(golem, proposal_manager.get_draft_proposal)
     activity_manager = SingleUseActivityManager(
         golem,
         agreement_manager.get_agreement,
@@ -89,7 +87,7 @@ async def main():
     )
     work_manager = SequentialWorkManager(golem, activity_manager.do_work)
     # TODO use different managers so it allows to finish work func without destroying activity
-    async with golem, network_manager, payment_manager, demand_manager, negotiation_manager, proposal_manager:
+    async with golem, network_manager, payment_manager, demand_manager, negotiation_manager, agreement_manager:
         result: WorkResult = await work_manager.do_work(
             work(golem._api_config.app_key, network_manager.get_provider_uri)
         )

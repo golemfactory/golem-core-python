@@ -5,7 +5,9 @@ from random import randint, random
 from typing import List
 
 from golem.managers.activity.single_use import SingleUseActivityManager
-from golem.managers.agreement.single_use import SingleUseAgreementManager
+from golem.managers.agreement.plugins import MapScore, PropertyValueLerpScore, RandomScore
+from golem.managers.agreement.pricings import LinearAverageCostPricing
+from golem.managers.agreement.scored_aot import ScoredAheadOfTimeAgreementManager
 from golem.managers.base import RejectProposal, WorkContext, WorkResult
 from golem.managers.demand.auto import AutoDemandManager
 from golem.managers.negotiation import SequentialNegotiationManager
@@ -15,9 +17,6 @@ from golem.managers.negotiation.plugins import (
     RejectIfCostsExceeds,
 )
 from golem.managers.payment.pay_all import PayAllPaymentManager
-from golem.managers.proposal import ScoredAheadOfTimeProposalManager
-from golem.managers.proposal.plugins import MapScore, PropertyValueLerpScore, RandomScore
-from golem.managers.proposal.pricings import LinearAverageCostPricing
 from golem.managers.work.plugins import redundancy_cancel_others_on_first_done, retry, work_plugin
 from golem.managers.work.sequential import SequentialWorkManager
 from golem.node import GolemNode
@@ -102,7 +101,7 @@ async def main():
             else None,
         ],
     )
-    proposal_manager = ScoredAheadOfTimeProposalManager(
+    agreement_manager = ScoredAheadOfTimeAgreementManager(
         golem,
         negotiation_manager.get_draft_proposal,
         plugins=[
@@ -113,7 +112,6 @@ async def main():
             [0.0, MapScore(lambda proposal_data: random())],
         ],
     )
-    agreement_manager = SingleUseAgreementManager(golem, proposal_manager.get_draft_proposal)
     activity_manager = SingleUseActivityManager(golem, agreement_manager.get_agreement)
     work_manager = SequentialWorkManager(
         golem,
@@ -124,7 +122,7 @@ async def main():
     )
 
     async with golem:
-        async with payment_manager, demand_manager, negotiation_manager, proposal_manager:
+        async with payment_manager, demand_manager, negotiation_manager, agreement_manager:
             results: List[WorkResult] = await work_manager.do_work_list(work_list)
             print(f"\nWORK MANAGER RESULTS:{[result.result for result in results]}\n", flush=True)
 

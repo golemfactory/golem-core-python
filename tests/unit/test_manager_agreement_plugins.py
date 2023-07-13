@@ -1,6 +1,6 @@
 import pytest
 
-from golem.managers.proposal.plugins import PropertyValueLerpScore, RandomScore
+from golem.managers.agreement.plugins import PropertyValueLerpScore, RandomScore
 
 
 @pytest.mark.parametrize(

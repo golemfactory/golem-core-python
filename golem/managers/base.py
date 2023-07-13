@@ -177,12 +177,6 @@ class NegotiationManager(Manager, ABC):
         ...
 
 
-class ProposalManager(Manager, ABC):
-    @abstractmethod
-    async def get_draft_proposal(self) -> Proposal:
-        ...
-
-
 class AgreementManager(Manager, ABC):
     @abstractmethod
     async def get_agreement(self) -> Agreement:
