@@ -18,7 +18,7 @@ class SingleNetworkManager(NetworkManager):
         self._nodes: Dict[str, str] = {}
 
     @trace_span()
-    async def __aenter__(self):
+    async def start(self):
         self._network = await Network.create(self._golem, self._ip, None, None)
         await self._network.add_requestor_ip(None)
         self._golem.add_autoclose_resource(self._network)

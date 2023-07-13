@@ -7,7 +7,7 @@ from typing import Awaitable, Callable, Optional, cast
 from ya_market import ApiException
 
 from golem.managers.base import (
-    ContextManagerLoopMixin,
+    BackgroundLoopMixin,
     ManagerPluginsMixin,
     NegotiationManager,
     NegotiationManagerPlugin,
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class SequentialNegotiationManager(
-    ContextManagerLoopMixin, ManagerPluginsMixin[NegotiationManagerPlugin], NegotiationManager
+    BackgroundLoopMixin, ManagerPluginsMixin[NegotiationManagerPlugin], NegotiationManager
 ):
     # TODO remove unused methods
     def __init__(
@@ -46,7 +46,7 @@ class SequentialNegotiationManager(
         return await self._eligible_proposals.get()
 
     @trace_span()
-    async def _manager_loop(self) -> None:
+    async def _background_loop(self) -> None:
         while True:  # TODO add buffer
             proposal = await self._get_initial_proposal()
 

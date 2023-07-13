@@ -125,12 +125,6 @@ class ManagerPluginException(ManagerException):
 
 
 class Manager(ABC):
-    ...
-
-
-class ContextManagerLoopMixin:
-    _manager_loop_task: Optional[asyncio.Task] = None
-
     async def __aenter__(self):
         await self.start()
         return self
@@ -138,25 +132,35 @@ class ContextManagerLoopMixin:
     async def __aexit__(self, exc_type, exc, tb):
         await self.stop()
 
+    async def start(self) -> None:
+        ...
+
+    async def stop(self) -> None:
+        ...
+
+
+class BackgroundLoopMixin:
+    _background_loop_task: Optional[asyncio.Task] = None
+
     @trace_span()
     async def start(self) -> None:
         if self.is_started():
             raise ManagerException("Already started!")
 
-        self._manager_loop_task = create_task_with_logging(self._manager_loop())
+        self._background_loop_task = create_task_with_logging(self._background_loop())
 
     @trace_span()
     async def stop(self) -> None:
         if not self.is_started():
             raise ManagerException("Already stopped!")
 
-        self._manager_loop_task.cancel()
-        self._manager_loop_task = None
+        self._background_loop_task.cancel()
+        self._background_loop_task = None
 
     def is_started(self) -> bool:
-        return self._manager_loop_task is not None and not self._manager_loop_task.done()
+        return self._background_loop_task is not None and not self._background_loop_task.done()
 
-    async def _manager_loop(self) -> None:
+    async def _background_loop(self) -> None:
         ...
 
 

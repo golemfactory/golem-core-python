@@ -4,13 +4,7 @@ from contextlib import asynccontextmanager
 from typing import Awaitable, Callable
 
 from golem.managers.activity.mixins import ActivityPrepareReleaseMixin
-from golem.managers.base import (
-    ActivityManager,
-    ContextManagerLoopMixin,
-    Work,
-    WorkContext,
-    WorkResult,
-)
+from golem.managers.base import ActivityManager, BackgroundLoopMixin, Work, WorkContext, WorkResult
 from golem.node import GolemNode
 from golem.resources import Agreement
 from golem.utils.logging import trace_span
@@ -18,7 +12,7 @@ from golem.utils.logging import trace_span
 logger = logging.getLogger(__name__)
 
 
-class ActivityPoolManager(ContextManagerLoopMixin, ActivityPrepareReleaseMixin, ActivityManager):
+class ActivityPoolManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, ActivityManager):
     def __init__(
         self,
         golem: GolemNode,
@@ -34,7 +28,7 @@ class ActivityPoolManager(ContextManagerLoopMixin, ActivityPrepareReleaseMixin, 
         self._pool = asyncio.Queue()
         super().__init__(*args, **kwargs)
 
-    async def _manager_loop(self):
+    async def _background_loop(self):
         pool_current_size = 0
         try:
             while True:

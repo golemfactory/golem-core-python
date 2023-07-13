@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Awaitable, Callable, List, Sequence, Tuple, cast
 
 from golem.managers.base import (
-    ContextManagerLoopMixin,
+    BackgroundLoopMixin,
     DemandManager,
     ManagerPluginsMixin,
     ManagerPluginWithOptionalWeight,
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class AutoDemandManager(
-    ContextManagerLoopMixin, ManagerPluginsMixin[ManagerPluginWithOptionalWeight], DemandManager
+    BackgroundLoopMixin, ManagerPluginsMixin[ManagerPluginWithOptionalWeight], DemandManager
 ):
     def __init__(
         self,
@@ -53,7 +53,7 @@ class AutoDemandManager(
         return proposal
 
     @trace_span()
-    async def _manager_loop(self) -> None:
+    async def _background_loop(self) -> None:
         allocation = await self._get_allocation()
         demand_builder = await self._prepare_demand_builder(allocation)
 

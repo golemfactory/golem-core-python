@@ -7,7 +7,7 @@ from typing import Awaitable, Callable, List, Sequence, Tuple, cast
 from golem.managers.agreement.events import AgreementReleased
 from golem.managers.base import (
     AgreementManager,
-    ContextManagerLoopMixin,
+    BackgroundLoopMixin,
     ManagerPluginsMixin,
     ManagerPluginWithOptionalWeight,
 )
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class ScoredAheadOfTimeAgreementManager(
-    ContextManagerLoopMixin, ManagerPluginsMixin[ManagerPluginWithOptionalWeight], AgreementManager
+    BackgroundLoopMixin, ManagerPluginsMixin[ManagerPluginWithOptionalWeight], AgreementManager
 ):
     def __init__(
         self,
@@ -40,7 +40,7 @@ class ScoredAheadOfTimeAgreementManager(
 
         super().__init__(*args, **kwargs)
 
-    async def _manager_loop(self) -> None:
+    async def _background_loop(self) -> None:
         while True:
             proposal = await self._get_draft_proposal()
 
