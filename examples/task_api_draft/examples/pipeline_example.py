@@ -5,10 +5,9 @@ from typing import AsyncIterator, Callable, Tuple
 
 from examples.task_api_draft.task_api.activity_pool import ActivityPool
 from golem.events_bus import Event
-from golem.managers import DefaultPaymentManager
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
-from golem.pipeline import Buffer, Chain, Map, Sort, Zip
+from golem.pipeline import Buffer, Chain, DefaultPaymentManager, Map, Sort, Zip
 from golem.resources import (
     Proposal,
     default_create_activity,

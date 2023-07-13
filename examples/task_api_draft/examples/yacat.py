@@ -24,9 +24,8 @@ from examples.task_api_draft.examples.yacat_no_business_logic import (
 )
 from examples.task_api_draft.task_api.activity_pool import ActivityPool
 from golem.event_bus import Event
-from golem.managers import DefaultPaymentManager
 from golem.node import GolemNode
-from golem.pipeline import Buffer, Chain, Map, Sort, Zip
+from golem.pipeline import Buffer, Chain, DefaultPaymentManager, Map, Sort, Zip
 from golem.resources import (
     Activity,
     DebitNote,

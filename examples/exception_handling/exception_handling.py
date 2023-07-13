@@ -2,10 +2,9 @@ import asyncio
 from typing import Callable, Tuple
 
 from golem.event_bus import Event
-from golem.managers import DefaultPaymentManager
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
-from golem.pipeline import Buffer, Chain, Limit, Map
+from golem.pipeline import Buffer, Chain, DefaultPaymentManager, Limit, Map
 from golem.resources import (
     BatchError,
     BatchTimeoutError,

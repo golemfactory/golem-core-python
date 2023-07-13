@@ -3,10 +3,9 @@ from random import random
 from typing import AsyncIterator, Awaitable, Callable, Iterable, Optional, Tuple, TypeVar
 
 from golem.event_bus import Event
-from golem.managers import DefaultPaymentManager
 from golem.node import GolemNode
 from golem.payload import Payload
-from golem.pipeline import Buffer, Chain, Map, Sort, Zip
+from golem.pipeline import Buffer, Chain, DefaultPaymentManager, Map, Sort, Zip
 from golem.resources import (
     Activity,
     Demand,

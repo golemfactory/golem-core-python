@@ -1,3 +1,4 @@
+import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import (
@@ -26,6 +27,7 @@ from golem.resources import (
     Script,
 )
 from golem.resources.activity import commands
+from golem.utils.asyncio import create_task_with_logging
 from golem.utils.logging import trace_span
 
 
@@ -123,6 +125,12 @@ class ManagerPluginException(ManagerException):
 
 
 class Manager(ABC):
+    ...
+
+
+class ContextManagerLoopMixin:
+    _manager_loop_task: Optional[asyncio.Task] = None
+
     async def __aenter__(self):
         await self.start()
         return self
@@ -130,10 +138,25 @@ class Manager(ABC):
     async def __aexit__(self, exc_type, exc, tb):
         await self.stop()
 
-    async def start(self):
-        ...
+    @trace_span()
+    async def start(self) -> None:
+        if self.is_started():
+            raise ManagerException("Already started!")
 
-    async def stop(self):
+        self._manager_loop_task = create_task_with_logging(self._manager_loop())
+
+    @trace_span()
+    async def stop(self) -> None:
+        if not self.is_started():
+            raise ManagerException("Already stopped!")
+
+        self._manager_loop_task.cancel()
+        self._manager_loop_task = None
+
+    def is_started(self) -> bool:
+        return self._manager_loop_task is not None and not self._manager_loop_task.done()
+
+    async def _manager_loop(self) -> None:
         ...
 
 

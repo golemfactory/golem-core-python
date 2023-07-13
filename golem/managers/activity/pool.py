@@ -4,16 +4,21 @@ from contextlib import asynccontextmanager
 from typing import Awaitable, Callable
 
 from golem.managers.activity.mixins import ActivityPrepareReleaseMixin
-from golem.managers.base import ActivityManager, Work, WorkContext, WorkResult
+from golem.managers.base import (
+    ActivityManager,
+    ContextManagerLoopMixin,
+    Work,
+    WorkContext,
+    WorkResult,
+)
 from golem.node import GolemNode
 from golem.resources import Agreement
-from golem.utils.asyncio import create_task_with_logging
 from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
 
-class ActivityPoolManager(ActivityPrepareReleaseMixin, ActivityManager):
+class ActivityPoolManager(ContextManagerLoopMixin, ActivityPrepareReleaseMixin, ActivityManager):
     def __init__(
         self,
         golem: GolemNode,
@@ -29,39 +34,35 @@ class ActivityPoolManager(ActivityPrepareReleaseMixin, ActivityManager):
         self._pool = asyncio.Queue()
         super().__init__(*args, **kwargs)
 
-    @trace_span()
-    async def start(self):
-        self._manage_pool_task = create_task_with_logging(self._manage_pool())
-
-    @trace_span()
-    async def stop(self):
-        self._pool_target_size = 0
-        # TODO cancel prepare_activity tasks
-        await self._manage_pool_task
-        assert self._pool.empty()
-
-    async def _manage_pool(self):
+    async def _manager_loop(self):
         pool_current_size = 0
-        release_tasks = []
-        prepare_tasks = []
-        # TODO: After reducing to zero its not possible to manage pool afterwards
-        while self._pool_target_size > 0 or pool_current_size > 0:
-            # TODO observe tasks status and add fallback
-            if pool_current_size > self._pool_target_size:
-                pool_current_size -= 1
-                logger.debug(f"Releasing activity from the pool, new size: {pool_current_size}")
-                release_tasks.append(
-                    create_task_with_logging(self._release_activity_and_pop_from_pool())
-                )
-            elif pool_current_size < self._pool_target_size:
-                pool_current_size += 1
-                logger.debug(f"Adding activity to the pool, new size: {pool_current_size}")
-                prepare_tasks.append(
-                    create_task_with_logging(self._prepare_activity_and_put_in_pool())
-                )
-
-            # TODO: Use events instead of sleep
-            await asyncio.sleep(0.01)
+        try:
+            while True:
+                if pool_current_size > self._pool_target_size:
+                    # TODO check tasks results and add fallback
+                    await asyncio.gather(
+                        *[
+                            self._release_activity_and_pop_from_pool()
+                            for _ in range(pool_current_size - self._pool_target_size)
+                        ]
+                    )
+                    pool_current_size -= pool_current_size - self._pool_target_size
+                elif pool_current_size < self._pool_target_size:
+                    # TODO check tasks results and add fallback
+                    await asyncio.gather(
+                        *[
+                            self._prepare_activity_and_put_in_pool()
+                            for _ in range(self._pool_target_size - pool_current_size)
+                        ]
+                    )
+                    pool_current_size += self._pool_target_size - pool_current_size
+                # TODO: Use events instead of sleep
+                await asyncio.sleep(0.01)
+        finally:
+            logger.info(f"Releasing all {pool_current_size} activity from the pool")
+            await asyncio.gather(
+                *[self._release_activity_and_pop_from_pool() for _ in range(pool_current_size)]
+            )
 
     @trace_span()
     async def _release_activity_and_pop_from_pool(self):

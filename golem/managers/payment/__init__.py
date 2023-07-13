@@ -1,3 +1,3 @@
-from golem.managers.payment.default import DefaultPaymentManager
+from golem.managers.payment.pay_all import PayAllPaymentManager
 
-__all__ = ("DefaultPaymentManager",)
+__all__ = ("PayAllPaymentManager",)

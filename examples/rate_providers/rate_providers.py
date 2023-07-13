@@ -5,10 +5,9 @@ from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Dict, Optional, Tuple
 
 from golem.event_bus import Event
-from golem.managers import DefaultPaymentManager
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
-from golem.pipeline import Buffer, Chain, Limit, Map
+from golem.pipeline import Buffer, Chain, DefaultPaymentManager, Limit, Map
 from golem.resources import (
     Proposal,
     default_create_activity,

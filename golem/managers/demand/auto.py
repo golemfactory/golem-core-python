@@ -2,11 +2,11 @@ import asyncio
 import inspect
 import logging
 from datetime import datetime
-from typing import Awaitable, Callable, List, Optional, Sequence, Tuple, cast
+from typing import Awaitable, Callable, List, Sequence, Tuple, cast
 
 from golem.managers.base import (
+    ContextManagerLoopMixin,
     DemandManager,
-    ManagerException,
     ManagerPluginsMixin,
     ManagerPluginWithOptionalWeight,
 )
@@ -17,13 +17,14 @@ from golem.payload.parsers.textx.parser import TextXPayloadSyntaxParser
 from golem.resources import Allocation, Proposal, ProposalData
 from golem.resources.demand.demand_builder import DemandBuilder
 from golem.resources.proposal.proposal import Proposal
-from golem.utils.asyncio import create_task_with_logging
 from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
 
-class AutoDemandManager(ManagerPluginsMixin[ManagerPluginWithOptionalWeight], DemandManager):
+class AutoDemandManager(
+    ContextManagerLoopMixin, ManagerPluginsMixin[ManagerPluginWithOptionalWeight], DemandManager
+):
     def __init__(
         self,
         golem: GolemNode,
@@ -41,27 +42,7 @@ class AutoDemandManager(ManagerPluginsMixin[ManagerPluginWithOptionalWeight], De
         self._scored_proposals: List[Tuple[float, Proposal]] = []
         self._scored_proposals_condition = asyncio.Condition()
 
-        self._manager_loop_task: Optional[asyncio.Task] = None
-
         super().__init__(*args, **kwargs)
-
-    @trace_span()
-    async def start(self) -> None:
-        if self.is_started():
-            raise ManagerException("Already started!")
-
-        self._manager_loop_task = create_task_with_logging(self._manager_loop())
-
-    @trace_span()
-    async def stop(self) -> None:
-        if not self.is_started():
-            raise ManagerException("Already stopped!")
-
-        self._manager_loop_task.cancel()
-        self._manager_loop_task = None
-
-    def is_started(self) -> bool:
-        return self._manager_loop_task is not None and not self._manager_loop_task.done()
 
     async def get_initial_proposal(self) -> Proposal:
         async with self._scored_proposals_condition:

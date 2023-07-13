@@ -41,7 +41,7 @@ class PayAllPaymentManager(PaymentManager):
         self._event_handlers = []
 
     @trace_span()
-    async def start(self) -> None:
+    async def __aenter__(self):
         # TODO: Add stop with event_bus.off()
         self._event_handlers.extend(
             [
@@ -53,7 +53,7 @@ class PayAllPaymentManager(PaymentManager):
         )
 
     @trace_span()
-    async def stop(self) -> None:
+    async def __aexit__(self, exc_type, exc, tb):
         await self.wait_for_invoices()
 
         for event_handler in self._event_handlers:

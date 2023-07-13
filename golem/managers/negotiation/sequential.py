@@ -7,7 +7,7 @@ from typing import Awaitable, Callable, Optional, cast
 from ya_market import ApiException
 
 from golem.managers.base import (
-    ManagerException,
+    ContextManagerLoopMixin,
     ManagerPluginsMixin,
     NegotiationManager,
     NegotiationManagerPlugin,
@@ -17,14 +17,13 @@ from golem.node import GolemNode
 from golem.payload import Properties
 from golem.payload.parsers.textx import TextXPayloadSyntaxParser
 from golem.resources import DemandData, Proposal, ProposalData
-from golem.utils.asyncio import create_task_with_logging
 from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
 
 class SequentialNegotiationManager(
-    ManagerPluginsMixin[NegotiationManagerPlugin], NegotiationManager
+    ContextManagerLoopMixin, ManagerPluginsMixin[NegotiationManagerPlugin], NegotiationManager
 ):
     # TODO remove unused methods
     def __init__(
@@ -37,7 +36,6 @@ class SequentialNegotiationManager(
         self._golem = golem
         self._get_initial_proposal = get_initial_proposal
 
-        self._negotiation_loop_task: Optional[asyncio.Task] = None
         self._eligible_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
         self._demand_offer_parser = TextXPayloadSyntaxParser()
 
@@ -48,25 +46,7 @@ class SequentialNegotiationManager(
         return await self._eligible_proposals.get()
 
     @trace_span()
-    async def start(self) -> None:
-        if self.is_started():
-            raise ManagerException("Already started!")
-
-        self._negotiation_loop_task = create_task_with_logging(self._negotiation_loop())
-
-    @trace_span()
-    async def stop(self) -> None:
-        if not self.is_started():
-            raise ManagerException("Already stopped!")
-
-        self._negotiation_loop_task.cancel()
-        self._negotiation_loop_task = None
-
-    def is_started(self) -> bool:
-        return self._negotiation_loop_task is not None and not self._negotiation_loop_task.done()
-
-    @trace_span()
-    async def _negotiation_loop(self) -> None:
+    async def _manager_loop(self) -> None:
         while True:  # TODO add buffer
             proposal = await self._get_initial_proposal()
 

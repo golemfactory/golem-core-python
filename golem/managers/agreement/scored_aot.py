@@ -2,12 +2,12 @@ import asyncio
 import inspect
 import logging
 from datetime import datetime
-from typing import Awaitable, Callable, List, Optional, Sequence, Tuple, cast
+from typing import Awaitable, Callable, List, Sequence, Tuple, cast
 
 from golem.managers.agreement.events import AgreementReleased
 from golem.managers.base import (
     AgreementManager,
-    ManagerException,
+    ContextManagerLoopMixin,
     ManagerPluginsMixin,
     ManagerPluginWithOptionalWeight,
 )
@@ -15,14 +15,13 @@ from golem.node import GolemNode
 from golem.payload import Properties
 from golem.payload.parsers.textx import TextXPayloadSyntaxParser
 from golem.resources import Agreement, Proposal, ProposalData
-from golem.utils.asyncio import create_task_with_logging
 from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
 
 class ScoredAheadOfTimeAgreementManager(
-    ManagerPluginsMixin[ManagerPluginWithOptionalWeight], AgreementManager
+    ContextManagerLoopMixin, ManagerPluginsMixin[ManagerPluginWithOptionalWeight], AgreementManager
 ):
     def __init__(
         self,
@@ -34,7 +33,6 @@ class ScoredAheadOfTimeAgreementManager(
         self._get_draft_proposal = get_draft_proposal
         self._event_bus = golem.event_bus
 
-        self._consume_proposals_task: Optional[asyncio.Task] = None
         self._demand_offer_parser = TextXPayloadSyntaxParser()
 
         self._scored_proposals: List[Tuple[float, Proposal]] = []
@@ -42,25 +40,7 @@ class ScoredAheadOfTimeAgreementManager(
 
         super().__init__(*args, **kwargs)
 
-    @trace_span()
-    async def start(self) -> None:
-        if self.is_started():
-            raise ManagerException("Already started!")
-
-        self._consume_proposals_task = create_task_with_logging(self._consume_proposals())
-
-    @trace_span()
-    async def stop(self) -> None:
-        if not self.is_started():
-            raise ManagerException("Already stopped!")
-
-        self._consume_proposals_task.cancel()
-        self._consume_proposals_task = None
-
-    def is_started(self) -> bool:
-        return self._consume_proposals_task is not None and not self._consume_proposals_task.done()
-
-    async def _consume_proposals(self) -> None:
+    async def _manager_loop(self) -> None:
         while True:
             proposal = await self._get_draft_proposal()
 
