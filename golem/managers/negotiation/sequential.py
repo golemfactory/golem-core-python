@@ -6,13 +6,8 @@ from typing import Awaitable, Callable, Optional, cast
 
 from ya_market import ApiException
 
-from golem.managers.base import (
-    BackgroundLoopMixin,
-    ManagerPluginsMixin,
-    NegotiationManager,
-    NegotiationManagerPlugin,
-    RejectProposal,
-)
+from golem.managers.base import NegotiationManager, NegotiationManagerPlugin, RejectProposal
+from golem.managers.mixins import BackgroundLoopMixin, ManagerPluginsMixin
 from golem.node import GolemNode
 from golem.payload import Properties
 from golem.payload.parsers.textx import TextXPayloadSyntaxParser

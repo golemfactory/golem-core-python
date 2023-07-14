@@ -3,11 +3,11 @@ import logging
 from golem.managers.base import (
     WORK_PLUGIN_FIELD_NAME,
     DoWorkCallable,
-    ManagerPluginsMixin,
     Work,
     WorkManagerPlugin,
     WorkResult,
 )
+from golem.managers.mixins import ManagerPluginsMixin
 from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)

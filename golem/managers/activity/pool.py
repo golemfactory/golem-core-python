@@ -4,7 +4,8 @@ from contextlib import asynccontextmanager
 from typing import Awaitable, Callable
 
 from golem.managers.activity.mixins import ActivityPrepareReleaseMixin
-from golem.managers.base import ActivityManager, BackgroundLoopMixin, Work, WorkContext, WorkResult
+from golem.managers.base import ActivityManager, Work, WorkContext, WorkResult
+from golem.managers.mixins import BackgroundLoopMixin
 from golem.node import GolemNode
 from golem.resources import Agreement
 from golem.utils.logging import trace_span
