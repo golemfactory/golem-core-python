@@ -11,7 +11,6 @@ from golem.resources import (
     DemandData,
     Proposal,
     ProposalData,
-    ResourceEvent,
     Script,
 )
 from golem.resources.activity import commands
@@ -100,7 +99,7 @@ class Work(ABC):
 DoWorkCallable = Callable[[Work], Awaitable[WorkResult]]
 
 
-class ManagerEvent(ResourceEvent, ABC):
+class ManagerEvent(ABC):
     pass
 
 
@@ -121,17 +120,17 @@ class Manager(ABC):
         await self.stop()
 
     async def start(self) -> None:
-        ...
+        pass
 
     async def stop(self) -> None:
-        ...
+        pass
 
 
 TPlugin = TypeVar("TPlugin")
 
 
 class NetworkManager(Manager, ABC):
-    ...
+    pass
 
 
 class PaymentManager(Manager, ABC):
@@ -165,7 +164,7 @@ class ActivityManager(Manager, ABC):
 
 
 class WorkManager(Manager, ABC):
-    ...
+    pass
 
 
 class RejectProposal(ManagerPluginException):
@@ -195,6 +194,7 @@ ManagerPluginWithOptionalWeight = Union[ManagerScorePlugin, Tuple[float, Manager
 
 
 class WorkManagerPlugin(ABC):
+    @abstractmethod
     def __call__(self, do_work: DoWorkCallable) -> DoWorkCallable:
         ...
 

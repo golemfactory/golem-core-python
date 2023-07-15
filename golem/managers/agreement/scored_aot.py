@@ -26,7 +26,7 @@ class ScoredAheadOfTimeAgreementManager(
 
         super().__init__(*args, **kwargs)
 
-    @trace_span()
+    @trace_span(show_arguments=True)
     async def get_agreement(self) -> Agreement:
         while True:
             proposal = await self.get_scored_proposal()
@@ -42,7 +42,7 @@ class ScoredAheadOfTimeAgreementManager(
                 # TODO: Support removing callback on resource close
                 await self._event_bus.on_once(
                     AgreementReleased,
-                    self._terminate_agreement,
+                    self._terminate_agreement_if_released,
                     lambda event: event.resource.id == agreement.id,
                 )
                 return agreement
@@ -53,7 +53,7 @@ class ScoredAheadOfTimeAgreementManager(
 
             await self.manage_scoring(proposal)
 
-    @trace_span()
+    @trace_span(show_arguments=True)
     async def _terminate_agreement(self, event: AgreementReleased) -> None:
         agreement: Agreement = event.resource
         await agreement.terminate()

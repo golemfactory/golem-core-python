@@ -36,7 +36,7 @@ class SequentialNegotiationManager(
 
         super().__init__(*args, **kwargs)
 
-    @trace_span()
+    @trace_span(show_results=True)
     async def get_draft_proposal(self) -> Proposal:
         return await self._eligible_proposals.get()
 
@@ -52,7 +52,7 @@ class SequentialNegotiationManager(
             if offer_proposal is not None:
                 await self._eligible_proposals.put(offer_proposal)
 
-    @trace_span()
+    @trace_span(show_arguments=True, show_results=True)
     async def _negotiate_proposal(
         self, demand_data: DemandData, offer_proposal: Proposal
     ) -> Optional[Proposal]:

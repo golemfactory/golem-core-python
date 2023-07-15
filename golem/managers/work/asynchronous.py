@@ -16,13 +16,13 @@ class AsynchronousWorkManager(WorkManagerPluginsMixin, WorkManager):
 
         super().__init__(*args, **kwargs)
 
-    @trace_span()
+    @trace_span(show_arguments=True, show_results=True)
     async def do_work(self, work: Work) -> WorkResult:
         result = await self._do_work_with_plugins(self._do_work, work)
         logger.info(f"Work `{work}` completed")
         return result
 
-    @trace_span()
+    @trace_span(show_arguments=True, show_results=True)
     async def do_work_list(self, work_list: List[Work]) -> List[WorkResult]:
         results = await asyncio.gather(*[self.do_work(work) for work in work_list])
         return results

@@ -27,7 +27,7 @@ class ActivityPrepareReleaseMixin:
 
         super().__init__(*args, **kwargs)
 
-    @trace_span()
+    @trace_span(show_arguments=True, show_results=True)
     async def _prepare_activity(self, agreement) -> Activity:
         activity = await agreement.create_activity()
         logger.info(f"Activity `{activity}` created")
@@ -36,7 +36,7 @@ class ActivityPrepareReleaseMixin:
             await self._on_activity_start(work_context)
         return activity
 
-    @trace_span()
+    @trace_span(show_arguments=True)
     async def _release_activity(self, activity: Activity) -> None:
         if self._on_activity_stop:
             work_context = WorkContext(activity)

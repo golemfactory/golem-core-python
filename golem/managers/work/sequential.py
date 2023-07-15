@@ -15,7 +15,7 @@ class SequentialWorkManager(WorkManagerPluginsMixin, WorkManager):
 
         super().__init__(*args, **kwargs)
 
-    @trace_span()
+    @trace_span(show_arguments=True, show_results=True)
     async def do_work(self, work: Work) -> WorkResult:
         result = await self._do_work_with_plugins(self._do_work, work)
 
@@ -23,7 +23,7 @@ class SequentialWorkManager(WorkManagerPluginsMixin, WorkManager):
 
         return result
 
-    @trace_span()
+    @trace_span(show_arguments=True, show_results=True)
     async def do_work_list(self, work_list: List[Work]) -> List[WorkResult]:
         results = []
 

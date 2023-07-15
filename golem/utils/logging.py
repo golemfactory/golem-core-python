@@ -2,7 +2,7 @@ import inspect
 import logging
 from datetime import datetime, timezone
 from functools import wraps
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence
 
 if TYPE_CHECKING:
     from golem.event_bus import Event
@@ -13,7 +13,7 @@ DEFAULT_LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "default": {
-            "format": "[%(asctime)s %(levelname)s %(name)s] %(message)s",
+            "format": "[%(asctime)s %(levelname)-7s %(name)s] %(message)s",
         },
     },
     "handlers": {
@@ -33,9 +33,6 @@ DEFAULT_LOGGING = {
             "level": "INFO",
         },
         "golem": {
-            "level": "INFO",
-        },
-        "golem.utils.logging": {
             "level": "INFO",
         },
         "golem.managers": {
@@ -60,15 +57,13 @@ DEFAULT_LOGGING = {
             "level": "INFO",
         },
         "golem.managers.activity": {
-            "level": "INFO",
+            "level": "DEBUG",
         },
         "golem.managers.work": {
             "level": "INFO",
         },
     },
 }
-
-logger = logging.getLogger(__name__)
 
 
 class _YagnaDatetimeFormatter(logging.Formatter):
@@ -133,58 +128,90 @@ class DefaultLogger:
         self.logger.info(event)
 
 
-def trace_span(name: Optional[str] = None, show_arguments: bool = False, show_results: bool = True):
-    def wrapper(f):
-        span_name = name if name is not None else f.__name__
+class TraceSpan:
+    def __init__(
+        self, name: Optional[str] = None, show_arguments: bool = False, show_results: bool = False
+    ) -> None:
+        self._name = name
+        self._show_arguments = show_arguments
+        self._show_results = show_results
 
-        @wraps(f)
-        def sync_wrapped(*args, **kwargs):
-            if show_arguments:
-                args_str = ", ".join(repr(a) for a in args)
-                kwargs_str = ", ".join("{}={}".format(k, repr(v)) for (k, v) in kwargs.items())
-                final_name = f"{span_name}({args_str}, {kwargs_str})"
-            else:
-                final_name = span_name
+    def __call__(self, func):
+        wrapper = self._async_wrapper if inspect.iscoroutinefunction(func) else self._sync_wrapper
 
-            logger.debug(f"{final_name}...")
+        # TODO: partial instead of decorator()
+        def decorator(*args, **kwargs):
+            return wrapper(func, args, kwargs)
 
-            try:
-                result = f(*args, **kwargs)
-            except Exception as e:
-                logger.debug(f"{final_name} failed with `{e}`")
-                raise
+        return wraps(func)(decorator)
 
-            if show_results:
-                logger.debug(f"{final_name} done with `{result}`")
-            else:
-                logger.debug(f"{final_name} done")
+    def _get_span_name(self, func: Callable, args: Sequence, kwargs: Dict) -> str:
+        if self._name is not None:
+            return self._name
 
-            return result
+        # TODO: check type of func in different cases + contextmanager
+        span_name = (
+            func.__qualname__.split(">.")[-1] if self._is_instance_method(func) else func.__name__
+        )
 
-        @wraps(f)
-        async def async_wrapped(*args, **kwargs):
-            if show_arguments:
-                args_str = ", ".join(repr(a) for a in args)
-                kwargs_str = ", ".join("{}={}".format(k, repr(v)) for (k, v) in kwargs.items())
-                final_name = f"{span_name}({args_str}, {kwargs_str})"
-            else:
-                final_name = span_name
+        if self._show_arguments:
+            arguments = ", ".join(
+                [
+                    *[repr(a) for a in (args[1:] if self._is_instance_method(func) else args)],
+                    *["{}={}".format(k, repr(v)) for (k, v) in kwargs.items()],
+                ]
+            )
+            return f"{span_name}({arguments})"
 
-            logger.debug(f"{final_name}...")
+        return span_name
 
-            try:
-                result = await f(*args, **kwargs)
-            except Exception as e:
-                logger.debug(f"{final_name} failed with `{e}`")
-                raise
+    def _get_logger(self, func: Callable, args: Sequence) -> logging.Logger:
+        module_name = (
+            args[0].__class__.__module__ if self._is_instance_method(func) else func.__module__
+        )
 
-            if show_results:
-                logger.debug(f"{final_name} done with `{result}`")
-            else:
-                logger.debug(f"{final_name} done")
+        return logging.getLogger(module_name)
 
-            return result
+    def _is_instance_method(self, func: Callable) -> bool:
+        return inspect.isfunction(func) and func.__name__ != func.__qualname__.split(">.")[-1]
 
-        return async_wrapped if inspect.iscoroutinefunction(f) else sync_wrapped
+    def _sync_wrapper(self, func: Callable, args: Sequence, kwargs: Dict) -> Any:
+        span_name = self._get_span_name(func, args, kwargs)
+        logger = self._get_logger(func, args)
 
-    return wrapper
+        logger.debug("Calling %s...", span_name)
+
+        try:
+            result = func(*args, **kwargs)
+        except Exception as e:
+            logger.debug("Calling %s failed with `%s`", span_name, e)
+            raise
+
+        if self._show_results:
+            logger.debug("Calling %s done with `%s`", span_name, result)
+        else:
+            logger.debug("Calling %s done", span_name)
+
+        return result
+
+    async def _async_wrapper(self, func: Callable, args: Sequence, kwargs: Dict) -> Any:
+        span_name = self._get_span_name(func, args, kwargs)
+        logger = self._get_logger(func, args)
+
+        logger.debug("Calling %s...", span_name)
+
+        try:
+            result = await func(*args, **kwargs)
+        except Exception as e:
+            logger.debug("Calling %s failed with `%s`", span_name, e)
+            raise
+
+        if self._show_results:
+            logger.debug("Calling %s done with `%s`", span_name, result)
+        else:
+            logger.debug("Calling %s done", span_name)
+
+        return result
+
+
+trace_span = TraceSpan

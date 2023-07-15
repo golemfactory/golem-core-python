@@ -16,7 +16,10 @@ logger = logging.getLogger(__name__)
 
 
 class BackgroundLoopMixin:
-    _background_loop_task: Optional[asyncio.Task] = None
+    def __init__(self, *args, **kwargs) -> None:
+        self._background_loop_task: Optional[asyncio.Task] = None
+
+        super().__init__(*args, **kwargs)
 
     @trace_span()
     async def start(self) -> None:
@@ -37,7 +40,7 @@ class BackgroundLoopMixin:
         return self._background_loop_task is not None and not self._background_loop_task.done()
 
     async def _background_loop(self) -> None:
-        ...
+        pass
 
 
 class ManagerPluginsMixin(Generic[TPlugin]):
@@ -63,9 +66,10 @@ class WeightProposalScoringPluginsMixin(ManagerPluginsMixin[ManagerPluginWithOpt
 
         self._scored_proposals: List[Tuple[float, Proposal]] = []
         self._scored_proposals_condition = asyncio.Condition()
+
         super().__init__(*args, **kwargs)
 
-    @trace_span()
+    @trace_span(show_arguments=True)
     async def manage_scoring(self, proposal: Proposal) -> None:
         async with self._scored_proposals_condition:
             all_proposals = list(sp[1] for sp in self._scored_proposals)

@@ -80,7 +80,7 @@ class ActivityPoolManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, Acti
         self._pool.put_nowait(activity)
         logger.info(f"Activity `{activity}` back in the pool")
 
-    @trace_span()
+    @trace_span(show_arguments=True, show_results=True)
     async def do_work(self, work: Work) -> WorkResult:
         async with self._get_activity_from_pool() as activity:
             work_context = WorkContext(activity)

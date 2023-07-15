@@ -33,7 +33,7 @@ class SingleUseActivityManager(ActivityPrepareReleaseMixin, ActivityManager):
             except Exception:
                 logger.exception("Creating activity failed, but will be retried with new agreement")
 
-    @trace_span()
+    @trace_span(show_arguments=True, show_results=True)
     async def do_work(self, work: Work) -> WorkResult:
         async with self._prepare_single_use_activity() as activity:
             work_context = WorkContext(activity)

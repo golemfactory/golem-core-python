@@ -68,7 +68,7 @@ class PayAllPaymentManager(PaymentManager):
         # TODO: We should not rely on golem node with cleanups, manager should do it by itself
         self._golem.add_autoclose_resource(self._allocation)
 
-    @trace_span()
+    @trace_span(show_results=True)
     async def get_allocation(self) -> "Allocation":
         # TODO handle NoMatchingAccount
         if self._allocation is None:
@@ -97,7 +97,7 @@ class PayAllPaymentManager(PaymentManager):
     async def _increment_closed_agreements(self, event: AgreementClosed):
         self._closed_agreements_count += 1
 
-    @trace_span()
+    @trace_span(show_arguments=True)
     async def _accept_invoice(self, invoice: Invoice) -> None:
         assert self._allocation is not None  # TODO think of a better way
         await invoice.accept_full(self._allocation)
@@ -106,7 +106,7 @@ class PayAllPaymentManager(PaymentManager):
 
         logger.info(f"Invoice `{invoice.id}` accepted")
 
-    @trace_span()
+    @trace_span(show_arguments=True)
     async def _accept_debit_note(self, debit_note: DebitNote) -> None:
         assert self._allocation is not None  # TODO think of a better way
         await debit_note.accept_full(self._allocation)
@@ -117,7 +117,6 @@ class PayAllPaymentManager(PaymentManager):
     @trace_span()
     async def _pay_invoice_if_received(self, event: NewInvoice) -> None:
         invoice = event.resource
-        assert isinstance(invoice, Invoice)
 
         if (await invoice.get_data(force=True)).status == "RECEIVED":
             await self._accept_invoice(invoice)
@@ -125,7 +124,6 @@ class PayAllPaymentManager(PaymentManager):
     @trace_span()
     async def _pay_debit_note_if_received(self, event: NewDebitNote) -> None:
         debit_note = event.resource
-        assert isinstance(debit_note, DebitNote)
 
         if (await debit_note.get_data(force=True)).status == "RECEIVED":
             await self._accept_debit_note(debit_note)

@@ -39,6 +39,8 @@ class AutoDemandManager(BackgroundLoopMixin, WeightProposalScoringPluginsMixin, 
         demand = await demand_builder.create_demand(self._golem)
         demand.start_collecting_events()
 
+        logger.debug(f"`{demand}` posted on market with `{demand_builder}`")
+
         try:
             async for initial_proposal in demand.initial_proposals():
                 await self.manage_scoring(initial_proposal)
