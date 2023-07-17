@@ -1,6 +1,6 @@
 from golem.pipeline.buffer import Buffer
 from golem.pipeline.chain import Chain
-from golem.pipeline.default_payment_handler import DefaultPaymentManager
+from golem.pipeline.default_payment_handler import DefaultPaymentHandler
 from golem.pipeline.exceptions import InputStreamExhausted
 from golem.pipeline.limit import Limit
 from golem.pipeline.map import Map
@@ -15,5 +15,5 @@ __all__ = (
     "Buffer",
     "Sort",
     "InputStreamExhausted",
-    "DefaultPaymentManager",
+    "DefaultPaymentHandler",
 )

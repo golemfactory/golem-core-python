@@ -4,7 +4,7 @@ from typing import Callable, Tuple
 from golem.event_bus import Event
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
-from golem.pipeline import Buffer, Chain, DefaultPaymentManager, Limit, Map
+from golem.pipeline import Buffer, Chain, DefaultPaymentHandler, Limit, Map
 from golem.resources import (
     BatchError,
     BatchTimeoutError,
@@ -47,7 +47,7 @@ async def main() -> None:
 
     async with golem:
         allocation = await golem.create_allocation(1.0)
-        payment_manager = DefaultPaymentManager(golem, allocation)
+        payment_handler = DefaultPaymentHandler(golem, allocation)
         demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
         chain = Chain(
@@ -64,8 +64,8 @@ async def main() -> None:
             print(f"Finished with {result}")
 
         print("TASK DONE")
-        await payment_manager.terminate_agreements()
-        await payment_manager.wait_for_invoices()
+        await payment_handler.terminate_agreements()
+        await payment_handler.wait_for_invoices()
 
 
 if __name__ == "__main__":

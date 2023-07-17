@@ -164,9 +164,3 @@ Logging
 
 .. autoclass:: golem.utils.logging.DefaultLogger
     :members: __init__, file_name, logger, on_event
-
-Managers
-========
-
-.. autoclass:: golem.managers.DefaultPaymentManager
-    :members: __init__, terminate_agreements, wait_for_invoices

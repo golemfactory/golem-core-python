@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from golem.resources import Allocation, NewAgreement
 
 
-class DefaultPaymentManager:
+class DefaultPaymentHandler:
     """Accepts all incoming debit_notes and invoices.
 
     Calls `get_data(force=True)` on invoices/debit notes after they are accepted,
@@ -19,21 +19,21 @@ class DefaultPaymentManager:
 
         async with GolemNode() as golem:
             allocation = await golem.create_allocation(BUDGET)
-            payment_manager = DefaultPaymentManager(golem, allocation)
+            payment_handler = DefaultPaymentHandler(golem, allocation)
 
             try:
                 #   ... interact with the Golem Network ...
             finally:
-                await payment_manager.terminate_agreements()
-                await payment_manager.wait_for_invoices()
+                await payment_handler.terminate_agreements()
+                await payment_handler.wait_for_invoices()
 
     """
 
     def __init__(self, node: "GolemNode", allocation: "Allocation"):
-        """Init DefaultPaymentManager.
+        """Init DefaultPaymentHandler.
 
         :param node: Debit notes/invoices received by this node will be accepted.
-            :any:`DefaultPaymentManager` will only work if the :any:`GolemNode` was started with
+            :any:`DefaultPaymentHandler` will only work if the :any:`GolemNode` was started with
             `collect_payment_events = True`.
         :param allocation: Allocation that will be used to accept debit notes/invoices.
         """

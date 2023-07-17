@@ -7,7 +7,7 @@ from examples.task_api_draft.task_api.activity_pool import ActivityPool
 from golem.events_bus import Event
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
-from golem.pipeline import Buffer, Chain, DefaultPaymentManager, Map, Sort, Zip
+from golem.pipeline import Buffer, Chain, DefaultPaymentHandler, Map, Sort, Zip
 from golem.resources import (
     Proposal,
     default_create_activity,
@@ -73,7 +73,7 @@ async def main() -> None:
     async with golem:
         allocation = await golem.create_allocation(1)
 
-        payment_manager = DefaultPaymentManager(golem, allocation)
+        payment_handler = DefaultPaymentHandler(golem, allocation)
 
         demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
@@ -106,8 +106,8 @@ async def main() -> None:
 
         print("ALL TASKS DONE")
 
-        await payment_manager.terminate_agreements()
-        await payment_manager.wait_for_invoices()
+        await payment_handler.terminate_agreements()
+        await payment_handler.wait_for_invoices()
 
 
 if __name__ == "__main__":

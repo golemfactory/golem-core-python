@@ -5,7 +5,7 @@ from typing import AsyncIterator, Awaitable, Callable, Iterable, Optional, Tuple
 from golem.event_bus import Event
 from golem.node import GolemNode
 from golem.payload import Payload
-from golem.pipeline import Buffer, Chain, DefaultPaymentManager, Map, Sort, Zip
+from golem.pipeline import Buffer, Chain, DefaultPaymentHandler, Map, Sort, Zip
 from golem.resources import (
     Activity,
     Demand,
@@ -149,7 +149,7 @@ async def execute_tasks(
     async with golem:
         allocation = await golem.create_allocation(budget)
 
-        payment_manager = DefaultPaymentManager(golem, allocation)
+        payment_handler = DefaultPaymentHandler(golem, allocation)
         demand = await golem.create_demand(payload, allocations=[allocation])
 
         chain = get_chain(
@@ -169,5 +169,5 @@ async def execute_tasks(
             if task_stream.in_stream_empty and returned == task_stream.task_cnt:
                 break
 
-        await payment_manager.terminate_agreements()
-        await payment_manager.wait_for_invoices()
+        await payment_handler.terminate_agreements()
+        await payment_handler.wait_for_invoices()

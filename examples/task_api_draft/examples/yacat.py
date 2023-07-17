@@ -25,7 +25,7 @@ from examples.task_api_draft.examples.yacat_no_business_logic import (
 from examples.task_api_draft.task_api.activity_pool import ActivityPool
 from golem.event_bus import Event
 from golem.node import GolemNode
-from golem.pipeline import Buffer, Chain, DefaultPaymentManager, Map, Sort, Zip
+from golem.pipeline import Buffer, Chain, DefaultPaymentHandler, Map, Sort, Zip
 from golem.resources import (
     Activity,
     DebitNote,
@@ -189,7 +189,7 @@ async def main() -> None:
 
     async with golem:
         allocation = await golem.create_allocation(amount=1)
-        payment_manager = DefaultPaymentManager(golem, allocation)
+        payment_handler = DefaultPaymentHandler(golem, allocation)
 
         demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
@@ -211,8 +211,8 @@ async def main() -> None:
             ):
                 pass
         except asyncio.CancelledError:
-            await payment_manager.terminate_agreements()
-            await payment_manager.wait_for_invoices()
+            await payment_handler.terminate_agreements()
+            await payment_handler.wait_for_invoices()
 
     #   TODO: This removes the "destroyed but pending" messages, probably there's
     #         some even prettier solution available?

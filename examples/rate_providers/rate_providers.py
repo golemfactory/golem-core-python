@@ -7,7 +7,7 @@ from typing import Any, AsyncIterator, Callable, Dict, Optional, Tuple
 from golem.event_bus import Event
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
-from golem.pipeline import Buffer, Chain, DefaultPaymentManager, Limit, Map
+from golem.pipeline import Buffer, Chain, DefaultPaymentHandler, Limit, Map
 from golem.resources import (
     Proposal,
     default_create_activity,
@@ -86,7 +86,7 @@ async def main() -> None:
 
     async with golem:
         allocation = await golem.create_allocation(1.0)
-        payment_manager = DefaultPaymentManager(golem, allocation)
+        payment_handler = DefaultPaymentHandler(golem, allocation)
         demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
         # `set_no_more_children` has to be called so `initial_proposals` will eventually stop
@@ -111,8 +111,8 @@ async def main() -> None:
             print(f"{[(s, scores[s]) for s in scores if scores[s] is not None]}")
 
         print("TASK DONE")
-        await payment_manager.terminate_agreements()
-        await payment_manager.wait_for_invoices()
+        await payment_handler.terminate_agreements()
+        await payment_handler.wait_for_invoices()
 
 
 if __name__ == "__main__":
