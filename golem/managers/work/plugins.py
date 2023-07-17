@@ -43,7 +43,8 @@ def retry(tries: int):
                 errors.append(work_result.exception)
 
                 logger.info(
-                    f"Got an exception {work_result.exception} on {count} attempt {tries-count} attempts left"
+                    f"Got an exception {work_result.exception} on {count} attempt {tries-count}"
+                    "attempts left"
                 )
 
             work_result.extras["retry"] = {

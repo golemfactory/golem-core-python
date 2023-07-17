@@ -15,7 +15,6 @@ from golem.resources import (
     Script,
 )
 from golem.resources.activity import commands
-from golem.resources.proposal.proposal import Proposal
 
 logger = logging.getLogger(__name__)
 

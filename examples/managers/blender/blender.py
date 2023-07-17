@@ -58,7 +58,7 @@ async def run_on_golem(
     )
     work_manager = AsynchronousWorkManager(golem, activity_manager.do_work, plugins=task_plugins)
 
-    async with golem, payment_manager, demand_manager, negotiation_manager, agreement_manager, activity_manager:
+    async with golem, payment_manager, demand_manager, negotiation_manager, agreement_manager, activity_manager:  # noqa: E501 line too long
         results: List[WorkResult] = await work_manager.do_work_list(task_list)
     return results
 

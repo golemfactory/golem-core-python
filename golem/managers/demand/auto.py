@@ -4,11 +4,9 @@ from typing import Awaitable, Callable
 from golem.managers.base import DemandManager
 from golem.managers.mixins import BackgroundLoopMixin, WeightProposalScoringPluginsMixin
 from golem.node import GolemNode
-from golem.node.node import GolemNode
 from golem.payload import Payload
 from golem.resources import Allocation, Proposal
 from golem.resources.demand.demand_builder import DemandBuilder
-from golem.resources.proposal.proposal import Proposal
 from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)

@@ -34,7 +34,8 @@ class LinearAverageCostPricing(PricingCallable):
 
         if not (isinstance(coeffs, (list, tuple)) and len(coeffs) == 3):
             logging.debug(
-                f"Proposal `{proposal_data.proposal_id}` linear pricing coeffs must be a 3 element sequence, ignoring"
+                f"Proposal `{proposal_data.proposal_id}` linear pricing coeffs must be a 3 element"
+                "sequence, ignoring"
             )
 
             return None

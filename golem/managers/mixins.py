@@ -9,7 +9,6 @@ from golem.payload import Properties
 from golem.payload.parsers.base import PayloadSyntaxParser
 from golem.payload.parsers.textx.parser import TextXPayloadSyntaxParser
 from golem.resources import Proposal, ProposalData
-from golem.resources.proposal.proposal import Proposal
 from golem.utils.asyncio import create_task_with_logging
 from golem.utils.logging import trace_span
 

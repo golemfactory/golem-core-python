@@ -87,7 +87,7 @@ async def main():
     )
     work_manager = SequentialWorkManager(golem, activity_manager.do_work)
     # TODO use different managers so it allows to finish work func without destroying activity
-    async with golem, network_manager, payment_manager, demand_manager, negotiation_manager, agreement_manager:
+    async with golem, network_manager, payment_manager, demand_manager, negotiation_manager, agreement_manager:  # noqa: E501 line too long
         result: WorkResult = await work_manager.do_work(
             work(golem._api_config.app_key, network_manager.get_provider_uri)
         )
