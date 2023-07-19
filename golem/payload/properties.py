@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, Mapping
+from typing import Any, Dict
 
 from golem.payload.mixins import PropsConsSerializerMixin
 
@@ -18,7 +18,7 @@ class Properties(PropsConsSerializerMixin, dict):
 
         super().__init__(mapping_deep_copy)
 
-    def serialize(self) -> Mapping[str, Any]:
+    def serialize(self) -> Dict[str, Any]:
         """Serialize complex objects into format handled by Market API properties specification."""
         return {
             key: self._serialize_property(value) for key, value in self.items() if value is not None

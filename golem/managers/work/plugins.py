@@ -18,7 +18,7 @@ def work_plugin(plugin: WorkManagerPlugin):
         if not hasattr(work, WORK_PLUGIN_FIELD_NAME):
             work._work_plugins = []
 
-        work._work_plugins.append(plugin)
+        work._work_plugins.append(plugin)  # type: ignore [union-attr]
 
         return work
 

@@ -42,7 +42,7 @@ class ScoredAheadOfTimeAgreementManager(
                 # TODO: Support removing callback on resource close
                 await self._event_bus.on_once(
                     AgreementReleased,
-                    self._terminate_agreement_if_released,
+                    self._terminate_agreement,
                     lambda event: event.resource.id == agreement.id,
                 )
                 return agreement

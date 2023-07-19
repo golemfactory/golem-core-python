@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 
 from golem.managers.base import PaymentManager
 from golem.node import PAYMENT_DRIVER, PAYMENT_NETWORK, GolemNode
@@ -38,7 +38,7 @@ class PayAllPaymentManager(PaymentManager):
         self._closed_agreements_count = 0
         self._payed_invoices_count = 0
 
-        self._event_handlers = []
+        self._event_handlers: List = []
 
     @trace_span()
     async def start(self):
@@ -74,7 +74,8 @@ class PayAllPaymentManager(PaymentManager):
         if self._allocation is None:
             await self._create_allocation()
 
-        return self._allocation
+        # TODO fix type
+        return self._allocation  # type: ignore[return-value]
 
     @trace_span()
     async def wait_for_invoices(self):

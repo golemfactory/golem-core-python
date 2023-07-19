@@ -10,7 +10,7 @@ from golem.payload.parsers.base import PayloadSyntaxParser
 from golem.payload.properties import Properties
 from golem.resources.allocation.events import NewAllocation
 from golem.resources.allocation.exceptions import NoMatchingAccount
-from golem.resources.base import _NULL, Resource, TModel, api_call_wrapper
+from golem.resources.base import _NULL, Resource, api_call_wrapper
 from golem.resources.events import ResourceClosed
 
 if TYPE_CHECKING:
@@ -23,7 +23,7 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
     Created with one of the :class:`Allocation`-returning methods of the :any:`GolemNode`.
     """
 
-    def __init__(self, node: "GolemNode", id_: str, data: Optional[TModel] = None):
+    def __init__(self, node: "GolemNode", id_: str, data: Optional[models.Allocation] = None):
         super().__init__(node, id_, data)
         asyncio.create_task(node.event_bus.emit(NewAllocation(self)))
 

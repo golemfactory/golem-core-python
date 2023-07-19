@@ -7,7 +7,7 @@ from golem.managers.activity.mixins import ActivityPrepareReleaseMixin
 from golem.managers.base import ActivityManager, Work, WorkContext, WorkResult
 from golem.managers.mixins import BackgroundLoopMixin
 from golem.node import GolemNode
-from golem.resources import Agreement
+from golem.resources import Activity, Agreement
 from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class ActivityPoolManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, Acti
         self._event_bus = golem.event_bus
 
         self._pool_target_size = size
-        self._pool = asyncio.Queue()
+        self._pool: asyncio.Queue[Activity] = asyncio.Queue()
         super().__init__(*args, **kwargs)
 
     async def _background_loop(self):

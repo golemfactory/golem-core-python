@@ -10,7 +10,7 @@ ACTIVITY_ID = sys.argv[1].strip()
 
 
 async def accept_debit_note(payment_event: NewResource) -> None:
-    debit_note: DebitNote = payment_event.resource  # type: ignore
+    debit_note: DebitNote = payment_event.resource
 
     this_activity_id = (await debit_note.get_data()).activity_id
     if this_activity_id == ACTIVITY_ID:

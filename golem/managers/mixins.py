@@ -33,8 +33,9 @@ class BackgroundLoopMixin:
         if not self.is_started():
             raise ManagerException("Already stopped!")
 
-        self._background_loop_task.cancel()
-        self._background_loop_task = None
+        if self._background_loop_task is not None:
+            self._background_loop_task.cancel()
+            self._background_loop_task = None
 
     def is_started(self) -> bool:
         return self._background_loop_task is not None and not self._background_loop_task.done()

@@ -2,9 +2,9 @@ import asyncio
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Awaitable, Callable, DefaultDict, List, Optional, Type
+from typing import Awaitable, Callable, DefaultDict, List, Optional, Tuple, Type
 
-from golem.event_bus.base import Event, EventBus, EventBusError, TCallbackHandler, TEvent
+from golem.event_bus.base import Event, EventBus, EventBusError, TEvent
 from golem.utils.asyncio import create_task_with_logging
 
 logger = logging.getLogger(__name__)
@@ -17,10 +17,13 @@ class _CallbackInfo:
     once: bool
 
 
-class InMemoryEventBus(EventBus):
+_CallbackHandler = Tuple[Type[TEvent], _CallbackInfo]
+
+
+class InMemoryEventBus(EventBus[_CallbackHandler]):
     def __init__(self):
         self._callbacks: DefaultDict[Type[TEvent], List[_CallbackInfo]] = defaultdict(list)
-        self._event_queue = asyncio.Queue()
+        self._event_queue: asyncio.Queue[TEvent] = asyncio.Queue()
         self._process_event_queue_loop_task: Optional[asyncio.Task] = None
 
     async def start(self):
@@ -47,8 +50,9 @@ class InMemoryEventBus(EventBus):
 
         await self._event_queue.join()
 
-        self._process_event_queue_loop_task.cancel()
-        self._process_event_queue_loop_task = None
+        if self._process_event_queue_loop_task is not None:
+            self._process_event_queue_loop_task.cancel()
+            self._process_event_queue_loop_task = None
 
         logger.debug("Stopping event bus done")
 
@@ -63,7 +67,7 @@ class InMemoryEventBus(EventBus):
         event_type: Type[TEvent],
         callback: Callable[[TEvent], Awaitable[None]],
         filter_func: Optional[Callable[[TEvent], bool]] = None,
-    ) -> TCallbackHandler:
+    ) -> _CallbackHandler:
         logger.debug(
             f"Adding callback handler for `{event_type}` with callback `{callback}`"
             f" and filter `{filter_func}`..."
@@ -88,7 +92,7 @@ class InMemoryEventBus(EventBus):
         event_type: Type[TEvent],
         callback: Callable[[TEvent], Awaitable[None]],
         filter_func: Optional[Callable[[TEvent], bool]] = None,
-    ) -> TCallbackHandler:
+    ) -> _CallbackHandler:
         logger.debug(
             f"Adding one-time callback handler for `{event_type}` with callback `{callback}`"
             f" and filter `{filter_func}`..."
@@ -108,7 +112,7 @@ class InMemoryEventBus(EventBus):
 
         return callback_handler
 
-    async def off(self, callback_handler: TCallbackHandler) -> None:
+    async def off(self, callback_handler: _CallbackHandler) -> None:
         logger.debug(f"Removing callback handler `{id(callback_handler)}`...")
 
         event_type, callback_info = callback_handler

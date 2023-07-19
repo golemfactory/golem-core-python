@@ -1,14 +1,14 @@
 import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, AsyncIterator, Literal, Optional, Type, Union
+from typing import TYPE_CHECKING, AsyncIterator, Literal, Optional, Union
 
 from ya_market import RequestorApi
 from ya_market import models as models
 
 from golem.payload import Constraints, Properties
 from golem.resources.agreement import Agreement
-from golem.resources.base import Resource, TModel, api_call_wrapper
+from golem.resources.base import Resource, api_call_wrapper
 from golem.resources.proposal.events import NewProposal
 
 if TYPE_CHECKING:
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from golem.resources.demand import Demand
 
 
-ProposalId: Type[str] = str
+ProposalId = str
 
 # TODO: Use Enum
 ProposalState = Literal["Initial", "Draft", "Rejected", "Accepted", "Expired"]
@@ -26,8 +26,8 @@ ProposalState = Literal["Initial", "Draft", "Rejected", "Accepted", "Expired"]
 class ProposalData:
     properties: Properties
     constraints: Constraints
-    proposal_id: ProposalId
-    issuer_id: str
+    proposal_id: Optional[ProposalId]
+    issuer_id: Optional[str]
     state: ProposalState
     timestamp: datetime
     prev_proposal_id: Optional[str]
@@ -60,7 +60,7 @@ class Proposal(
 
     _demand: Optional["Demand"] = None
 
-    def __init__(self, node: "GolemNode", id_: str, data: Optional[TModel] = None):
+    def __init__(self, node: "GolemNode", id_: str, data: Optional[models.Proposal] = None):
         super().__init__(node, id_, data)
         asyncio.create_task(node.event_bus.emit(NewProposal(self)))
 

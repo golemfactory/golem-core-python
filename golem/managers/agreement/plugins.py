@@ -1,11 +1,11 @@
 from random import random
-from typing import Callable, Optional, Sequence, Tuple, Type, Union
+from typing import Callable, Optional, Sequence, Tuple, Union
 
 from golem.managers.base import ManagerPluginException, ManagerScorePlugin, ProposalPluginResult
 from golem.payload.constraints import PropertyName
 from golem.resources import ProposalData
 
-PropertyValueNumeric: Type[Union[int, float]] = Union[int, float]
+PropertyValueNumeric = Union[int, float]
 BoundaryValues = Tuple[Tuple[float, PropertyValueNumeric], Tuple[float, PropertyValueNumeric]]
 
 

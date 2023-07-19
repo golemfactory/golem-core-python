@@ -7,7 +7,7 @@ from ya_market import RequestorApi
 from ya_market import models as models
 
 from golem.payload import Constraints, Properties
-from golem.resources.base import _NULL, Resource, ResourceNotFound, TModel, api_call_wrapper
+from golem.resources.base import _NULL, Resource, ResourceNotFound, api_call_wrapper
 from golem.resources.demand.events import DemandClosed, NewDemand
 from golem.resources.proposal import Proposal
 from golem.utils.low import YagnaEventCollector
@@ -20,8 +20,8 @@ if TYPE_CHECKING:
 class DemandData:
     properties: Properties
     constraints: Constraints
-    demand_id: str
-    requestor_id: str
+    demand_id: Optional[str]
+    requestor_id: Optional[str]
     timestamp: datetime
 
 
@@ -31,7 +31,7 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], Yagn
     Created with one of the :class:`Demand`-returning methods of the :any:`GolemNode`.
     """
 
-    def __init__(self, node: "GolemNode", id_: str, data: Optional[TModel] = None):
+    def __init__(self, node: "GolemNode", id_: str, data: Optional[models.Demand] = None):
         super().__init__(node, id_, data)
         asyncio.create_task(node.event_bus.emit(NewDemand(self)))
 

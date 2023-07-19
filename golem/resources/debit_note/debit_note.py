@@ -5,7 +5,7 @@ from _decimal import Decimal
 from ya_payment import RequestorApi, models
 
 from golem.resources.allocation import Allocation
-from golem.resources.base import _NULL, Resource, TModel, api_call_wrapper
+from golem.resources.base import _NULL, Resource, api_call_wrapper
 from golem.resources.debit_note.events import NewDebitNote
 
 if TYPE_CHECKING:
@@ -19,7 +19,7 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
     Usually created by a :any:`GolemNode` initialized with `collect_payment_events = True`.
     """
 
-    def __init__(self, node: "GolemNode", id_: str, data: Optional[TModel] = None):
+    def __init__(self, node: "GolemNode", id_: str, data: Optional[models.DebitNote] = None):
         super().__init__(node, id_, data)
         asyncio.create_task(node.event_bus.emit(NewDebitNote(self)))
 

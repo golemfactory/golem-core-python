@@ -8,7 +8,7 @@ from ya_market.exceptions import ApiException
 
 from golem.resources.activity import Activity
 from golem.resources.agreement.events import AgreementClosed, NewAgreement
-from golem.resources.base import _NULL, Resource, TModel, api_call_wrapper
+from golem.resources.base import _NULL, Resource, api_call_wrapper
 from golem.resources.invoice import Invoice
 
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
         await agreement.terminate()
     """
 
-    def __init__(self, node: "GolemNode", id_: str, data: Optional[TModel] = None):
+    def __init__(self, node: "GolemNode", id_: str, data: Optional[models.Agreement] = None):
         super().__init__(node, id_, data)
         asyncio.create_task(node.event_bus.emit(NewAgreement(self)))
 

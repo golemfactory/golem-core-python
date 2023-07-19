@@ -72,7 +72,7 @@ async def count_batches(event: NewResource) -> None:
 
 
 async def gather_debit_note_log(event: NewResource) -> None:
-    debit_note: DebitNote = event.resource  # type: ignore
+    debit_note: DebitNote = event.resource
     activity_id = (await debit_note.get_data()).activity_id
     if not any(activity.id == activity_id for activity in activity_data):
         #   This is a debit note for an unknown activity (e.g. from a previous run)
@@ -86,7 +86,7 @@ async def gather_debit_note_log(event: NewResource) -> None:
 
 
 async def note_activity_destroyed(event: ResourceClosed) -> None:
-    activity: Activity = event.resource  # type: ignore
+    activity: Activity = event.resource
     if activity not in activity_data:
         #   Destroyed activity from a previous run
         return
@@ -97,7 +97,7 @@ async def note_activity_destroyed(event: ResourceClosed) -> None:
 
 
 async def update_new_activity_status(event: NewResource) -> None:
-    activity: Activity = event.resource  # type: ignore
+    activity: Activity = event.resource
     activity_data[activity]["status"] = "new"
 
     if not activity.has_parent:

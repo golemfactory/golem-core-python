@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Awaitable, Callable, Optional, Type, TypeVar
+from typing import Awaitable, Callable, Generic, Optional, Type, TypeVar
 
 from golem.exceptions import GolemException
 
@@ -16,7 +16,7 @@ class EventBusError(GolemException):
     pass
 
 
-class EventBus(ABC):
+class EventBus(ABC, Generic[TCallbackHandler]):
     @abstractmethod
     async def start(self) -> None:
         ...

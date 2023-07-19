@@ -52,5 +52,6 @@ class SingleNetworkManager(NetworkManager):
     async def _add_provider_to_network(self, event: NewAgreement):
         await event.resource.get_data()
         provider_id = event.resource.data.offer.provider_id
+        assert provider_id is not None  # TODO handle this case better
         logger.info(f"Adding provider {provider_id} to network")
         self._nodes[provider_id] = await self._network.create_node(provider_id)

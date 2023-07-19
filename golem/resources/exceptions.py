@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from golem.exceptions import GolemException
 
 if TYPE_CHECKING:
-    from golem.resources.base import TResource
+    from golem.resources.base import Resource
 
 
 class ResourceException(GolemException):
@@ -26,13 +26,13 @@ class ResourceNotFound(ResourceException):
 
     """
 
-    def __init__(self, resource: "TResource"):
+    def __init__(self, resource: Resource):
         self._resource = resource
 
         msg = f"{resource} doesn't exist"
         super().__init__(msg)
 
     @property
-    def resource(self) -> "TResource":
+    def resource(self) -> Resource:
         """Resource that caused the exception."""
         return self._resource

@@ -52,4 +52,5 @@ class ActivityPrepareReleaseMixin:
             )
 
         event = AgreementReleased(activity.parent)
-        await self._event_bus.emit(event)
+        # TODO how to give access to event bus without coupling with GolemNode?
+        await self._event_bus.emit(event)  # type: ignore[attr-defined]

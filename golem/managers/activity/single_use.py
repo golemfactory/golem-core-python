@@ -1,6 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
-from typing import Awaitable, Callable
+from typing import AsyncGenerator, Awaitable, Callable
 
 from golem.managers.activity.mixins import ActivityPrepareReleaseMixin
 from golem.managers.base import ActivityManager, Work, WorkContext, WorkResult
@@ -21,7 +21,7 @@ class SingleUseActivityManager(ActivityPrepareReleaseMixin, ActivityManager):
         super().__init__(*args, **kwargs)
 
     @asynccontextmanager
-    async def _prepare_single_use_activity(self) -> Activity:
+    async def _prepare_single_use_activity(self) -> AsyncGenerator[Activity, None]:
         while True:
             agreement = await self._get_agreement()
             try:
