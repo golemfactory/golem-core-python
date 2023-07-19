@@ -26,13 +26,13 @@ class ResourceNotFound(ResourceException):
 
     """
 
-    def __init__(self, resource: Resource):
+    def __init__(self, resource: "Resource"):
         self._resource = resource
 
         msg = f"{resource} doesn't exist"
         super().__init__(msg)
 
     @property
-    def resource(self) -> Resource:
+    def resource(self) -> "Resource":
         """Resource that caused the exception."""
         return self._resource

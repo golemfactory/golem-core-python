@@ -32,12 +32,12 @@ def test_linear_score_plugin(kwargs, property_value, expected, mocker):
 
     result = scorer([proposal_data])
 
-    assert result[proposal_id] == expected
+    assert result[0] == expected
 
 
 @pytest.mark.parametrize("expected_value", (0.876, 0.0, 0.2, 0.5, 1))
 def test_random_score_plugin(mocker, expected_value):
-    mocker.patch("golem.managers.proposal.plugins.random", mocker.Mock(return_value=expected_value))
+    mocker.patch("golem.managers.agreement.plugins.random", mocker.Mock(return_value=expected_value))
 
     proposal_id = "foo"
 
@@ -46,4 +46,4 @@ def test_random_score_plugin(mocker, expected_value):
 
     result = scorer([proposal_data])
 
-    assert result[proposal_id] == expected_value
+    assert result[0] == expected_value
