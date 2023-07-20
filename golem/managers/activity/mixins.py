@@ -1,6 +1,7 @@
 import logging
 from typing import Awaitable, Callable, Optional
 
+from golem.event_bus.base import EventBus
 from golem.managers.activity.defaults import default_on_activity_start, default_on_activity_stop
 from golem.managers.agreement.events import AgreementReleased
 from golem.managers.base import WorkContext
@@ -11,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 class ActivityPrepareReleaseMixin:
+    _event_bus: EventBus
+
     def __init__(
         self,
         on_activity_start: Optional[
@@ -52,5 +55,4 @@ class ActivityPrepareReleaseMixin:
             )
 
         event = AgreementReleased(activity.parent)
-        # TODO how to give access to event bus without coupling with GolemNode?
-        await self._event_bus.emit(event)  # type: ignore[attr-defined]
+        await self._event_bus.emit(event)
