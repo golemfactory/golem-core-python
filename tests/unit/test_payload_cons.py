@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
 
 import pytest
@@ -16,13 +16,13 @@ def test_constraints_serialize():
             Constraint("foo", "=", "bar"),
             Constraint("int_field", "=", 123),
             Constraint("float_field", "=", 1.5),
-            Constraint("datetime_field", "=", datetime(2023, 1, 2, tzinfo=timezone.utc)),
+            Constraint("datetime_field", "=", datetime.fromtimestamp(1672617600)),
             Constraint("enum_field", "=", ExampleEnum.FOO),
             Constraint(
                 "list_field",
                 "=",
                 [
-                    datetime(2023, 1, 2, tzinfo=timezone.utc),
+                    datetime.fromtimestamp(1672617600),
                     ExampleEnum.FOO,
                 ],
             ),
