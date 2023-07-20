@@ -17,7 +17,7 @@ class PropsConsSerializerMixin:
             return type(value)(cls._serialize_value(v) for v in value)
 
         if isinstance(value, datetime.datetime):
-            return int(value.timestamp() * 1000)
+            return int(value.replace(tzinfo=datetime.timezone.utc).timestamp() * 1000)
 
         if isinstance(value, enum.Enum):
             return value.value

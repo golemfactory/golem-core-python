@@ -16,13 +16,13 @@ def test_constraints_serialize():
             Constraint("foo", "=", "bar"),
             Constraint("int_field", "=", 123),
             Constraint("float_field", "=", 1.5),
-            Constraint("datetime_field", "=", datetime.fromtimestamp(1672617600)),
+            Constraint("datetime_field", "=", datetime.utcfromtimestamp(1672617600)),
             Constraint("enum_field", "=", ExampleEnum.FOO),
             Constraint(
                 "list_field",
                 "=",
                 [
-                    datetime.fromtimestamp(1672617600),
+                    datetime.utcfromtimestamp(1672617600),
                     ExampleEnum.FOO,
                 ],
             ),

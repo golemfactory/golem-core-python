@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from golem.payload import Properties
@@ -37,10 +37,10 @@ def test_property_serialize():
             "foo": "bar",
             "int_field": 123,
             "float_field": 1.5,
-            "datetime_field": datetime(2023, 1, 2),
+            "datetime_field": datetime(2023, 1, 2, tzinfo=timezone.utc),
             "enum_field": ExampleEnum.FOO,
             "list_field": [
-                datetime(2023, 1, 2),
+                datetime(2023, 1, 2, tzinfo=timezone.utc),
                 ExampleEnum.FOO,
             ],
             "nulled_field": None,
@@ -53,10 +53,10 @@ def test_property_serialize():
         "foo": "bar",
         "int_field": 123,
         "float_field": 1.5,
-        "datetime_field": 1672614000000,
+        "datetime_field": 1672617600000,
         "enum_field": "BAR",
         "list_field": [
-            1672614000000,
+            1672617600000,
             "BAR",
         ],
     }
