@@ -1,5 +1,5 @@
 from random import random
-from typing import Callable, Optional, Sequence, Tuple, Union
+from typing import Callable, List, Optional, Sequence, Tuple, Union
 
 from golem.managers.base import ManagerPluginException, ManagerScorePlugin, ProposalPluginResult
 from golem.payload.constraints import PropertyName
@@ -99,8 +99,8 @@ class MapScore(ManagerScorePlugin):
     def __init__(
         self,
         callback: Callable[[ProposalData], Optional[float]],
-        normalize=False,
-        normalize_flip=False,
+        normalize: bool = False,
+        normalize_flip: bool = False,
     ) -> None:
         self._callback = callback
         self._normalize = normalize
@@ -109,17 +109,31 @@ class MapScore(ManagerScorePlugin):
     def __call__(self, proposals_data: Sequence[ProposalData]) -> ProposalPluginResult:
         result = [self._callback(proposal_data) for proposal_data in proposals_data]
 
-        if self._normalize and result:
-            result_max = max(result)
-            result_min = min(result)
-            result_div = result_max - result_min
+        if not self._normalize or result is None:
+            return result
 
-            if result_div == 0:
-                return result
+        filtered = filter(None, result)
+        result_max = max(filtered)
+        result_min = min(filtered)
+        result_div = result_max - result_min
 
-            result = [(v - result_min) / result_div for v in result]
+        if result_div == 0:
+            return result
 
-            if self._normalize_flip:
-                result = [1 - v for v in result]
+        normalized_result: List[Optional[float]] = []
+        for v in result:
+            if v is not None:
+                normalized_result.append((v - result_min) / result_div)
+            else:
+                normalized_result.append(v)
 
-        return result
+        if not self._normalize_flip:
+            return normalized_result
+
+        flipped_result: List[Optional[float]] = []
+        for v in normalized_result:
+            if v is not None:
+                flipped_result.append(1 - v)
+            else:
+                flipped_result.append(v)
+        return flipped_result

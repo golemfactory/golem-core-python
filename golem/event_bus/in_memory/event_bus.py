@@ -22,8 +22,8 @@ _CallbackHandler = Tuple[Type[TEvent], _CallbackInfo]
 
 class InMemoryEventBus(EventBus[_CallbackHandler]):
     def __init__(self):
-        self._callbacks: DefaultDict[Type[TEvent], List[_CallbackInfo]] = defaultdict(list)
-        self._event_queue: asyncio.Queue[TEvent] = asyncio.Queue()
+        self._callbacks: DefaultDict[Type[Event], List[_CallbackInfo]] = defaultdict(list)
+        self._event_queue: asyncio.Queue[Event] = asyncio.Queue()
         self._process_event_queue_loop_task: Optional[asyncio.Task] = None
 
     async def start(self):

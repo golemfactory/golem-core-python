@@ -104,7 +104,7 @@ class WeightProposalScoringPluginsMixin(ManagerPluginsMixin[ManagerPluginWithOpt
     async def _run_plugins(
         self, proposals_data: Sequence[ProposalData]
     ) -> Sequence[Tuple[float, Sequence[float]]]:
-        proposal_scores = []
+        proposal_scores: List[Tuple[float, Sequence[float]]] = []
 
         for plugin in self._plugins:
             if isinstance(plugin, (list, tuple)):
@@ -117,7 +117,7 @@ class WeightProposalScoringPluginsMixin(ManagerPluginsMixin[ManagerPluginWithOpt
             if inspect.isawaitable(plugin_scores):
                 plugin_scores = await plugin_scores
 
-            proposal_scores.append((weight, plugin_scores))
+            proposal_scores.append((weight, plugin_scores))  # type: ignore[arg-type]
 
         return proposal_scores
 

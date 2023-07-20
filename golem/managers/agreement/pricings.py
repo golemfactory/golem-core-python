@@ -2,11 +2,10 @@ import logging
 from datetime import timedelta
 from typing import Optional, Tuple
 
-from golem.managers.base import PricingCallable
 from golem.resources import ProposalData
 
 
-class LinearAverageCostPricing(PricingCallable):
+class LinearAverageCostPricing:
     def __init__(self, average_cpu_load: float, average_duration: timedelta) -> None:
         self._average_cpu_load = average_cpu_load
         self._average_duration = average_duration
@@ -40,7 +39,7 @@ class LinearAverageCostPricing(PricingCallable):
 
             return None
 
-        return coeffs
+        return tuple(float(c) for c in coeffs)  # type: ignore[return-value]
 
     def _calculate_cost(
         self, price_duration_sec: float, price_cpu_sec: float, price_initial: float

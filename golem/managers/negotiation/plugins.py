@@ -73,5 +73,5 @@ class RejectIfCostsExceeds(NegotiationManagerPlugin):
         if cost is None and self.reject_on_unpricable:
             raise RejectProposal("Can't estimate costs!")
 
-        if self._cost <= cost:
+        if cost is not None and self._cost <= cost:
             raise RejectProposal(f"Exceeds estimated costs of `{self._cost}`!")
