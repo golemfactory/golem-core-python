@@ -17,6 +17,7 @@ class PropsConsSerializerMixin:
             return type(value)(cls._serialize_value(v) for v in value)
 
         if isinstance(value, datetime.datetime):
+            print(f"\nSerializing {repr(value)} into {value.timestamp()}\n")
             return int(value.timestamp() * 1000)
 
         if isinstance(value, enum.Enum):
