@@ -112,7 +112,10 @@ class MapScore(ManagerScorePlugin):
         if not self._normalize or result is None:
             return result
 
-        filtered = filter(None, result)
+        filtered = list(filter(None, result))
+        if not filtered:
+            return result
+
         result_max = max(filtered)
         result_min = min(filtered)
         result_div = result_max - result_min
