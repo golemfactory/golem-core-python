@@ -17,6 +17,14 @@ class Buffer(ABC, Generic[TItem]):
     async def get_item(self) -> TItem:
         ...
 
+    @abstractmethod
+    async def start(self, *, fill=False) -> None:
+        ...
+
+    @abstractmethod
+    async def stop(self) -> None:
+        ...
+
 
 async def default_update_callback(
     items: MutableSequence[TItem], items_to_process: Sequence[TItem]
@@ -24,7 +32,7 @@ async def default_update_callback(
     items.extend(items_to_process)
 
 
-class SequenceFilledBuffer(Buffer[TItem], Generic[TItem]):
+class ConcurrentlyFilledBuffer(Buffer[TItem], Generic[TItem]):
     def __init__(
         self,
         fill_callback: Callable[[], Awaitable[TItem]],
@@ -68,7 +76,22 @@ class SequenceFilledBuffer(Buffer[TItem], Generic[TItem]):
 
         if self._background_loop_task is not None:
             self._background_loop_task.cancel()
+
+            try:
+                await self._background_loop_task
+            except asyncio.CancelledError:
+                pass
+
             self._background_loop_task = None
+
+        tasks_to_cancel = self._items_requested_tasks[:]
+        for task in tasks_to_cancel:
+            task.cancel()
+
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
 
     def is_started(self) -> bool:
         return self._background_loop_task is not None and not self._background_loop_task.done()
@@ -111,7 +134,7 @@ class SequenceFilledBuffer(Buffer[TItem], Generic[TItem]):
 
         self._items_requests_pending_event.set()
 
-        def on_completetion(task):
+        def on_completion(task):
             self._items_requested_tasks.remove(task)
 
             if not self._items_requested_tasks:
@@ -121,17 +144,13 @@ class SequenceFilledBuffer(Buffer[TItem], Generic[TItem]):
 
         for _ in range(items_to_request):
             task = create_task_with_logging(self._fill())
-            task.add_done_callback(on_completetion)
+            task.add_done_callback(on_completion)
             self._items_requested_tasks.append(task)
 
         logger.debug("Requested %d items", items_to_request)
 
     async def _background_loop(self) -> None:
         while True:
-            # check if any items are ready to process
-            # check if all requested items are ready to process or timeout axceeded
-            # run update_callback
-
             logger.debug("Waiting for any item requests...")
             await self._items_requests_pending_event.wait()
 

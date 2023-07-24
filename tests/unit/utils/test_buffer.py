@@ -1,10 +1,9 @@
 import asyncio
-import logging
 from datetime import timedelta
 
 import pytest
 
-from golem.utils.buffer.base import SequenceFilledBuffer
+from golem.utils.buffer import ConcurrentlyFilledBuffer
 
 
 @pytest.fixture
@@ -14,7 +13,7 @@ def fill_callback(mocker):
 
 @pytest.fixture
 def buffer_class():
-    return SequenceFilledBuffer
+    return ConcurrentlyFilledBuffer
 
 
 @pytest.fixture
@@ -133,13 +132,12 @@ async def test_buffer_get_item_will_trigger_fill_on_below_min_size(create_buffer
     await buffer.stop()
 
 
-async def _test_buffer_fill_can_add_requests_while_other_requests_are_running(
+async def test_buffer_fill_can_add_requests_while_other_requests_are_running(
     buffer_class, mocker, caplog
 ):
-    caplog.set_level(logging.DEBUG, logger="golem.utils.buffer.base")
     queue: asyncio.Queue[int] = asyncio.Queue()
 
-    for i in range(6):
+    for i in range(3):
         await queue.put(i)
 
     async def fill_callback():
@@ -162,16 +160,31 @@ async def _test_buffer_fill_can_add_requests_while_other_requests_are_running(
 
     assert mocked_fill_callback.await_count == 6
 
-    done, _ = await asyncio.wait(
-        [asyncio.create_task(buffer.get_item()) for _ in range(3)], timeout=0.1
-    )
+    item = await asyncio.wait_for(buffer.get_item(), 0.05)
 
-    assert [d.result() for d in done] == list(range(3))
+    assert item == 0
 
-    assert mocked_fill_callback.await_count == 6
-    assert queue.qsize() == 0
-
-    with pytest.raises(asyncio.TimeoutError):
-        await asyncio.wait_for(buffer.get_item(), 0.1)
+    assert mocked_fill_callback.await_count == 7
 
     await buffer.stop()
+
+    assert len(asyncio.all_tasks()) == 1, "Other async tasks are running!"
+
+
+# TODO: Expiration needs to be implemented
+async def _test_buffer_can_expire_elements(create_buffer, fill_callback):
+    buffer = create_buffer(min_size=3, max_size=6, remove_after=timedelta(seconds=0.5))
+
+    await buffer.start(fill=True)
+
+    await asyncio.sleep(0.1)
+
+    assert fill_callback.await_count == 6
+
+    await asyncio.sleep(0.5)
+
+    assert fill_callback.await_count == 12
+
+    await buffer.stop()
+
+    assert len(asyncio.all_tasks()) == 1, "Other async tasks are running!"

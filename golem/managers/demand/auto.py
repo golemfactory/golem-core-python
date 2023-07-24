@@ -27,7 +27,7 @@ class AutoDemandManager(BackgroundLoopMixin, WeightProposalScoringPluginsMixin, 
 
         super().__init__(*args, **kwargs)
 
-    @trace_span()
+    @trace_span(show_results=True)
     async def get_initial_proposal(self) -> Proposal:
         return await self.get_scored_proposal()
 
