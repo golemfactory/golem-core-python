@@ -70,7 +70,7 @@ async def test_demand(golem):
         async for proposal in demand.initial_proposals():
             print("test_demand: got proposal")
             break
-        
+
         print("test_demand: getting proposals done")
 
         await demand.get_data()

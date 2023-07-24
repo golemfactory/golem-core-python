@@ -149,7 +149,7 @@ target-version = ['py38']
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-addopts = "--cov golem --cov-report html --cov-report term-missing -sv"
+addopts = "--cov golem --cov-report html --cov-report term-missing --no-cov-on-fail -sv"
 testspaths = [
     "tests",
 ]
