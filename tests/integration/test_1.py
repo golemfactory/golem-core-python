@@ -65,8 +65,13 @@ async def test_demand(golem):
         allocation = await golem.create_allocation(1)
         demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
+        print("test_demand: getting proposals")
+
         async for proposal in demand.initial_proposals():
+            print("test_demand: got proposal")
             break
+        
+        print("test_demand: getting proposals done")
 
         await demand.get_data()
 
