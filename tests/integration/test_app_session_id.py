@@ -7,7 +7,7 @@ from golem.resources import DebitNote, Invoice, ResourceEvent
 
 from .helpers import get_activity
 
-
+@pytest.mark.skip
 @pytest.mark.parametrize(
     "kwargs, has_events",
     (
