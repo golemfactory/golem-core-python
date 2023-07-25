@@ -62,23 +62,23 @@ class ActivityPoolManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, Acti
     @trace_span()
     async def _release_activity_and_pop_from_pool(self):
         activity = await self._pool.get()
+        self._pool.task_done()
         await self._release_activity(activity)
-        logger.info(f"Activity `{activity}` removed from the pool")
 
     @trace_span()
     async def _prepare_activity_and_put_in_pool(self):
         agreement = await self._get_agreement()
         activity = await self._prepare_activity(agreement)
         await self._pool.put(activity)
-        logger.info(f"Activity `{activity}` added to the pool")
 
     @asynccontextmanager
     async def _get_activity_from_pool(self):
         activity = await self._pool.get()
-        logger.info(f"Activity `{activity}` taken from the pool")
+        self._pool.task_done()
+        logger.debug(f"Activity `{activity}` taken from the pool")
         yield activity
         self._pool.put_nowait(activity)
-        logger.info(f"Activity `{activity}` back in the pool")
+        logger.debug(f"Activity `{activity}` back in the pool")
 
     @trace_span(show_arguments=True, show_results=True)
     async def do_work(self, work: Work) -> WorkResult:

@@ -29,9 +29,9 @@ class AutoDemandManager(BackgroundLoopMixin, WeightProposalScoringPluginsMixin, 
         self._get_allocation = get_allocation
         self._payload = payload
 
-        self._initial_proposals: asyncio.Queue = asyncio.Queue()
+        self._initial_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
         self._buffer = ConcurrentlyFilledBuffer(
-            fill_callback=self._initial_proposals.get,
+            fill_callback=self._get_initial_proposal,
             min_size=1,
             max_size=1000,
             update_callback=self._update_buffer_callback,
@@ -45,28 +45,42 @@ class AutoDemandManager(BackgroundLoopMixin, WeightProposalScoringPluginsMixin, 
     async def get_initial_proposal(self) -> Proposal:
         return await self._buffer.get_item()
 
+    async def _get_initial_proposal(self) -> Proposal:
+        proposal = await self._initial_proposals.get()
+        self._initial_proposals.task_done()
+        return proposal
+
     @trace_span()
     async def _background_loop(self) -> None:
         await self._buffer.start()
         await self._create_and_subscribe_demand()
         try:
             while True:
-                if datetime.utcfromtimestamp(
-                    self._demands[-1][0].data.properties["golem.srv.comp.expiration"] / 1000
-                ) < datetime.utcnow() + timedelta(minutes=29, seconds=50):
-                    self._stop_consuming_initial_proposals()
-                    await self._create_and_subscribe_demand()
-                await asyncio.sleep(0.5)
+                await self._wait_for_demand_to_expire()
+                self._stop_consuming_initial_proposals()
+                await self._create_and_subscribe_demand()
         finally:
             self._stop_consuming_initial_proposals()
             await self._buffer.stop()
             await self._unsubscribe_demands()
 
+    async def _wait_for_demand_to_expire(self):
+        remaining: timedelta = (
+            datetime.utcfromtimestamp(
+                self._demands[-1][0].data.properties["golem.srv.comp.expiration"] / 1000
+            )
+            - datetime.utcnow()
+        )
+        await asyncio.sleep(remaining.seconds)
+
     async def _update_buffer_callback(
         self, items: MutableSequence[Proposal], items_to_process: Sequence[Proposal]
     ) -> None:
-        items.extend(items_to_process)
-        items = [proposal for _, proposal in await self.do_scoring(items)]
+        scored_proposals = [
+            proposal for _, proposal in await self.do_scoring(items + items_to_process)
+        ]
+        items.clear()
+        items.extend(scored_proposals)
 
     @trace_span()
     async def _create_and_subscribe_demand(self):
