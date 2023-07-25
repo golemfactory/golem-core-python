@@ -8,6 +8,7 @@ from golem.managers.agreement import (
 )
 from golem.managers.base import RejectProposal, WorkContext, WorkResult
 from golem.managers.demand import AutoDemandManager
+from golem.managers.mixins import BackgroundLoopMixin
 from golem.managers.negotiation import (
     AddChosenPaymentPlatform,
     BlacklistProviderId,
@@ -25,29 +26,27 @@ from golem.managers.work import (
 from golem.managers.work.asynchronous import AsynchronousWorkManager
 
 __all__ = (
-    "SingleUseActivityManager",
     "ActivityPoolManager",
-    "default_on_activity_start",
-    "default_on_activity_stop",
-    "AgreementReleased",
-    "ScoredAheadOfTimeAgreementManager",
+    "SingleUseActivityManager",
+    "LinearAverageCostPricing",
     "MapScore",
     "PropertyValueLerpScore",
     "RandomScore",
-    "LinearAverageCostPricing",
+    "ScoredAheadOfTimeAgreementManager",
     "RejectProposal",
     "WorkContext",
     "WorkResult",
     "AutoDemandManager",
-    "PayAllPaymentManager",
-    "SequentialNegotiationManager",
+    "BackgroundLoopMixin",
     "AddChosenPaymentPlatform",
     "BlacklistProviderId",
     "RejectIfCostsExceeds",
-    "AsynchronousWorkManager",
+    "SequentialNegotiationManager",
+    "SingleNetworkManager",
+    "PayAllPaymentManager",
     "SequentialWorkManager",
-    "work_plugin",
     "redundancy_cancel_others_on_first_done",
     "retry",
-    "SingleNetworkManager",
+    "work_plugin",
+    "AsynchronousWorkManager",
 )
