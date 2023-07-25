@@ -74,7 +74,6 @@ async def test_x():
 @pytest.mark.asyncio
 async def test_demand(golem):
     print("... running:", sys._getframe().f_code.co_name)
-    return
     async with golem:
         allocation = await golem.create_allocation(1)
         demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
