@@ -51,7 +51,7 @@ class ScoredAheadOfTimeAgreementManager(
         while True:
             proposal = await self._get_draft_proposal()
 
-            await self.manage_scoring(proposal)
+            await self.manage_scoring([proposal])
 
     @trace_span(show_arguments=True)
     async def _terminate_agreement(self, event: AgreementReleased) -> None:

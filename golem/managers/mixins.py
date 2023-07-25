@@ -71,12 +71,12 @@ class WeightProposalScoringPluginsMixin(ManagerPluginsMixin[ManagerPluginWithOpt
         super().__init__(*args, **kwargs)
 
     @trace_span(show_arguments=True)
-    async def manage_scoring(self, proposal: Proposal) -> None:
+    async def manage_scoring(self, proposals: List[Proposal]) -> None:
         async with self._scored_proposals_condition:
             all_proposals = list(sp[1] for sp in self._scored_proposals)
-            all_proposals.append(proposal)
+            all_proposals.extend(proposals)
 
-            self._scored_proposals = await self._do_scoring(all_proposals)
+            self._scored_proposals = await self.do_scoring(all_proposals)
 
             self._scored_proposals_condition.notify_all()
 
@@ -91,7 +91,7 @@ class WeightProposalScoringPluginsMixin(ManagerPluginsMixin[ManagerPluginWithOpt
 
         return proposal
 
-    async def _do_scoring(self, proposals: Sequence[Proposal]):
+    async def do_scoring(self, proposals: Sequence[Proposal]) -> List[Tuple[float, Proposal]]:
         proposals_data = await self._get_proposals_data_from_proposals(proposals)
         proposal_scores = await self._run_plugins(proposals_data)
 

@@ -57,7 +57,7 @@ DEFAULT_LOGGING = {
             "level": "INFO",
         },
         "golem.managers.activity": {
-            "level": "DEBUG",
+            "level": "INFO",
         },
         "golem.managers.work": {
             "level": "INFO",
