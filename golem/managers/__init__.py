@@ -6,7 +6,7 @@ from golem.managers.agreement import (
     RandomScore,
     ScoredAheadOfTimeAgreementManager,
 )
-from golem.managers.base import RejectProposal, WorkContext, WorkResult
+from golem.managers.base import Manager, RejectProposal, WorkContext, WorkResult
 from golem.managers.demand import AutoDemandManager
 from golem.managers.mixins import BackgroundLoopMixin
 from golem.managers.negotiation import (
@@ -33,6 +33,7 @@ __all__ = (
     "PropertyValueLerpScore",
     "RandomScore",
     "ScoredAheadOfTimeAgreementManager",
+    "Manager",
     "RejectProposal",
     "WorkContext",
     "WorkResult",
