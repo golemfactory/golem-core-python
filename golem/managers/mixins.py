@@ -65,31 +65,7 @@ class WeightProposalScoringPluginsMixin(ManagerPluginsMixin[ManagerPluginWithOpt
     ) -> None:
         self._demand_offer_parser = demand_offer_parser or TextXPayloadSyntaxParser()
 
-        self._scored_proposals: List[Tuple[float, Proposal]] = []
-        self._scored_proposals_condition = asyncio.Condition()
-
         super().__init__(*args, **kwargs)
-
-    @trace_span(show_arguments=True)
-    async def manage_scoring(self, proposals: List[Proposal]) -> None:
-        async with self._scored_proposals_condition:
-            all_proposals = list(sp[1] for sp in self._scored_proposals)
-            all_proposals.extend(proposals)
-
-            self._scored_proposals = await self.do_scoring(all_proposals)
-
-            self._scored_proposals_condition.notify_all()
-
-    @trace_span()
-    async def get_scored_proposal(self):
-        async with self._scored_proposals_condition:
-            await self._scored_proposals_condition.wait_for(lambda: 0 < len(self._scored_proposals))
-
-            score, proposal = self._scored_proposals.pop(0)
-
-        logger.info(f"Proposal `{proposal}` picked with score `{score}`")
-
-        return proposal
 
     async def do_scoring(self, proposals: Sequence[Proposal]) -> List[Tuple[float, Proposal]]:
         proposals_data = await self._get_proposals_data_from_proposals(proposals)
