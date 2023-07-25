@@ -116,19 +116,16 @@ class ConcurrentlyFilledBuffer(Buffer[TItem], Generic[TItem]):
 
             item = self._items.pop(0)
 
-        self._handle_item_requests()
+        # Check if we need to request any additional items
+        items_len = len(self._items)
+        if items_len < self._min_size:
+            self._handle_item_requests()
 
         return item
 
     @trace_span()
     def _handle_item_requests(self) -> None:
-        # Check if we need to request any additional items
         items_len = len(self._items)
-        if self._min_size <= items_len:
-            logger.debug(
-                "Items count `%d` are not below min_size `%d`, skipping", items_len, self._min_size
-            )
-            return
 
         items_to_request = self._max_size - items_len - len(self._items_requested_tasks)
 
