@@ -4,26 +4,30 @@ from datetime import timedelta
 from random import randint, random
 from typing import List
 
-from golem.managers.activity.single_use import SingleUseActivityManager
-from golem.managers.agreement.plugins import MapScore, PropertyValueLerpScore, RandomScore
-from golem.managers.agreement.pricings import LinearAverageCostPricing
-from golem.managers.agreement.scored_aot import ScoredAheadOfTimeAgreementManager
-from golem.managers.base import RejectProposal, WorkContext, WorkResult
-from golem.managers.demand.auto import AutoDemandManager
-from golem.managers.negotiation import SequentialNegotiationManager
-from golem.managers.negotiation.plugins import (
+from golem.managers import (
     AddChosenPaymentPlatform,
+    AutoDemandManager,
     BlacklistProviderId,
+    LinearAverageCostPricing,
+    MapScore,
+    PayAllPaymentManager,
+    PropertyValueLerpScore,
+    RandomScore,
     RejectIfCostsExceeds,
+    RejectProposal,
+    ScoredAheadOfTimeAgreementManager,
+    SequentialNegotiationManager,
+    SequentialWorkManager,
+    SingleUseActivityManager,
+    WorkContext,
+    WorkResult,
+    redundancy_cancel_others_on_first_done,
+    retry,
+    work_plugin,
 )
-from golem.managers.payment.pay_all import PayAllPaymentManager
-from golem.managers.work.plugins import redundancy_cancel_others_on_first_done, retry, work_plugin
-from golem.managers.work.sequential import SequentialWorkManager
 from golem.node import GolemNode
-from golem.payload import RepositoryVmPayload
-from golem.payload.defaults import INF_MEM
-from golem.resources.demand.demand import DemandData
-from golem.resources.proposal.proposal import ProposalData
+from golem.payload import RepositoryVmPayload, defaults
+from golem.resources import DemandData, ProposalData
 from golem.utils.logging import DEFAULT_LOGGING
 
 BLACKLISTED_PROVIDERS = [
@@ -106,7 +110,7 @@ async def main():
         negotiation_manager.get_draft_proposal,
         plugins=[
             MapScore(linear_average_cost, normalize=True, normalize_flip=True),
-            [0.5, PropertyValueLerpScore(INF_MEM, zero_at=1, one_at=8)],
+            [0.5, PropertyValueLerpScore(defaults.INF_MEM, zero_at=1, one_at=8)],
             [0.1, RandomScore()],
             [0.0, lambda proposals_data: [random() for _ in range(len(proposals_data))]],
             [0.0, MapScore(lambda proposal_data: random())],

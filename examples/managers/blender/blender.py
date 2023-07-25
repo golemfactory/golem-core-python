@@ -5,17 +5,20 @@ from datetime import timedelta
 from pathlib import Path
 from typing import List
 
-from golem.managers.activity.pool import ActivityPoolManager
-from golem.managers.agreement.plugins import MapScore
-from golem.managers.agreement.pricings import LinearAverageCostPricing
-from golem.managers.agreement.scored_aot import ScoredAheadOfTimeAgreementManager
-from golem.managers.base import WorkContext, WorkResult
-from golem.managers.demand.auto import AutoDemandManager
-from golem.managers.negotiation import SequentialNegotiationManager
-from golem.managers.negotiation.plugins import AddChosenPaymentPlatform
-from golem.managers.payment.pay_all import PayAllPaymentManager
-from golem.managers.work.asynchronous import AsynchronousWorkManager
-from golem.managers.work.plugins import retry
+from golem.managers import (
+    ActivityPoolManager,
+    AddChosenPaymentPlatform,
+    AsynchronousWorkManager,
+    AutoDemandManager,
+    LinearAverageCostPricing,
+    MapScore,
+    PayAllPaymentManager,
+    ScoredAheadOfTimeAgreementManager,
+    SequentialNegotiationManager,
+    WorkContext,
+    WorkResult,
+    retry,
+)
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
 from golem.utils.logging import DEFAULT_LOGGING

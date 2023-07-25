@@ -4,14 +4,17 @@ import random
 import string
 from uuid import uuid4
 
-from golem.managers.activity.single_use import SingleUseActivityManager
-from golem.managers.agreement.scored_aot import ScoredAheadOfTimeAgreementManager
-from golem.managers.base import WorkContext, WorkResult
-from golem.managers.demand.auto import AutoDemandManager
-from golem.managers.negotiation import SequentialNegotiationManager
-from golem.managers.network.single import SingleNetworkManager
-from golem.managers.payment.pay_all import PayAllPaymentManager
-from golem.managers.work.sequential import SequentialWorkManager
+from golem.managers import (
+    AutoDemandManager,
+    PayAllPaymentManager,
+    ScoredAheadOfTimeAgreementManager,
+    SequentialNegotiationManager,
+    SequentialWorkManager,
+    SingleNetworkManager,
+    SingleUseActivityManager,
+    WorkContext,
+    WorkResult,
+)
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
 from golem.utils.logging import DEFAULT_LOGGING

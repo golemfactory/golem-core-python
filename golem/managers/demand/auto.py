@@ -53,7 +53,7 @@ class AutoDemandManager(BackgroundLoopMixin, WeightProposalScoringPluginsMixin, 
 
     @trace_span()
     async def _background_loop(self) -> None:
-        await self._buffer.start()
+        await self._buffer.start(fill=True)
         await self._create_and_subscribe_demand()
         try:
             while True:

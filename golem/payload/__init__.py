@@ -1,3 +1,4 @@
+from golem.payload import defaults
 from golem.payload.base import Payload, constraint, prop
 from golem.payload.constraints import (
     Constraint,
@@ -31,4 +32,5 @@ __all__ = (
     "PayloadSyntaxParser",
     "PropertyName",
     "PropertyValue",
+    "defaults",
 )

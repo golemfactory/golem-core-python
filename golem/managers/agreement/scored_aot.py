@@ -58,7 +58,7 @@ class ScoredAheadOfTimeAgreementManager(WeightProposalScoringPluginsMixin, Agree
 
     @trace_span()
     async def start(self) -> None:
-        await self._buffer.start()
+        await self._buffer.start(fill=True)
 
     @trace_span()
     async def stop(self) -> None:
