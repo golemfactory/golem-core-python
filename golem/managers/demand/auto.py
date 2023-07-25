@@ -22,6 +22,7 @@ class AutoDemandManager(BackgroundLoopMixin, WeightProposalScoringPluginsMixin, 
         golem: GolemNode,
         get_allocation: Callable[[], Awaitable[Allocation]],
         payload: Payload,
+        buffer_size: Tuple[int, int] = (1, 1000),
         *args,
         **kwargs,
     ) -> None:
@@ -32,8 +33,8 @@ class AutoDemandManager(BackgroundLoopMixin, WeightProposalScoringPluginsMixin, 
         self._initial_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
         self._buffer = ConcurrentlyFilledBuffer(
             fill_callback=self._get_initial_proposal,
-            min_size=1,
-            max_size=1000,
+            min_size=buffer_size[0],
+            max_size=buffer_size[1],
             update_callback=self._update_buffer_callback,
             update_interval=timedelta(seconds=1),
         )
@@ -77,7 +78,7 @@ class AutoDemandManager(BackgroundLoopMixin, WeightProposalScoringPluginsMixin, 
         self, items: MutableSequence[Proposal], items_to_process: Sequence[Proposal]
     ) -> None:
         scored_proposals = [
-            proposal for _, proposal in await self.do_scoring(items + items_to_process)
+            proposal for _, proposal in await self.do_scoring([*items, *items_to_process])
         ]
         items.clear()
         items.extend(scored_proposals)

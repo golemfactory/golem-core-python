@@ -51,7 +51,10 @@ async def run_on_golem(
         plugins=market_plugins,
     )
     agreement_manager = ScoredAheadOfTimeAgreementManager(
-        golem, negotiation_manager.get_draft_proposal, plugins=scoring_plugins
+        golem,
+        negotiation_manager.get_draft_proposal,
+        plugins=scoring_plugins,
+        buffer_size=(3, 10),
     )
     activity_manager = ActivityPoolManager(
         golem, agreement_manager.get_agreement, size=threads, on_activity_start=init_func

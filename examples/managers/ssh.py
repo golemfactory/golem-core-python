@@ -78,7 +78,9 @@ async def main():
     )
     negotiation_manager = SequentialNegotiationManager(golem, demand_manager.get_initial_proposal)
     agreement_manager = ScoredAheadOfTimeAgreementManager(
-        golem, negotiation_manager.get_draft_proposal
+        golem,
+        negotiation_manager.get_draft_proposal,
+        buffer_size=(1, 2),
     )
     activity_manager = SingleUseActivityManager(
         golem,

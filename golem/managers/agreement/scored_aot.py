@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Awaitable, Callable, MutableSequence, Sequence
+from typing import Awaitable, Callable, MutableSequence, Sequence, Tuple
 
 from golem.managers.agreement.events import AgreementReleased
 from golem.managers.base import AgreementManager
@@ -18,6 +18,7 @@ class ScoredAheadOfTimeAgreementManager(WeightProposalScoringPluginsMixin, Agree
         self,
         golem: GolemNode,
         get_draft_proposal: Callable[[], Awaitable[Proposal]],
+        buffer_size: Tuple[int, int] = (1, 1),
         *args,
         **kwargs,
     ):
@@ -26,8 +27,8 @@ class ScoredAheadOfTimeAgreementManager(WeightProposalScoringPluginsMixin, Agree
 
         self._buffer = ConcurrentlyFilledBuffer(
             fill_callback=self._get_draft_proposal,
-            min_size=5,
-            max_size=10,
+            min_size=buffer_size[0],
+            max_size=buffer_size[1],
             update_callback=self._update_buffer_callback,
             update_interval=timedelta(seconds=2),
         )
@@ -68,7 +69,7 @@ class ScoredAheadOfTimeAgreementManager(WeightProposalScoringPluginsMixin, Agree
         self, items: MutableSequence[Proposal], items_to_process: Sequence[Proposal]
     ) -> None:
         scored_proposals = [
-            proposal for _, proposal in await self.do_scoring(items + items_to_process)
+            proposal for _, proposal in await self.do_scoring([*items, *items_to_process])
         ]
         items.clear()
         items.extend(scored_proposals)
