@@ -131,7 +131,7 @@ class WeightProposalScoringPluginsMixin(ManagerPluginsMixin[ManagerPluginWithOpt
         return [
             (plugin_weight, plugin_scores[proposal_index])
             for plugin_weight, plugin_scores in plugin_scores
-            if plugin_scores[proposal_index] is None
+            if plugin_scores[proposal_index] is not None
         ]
 
     # FIXME: This should be already provided by low level

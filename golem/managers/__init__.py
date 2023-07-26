@@ -6,9 +6,9 @@ from golem.managers.agreement import (
     RandomScore,
     ScoredAheadOfTimeAgreementManager,
 )
-from golem.managers.base import Manager, RejectProposal, WorkContext, WorkResult
+from golem.managers.base import Manager, ManagerScorePlugin, RejectProposal, WorkContext, WorkResult
 from golem.managers.demand import AutoDemandManager
-from golem.managers.mixins import BackgroundLoopMixin
+from golem.managers.mixins import BackgroundLoopMixin, WeightProposalScoringPluginsMixin
 from golem.managers.negotiation import (
     AddChosenPaymentPlatform,
     BlacklistProviderId,
@@ -34,11 +34,13 @@ __all__ = (
     "RandomScore",
     "ScoredAheadOfTimeAgreementManager",
     "Manager",
+    "ManagerScorePlugin",
     "RejectProposal",
     "WorkContext",
     "WorkResult",
     "AutoDemandManager",
     "BackgroundLoopMixin",
+    "WeightProposalScoringPluginsMixin",
     "AddChosenPaymentPlatform",
     "BlacklistProviderId",
     "RejectIfCostsExceeds",

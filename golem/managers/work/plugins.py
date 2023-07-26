@@ -63,7 +63,7 @@ def redundancy_cancel_others_on_first_done(size: int):
     def _redundancy(do_work: DoWorkCallable):
         @wraps(do_work)
         async def wrapper(work: Work) -> WorkResult:
-            tasks = [do_work(work) for _ in range(size)]
+            tasks = [asyncio.ensure_future(do_work(work)) for _ in range(size)]
 
             tasks_done, tasks_pending = await asyncio.wait(
                 tasks, return_when=asyncio.FIRST_COMPLETED
