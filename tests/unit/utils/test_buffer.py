@@ -117,7 +117,9 @@ async def test_buffer_get_item_will_trigger_fill_on_below_min_size(create_buffer
 
     assert fill_callback.await_count == 10
 
-    done, _ = await asyncio.wait([buffer.get_item() for _ in range(6)], timeout=0.05)
+    done, _ = await asyncio.wait(
+        [asyncio.ensure_future(buffer.get_item()) for _ in range(6)], timeout=0.05
+    )
 
     assert [d.result() for d in done] == fill_callback.mock_calls[1:7]
 
