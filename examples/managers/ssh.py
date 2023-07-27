@@ -13,53 +13,57 @@ from golem.managers import (
     SingleNetworkManager,
     SingleUseActivityManager,
     WorkContext,
-    WorkResult,
 )
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
 from golem.utils.logging import DEFAULT_LOGGING
 
 
-def on_activity_start(get_network_deploy_args):
-    async def _on_activity_start(context: WorkContext):
+class SshHandler:
+    def __init__(self, app_key: str, network_manager: SingleNetworkManager) -> None:
+        self._app_key = app_key
+        self._network_manager = network_manager
+        self.started = False
+
+    async def on_activity_start(self, context: WorkContext):
         deploy_args = {
-            "net": [await get_network_deploy_args(context._activity.parent.parent.data.issuer_id)]
+            "net": [
+                await self._network_manager.get_deploy_args(
+                    context._activity.parent.parent.data.issuer_id
+                )
+            ]
         }
         batch = await context.create_batch()
         batch.deploy(deploy_args)
         batch.start()
         await batch()
 
-    return _on_activity_start
+    async def work(self, context: WorkContext) -> None:
+        password = await self._run_ssh_server(context)
+        print(
+            "Connect with:\n"
+            "  ssh -o ProxyCommand='websocat asyncstdio: "
+            f"{await self._network_manager.get_provider_uri(context._activity.parent.parent.data.issuer_id, 'ws')}"
+            f" --binary "
+            f'-H=Authorization:"Bearer {self._app_key}"\' root@{uuid4().hex} '
+        )
+        print(f"PASSWORD: {password}")
+        self.started = True
+        try:
+            while True:
+                await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            ...
 
-
-def work(app_key, get_provider_uri):
-    async def _work(context: WorkContext) -> str:
+    async def _run_ssh_server(self, context: WorkContext) -> str:
         password = "".join(random.choice(string.ascii_letters + string.digits) for _ in range(8))
         batch = await context.create_batch()
         batch.run("syslogd")
         batch.run("ssh-keygen -A")
         batch.run(f'echo -e "{password}\n{password}" | passwd')
         batch.run("/usr/sbin/sshd")
-        batch_result = await batch()
-        result = ""
-        for event in batch_result:
-            result += f"{event.stdout}"
-
-        print(
-            "Connect with:\n"
-            "  ssh -o ProxyCommand='websocat asyncstdio: "
-            f"{await get_provider_uri(context._activity.parent.parent.data.issuer_id, 'ws')}"
-            f" --binary "
-            f'-H=Authorization:"Bearer {app_key}"\' root@{uuid4().hex} '
-        )
-        print(f"PASSWORD: {password}")
-
-        for _ in range(3):
-            await asyncio.sleep(1)
-        return result
-
-    return _work
+        await batch()
+        return password
 
 
 async def main():
@@ -85,18 +89,21 @@ async def main():
         negotiation_manager.get_draft_proposal,
         buffer_size=(1, 2),
     )
+
+    ssh_handler = SshHandler(golem._api_config.app_key, network_manager=network_manager)
+
     activity_manager = SingleUseActivityManager(
         golem,
         agreement_manager.get_agreement,
-        on_activity_start=on_activity_start(network_manager.get_deploy_args),
+        on_activity_start=ssh_handler.on_activity_start,
     )
     work_manager = SequentialWorkManager(golem, activity_manager.do_work)
-    # TODO use different managers so it allows to finish work func without destroying activity
     async with golem, network_manager, payment_manager, demand_manager, negotiation_manager, agreement_manager:  # noqa: E501 line too long
-        result: WorkResult = await work_manager.do_work(
-            work(golem._api_config.app_key, network_manager.get_provider_uri)
-        )
-        print(f"\nWORK MANAGER RESULTS:{result.result}\n")
+        task = asyncio.create_task(work_manager.do_work(ssh_handler.work))
+        while not ssh_handler.started:
+            await asyncio.sleep(0.1)
+        _, pending = await asyncio.wait((task,), timeout=20)
+        [p.cancel() for p in pending]
 
 
 if __name__ == "__main__":
