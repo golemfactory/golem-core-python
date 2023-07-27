@@ -88,14 +88,7 @@ class WorkResult:
 
 WORK_PLUGIN_FIELD_NAME = "_work_plugins"
 
-
-class Work(ABC):
-    _work_plugins: Optional[List["WorkManagerPlugin"]]
-
-    @abstractmethod
-    def __call__(self, context: WorkContext) -> Awaitable[Optional[WorkResult]]:
-        ...
-
+Work = Callable[[WorkContext], Awaitable[Optional[WorkResult]]]
 
 DoWorkCallable = Callable[[Work], Awaitable[WorkResult]]
 

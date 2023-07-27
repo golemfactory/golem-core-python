@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from functools import wraps
+from typing import List
 
 from golem.managers.base import (
     WORK_PLUGIN_FIELD_NAME,
@@ -16,9 +17,9 @@ logger = logging.getLogger(__name__)
 def work_plugin(plugin: WorkManagerPlugin):
     def _work_plugin(work: Work):
         if not hasattr(work, WORK_PLUGIN_FIELD_NAME):
-            work._work_plugins = []
+            setattr(work, WORK_PLUGIN_FIELD_NAME, [])
 
-        work._work_plugins.append(plugin)  # type: ignore [union-attr]
+        getattr(work, WORK_PLUGIN_FIELD_NAME).append(plugin)
 
         return work
 
@@ -63,7 +64,7 @@ def redundancy_cancel_others_on_first_done(size: int):
     def _redundancy(do_work: DoWorkCallable):
         @wraps(do_work)
         async def wrapper(work: Work) -> WorkResult:
-            tasks = [asyncio.ensure_future(do_work(work)) for _ in range(size)]
+            tasks: List[asyncio.Task] = [asyncio.ensure_future(do_work(work)) for _ in range(size)]
 
             tasks_done, tasks_pending = await asyncio.wait(
                 tasks, return_when=asyncio.FIRST_COMPLETED

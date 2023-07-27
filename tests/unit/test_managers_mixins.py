@@ -8,12 +8,18 @@ import pytest
 
 from golem.managers import (
     BackgroundLoopMixin,
+    DoWorkCallable,
     LinearAverageCostPricing,
     Manager,
     ManagerScorePlugin,
     MapScore,
     PropertyValueLerpScore,
     WeightProposalScoringPluginsMixin,
+    Work,
+    WorkContext,
+    WorkManager,
+    WorkManagerPluginsMixin,
+    WorkResult,
 )
 from golem.payload import defaults
 
@@ -138,3 +144,51 @@ async def test_weight_proposal_scoring_plugins_mixin_ok(
     manager = FooBarWeightProposalScoringPluginsManager(plugins=given_plugins)
     received_proposals = await manager.do_scoring(given_proposals)
     assert expected_weights == [weight for weight, _ in received_proposals]
+
+
+class FooBarWorkManagerPluginsManager(WorkManagerPluginsMixin, WorkManager):
+    def __init__(self, do_work: DoWorkCallable, *args, **kwargs):
+        self._do_work = do_work
+        super().__init__(*args, **kwargs)
+
+    async def do_work(self, work: Work) -> WorkResult:
+        return await self._do_work_with_plugins(self._do_work, work)
+
+
+@pytest.mark.parametrize(
+    "expected_work_result, expected_called_count",
+    (
+        ("ZERO", None),
+        ("ONE", 1),
+        ("TWO", 2),
+        ("TEN", 10),
+    ),
+)
+async def test_work_manager_plugins_manager_mixin_ok(
+    expected_work_result: str, expected_called_count: Optional[int]
+):
+    async def _do_work_func(work: Work) -> WorkResult:
+        work_result = await work(AsyncMock())
+        if not isinstance(work_result, WorkResult):
+            work_result = WorkResult(result=work_result)
+        return work_result
+
+    async def _work(context: WorkContext) -> Optional[WorkResult]:
+        return WorkResult(result=expected_work_result)
+
+    def _plugin(do_work: DoWorkCallable) -> DoWorkCallable:
+        async def wrapper(work: Work) -> WorkResult:
+            work_result = await do_work(work)
+            work_result.extras["called_count"] = work_result.extras.get("called_count", 0) + 1
+            return work_result
+
+        return wrapper
+
+    work_plugins = [_plugin for _ in range(expected_called_count or 0)]
+
+    manager = FooBarWorkManagerPluginsManager(do_work=_do_work_func, plugins=work_plugins)
+
+    result = await manager.do_work(_work)
+
+    assert result.result == expected_work_result
+    assert result.extras.get("called_count") == expected_called_count
