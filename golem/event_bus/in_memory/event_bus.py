@@ -6,6 +6,7 @@ from typing import Awaitable, Callable, DefaultDict, List, Optional, Tuple, Type
 
 from golem.event_bus.base import Event, EventBus, EventBusError, TEvent
 from golem.utils.asyncio import create_task_with_logging
+from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +27,8 @@ class InMemoryEventBus(EventBus[_CallbackHandler]):
         self._event_queue: asyncio.Queue[Event] = asyncio.Queue()
         self._process_event_queue_loop_task: Optional[asyncio.Task] = None
 
+    @trace_span()
     async def start(self):
-        logger.debug("Starting event bus...")
-
         if self.is_started():
             message = "Event bus is already started!"
             logger.debug(f"Starting event bus failed with `{message}`")
@@ -38,11 +38,8 @@ class InMemoryEventBus(EventBus[_CallbackHandler]):
             self._process_event_queue_loop()
         )
 
-        logger.debug("Starting event bus done")
-
+    @trace_span()
     async def stop(self):
-        logger.debug("Stopping event bus...")
-
         if not self.is_started():
             message = "Event bus is not started!"
             logger.debug(f"Stopping event bus failed with `{message}`")
@@ -54,25 +51,20 @@ class InMemoryEventBus(EventBus[_CallbackHandler]):
             self._process_event_queue_loop_task.cancel()
             self._process_event_queue_loop_task = None
 
-        logger.debug("Stopping event bus done")
-
+    @trace_span(show_results=True)
     def is_started(self) -> bool:
         return (
             self._process_event_queue_loop_task is not None
             and not self._process_event_queue_loop_task.done()
         )
 
+    @trace_span(show_arguments=True)
     async def on(
         self,
         event_type: Type[TEvent],
         callback: Callable[[TEvent], Awaitable[None]],
         filter_func: Optional[Callable[[TEvent], bool]] = None,
     ) -> _CallbackHandler:
-        logger.debug(
-            f"Adding callback handler for `{event_type}` with callback `{callback}`"
-            f" and filter `{filter_func}`..."
-        )
-
         callback_info = _CallbackInfo(
             callback=callback,
             filter_func=filter_func,
@@ -83,21 +75,15 @@ class InMemoryEventBus(EventBus[_CallbackHandler]):
 
         callback_handler = (event_type, callback_info)
 
-        logger.debug(f"Adding callback handler done with `{id(callback_handler)}`")
-
         return callback_handler
 
+    @trace_span(show_arguments=True)
     async def on_once(
         self,
         event_type: Type[TEvent],
         callback: Callable[[TEvent], Awaitable[None]],
         filter_func: Optional[Callable[[TEvent], bool]] = None,
     ) -> _CallbackHandler:
-        logger.debug(
-            f"Adding one-time callback handler for `{event_type}` with callback `{callback}`"
-            f" and filter `{filter_func}`..."
-        )
-
         callback_info = _CallbackInfo(
             callback=callback,
             filter_func=filter_func,
@@ -108,15 +94,11 @@ class InMemoryEventBus(EventBus[_CallbackHandler]):
 
         callback_handler = (event_type, callback_info)
 
-        logger.debug(f"Adding one-time callback handler done with `{id(callback_handler)}`")
-
         return callback_handler
 
+    @trace_span(show_arguments=True)
     async def off(self, callback_handler: _CallbackHandler) -> None:
-        logger.debug(f"Removing callback handler `{id(callback_handler)}`...")
-
         event_type, callback_info = callback_handler
-
         try:
             self._callbacks[event_type].remove(callback_info)
         except (KeyError, ValueError):
@@ -126,11 +108,8 @@ class InMemoryEventBus(EventBus[_CallbackHandler]):
             )
             raise EventBusError(message)
 
-        logger.debug(f"Removing callback handler `{id(callback_handler)}` done")
-
+    @trace_span(show_arguments=True)
     async def emit(self, event: TEvent) -> None:
-        logger.debug(f"Emitting event `{event}`...")
-
         if not self.is_started():
             message = "Event bus is not started!"
             logger.debug(f"Emitting event `{event}` failed with `message`")
@@ -138,30 +117,21 @@ class InMemoryEventBus(EventBus[_CallbackHandler]):
 
         await self._event_queue.put(event)
 
-        logger.debug(f"Emitting event `{event}` done")
-
     async def _process_event_queue_loop(self):
         while True:
             logger.debug("Getting event from queue...")
-
             event = await self._event_queue.get()
-
             logger.debug(f"Getting event from queue done with `{event}`")
-
-            logger.debug(f"Processing callbacks for event `{event}`...")
 
             for event_type, callback_infos in self._callbacks.items():
                 await self._process_event(event, event_type, callback_infos)
 
-            logger.debug(f"Processing callbacks for event `{event}` done")
-
             self._event_queue.task_done()
 
+    @trace_span(show_arguments=True)
     async def _process_event(
         self, event: Event, event_type: Type[Event], callback_infos: List[_CallbackInfo]
     ):
-        logger.debug(f"Processing event `{event}` on event type `{event_type}`...")
-
         if not isinstance(event, event_type):
             logger.debug(
                 f"Processing event `{event}` on event type `{event_type}` ignored as event is"
@@ -222,5 +192,3 @@ class InMemoryEventBus(EventBus[_CallbackHandler]):
                 callback_infos.remove(callback_info)
 
             logger.debug(f"Removing callbacks `{callback_infos_to_remove}` done")
-
-        logger.debug(f"Processing event `{event}` on event type `{event_type}` done")
