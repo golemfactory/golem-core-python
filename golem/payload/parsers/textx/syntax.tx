@@ -1,0 +1,39 @@
+Model:
+    constraints=ConstraintGroupOrSingle
+;
+
+ConstraintGroupOrSingle:
+    ConstraintGroup | Constraint
+;
+
+ConstraintGroup:
+    "(" operator=ConstraintGroupOperator items*=ConstraintGroupOrSingle ")"
+;
+
+Constraint:
+    "(" property_path=PropertyName operator=ConstraintOperator value=PropertyValue ")"
+;
+
+ConstraintGroupOperator:
+    "&" | "|" | "!"
+;
+
+ConstraintOperator:
+    "=" | "<=" | ">=" | "<" | ">"
+;
+
+PropertyName:
+    /[\w-]+(\.[\w-]+)*/
+;
+
+PropertyValueList:
+    "[" items*=PropertyValue[","] "]"
+;
+
+PropertyValue:
+    PropertyValueStr | PropertyValueList
+;
+
+PropertyValueStr:
+    /[a-zA-Z0-9_.\*\/:;]+/
+;

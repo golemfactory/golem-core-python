@@ -165,4 +165,4 @@ build/
 .envs/
 
 # licheck artifacts
-.requrements.txt
+.requirements.txt

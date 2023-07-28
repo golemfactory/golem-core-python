@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "golem-core"
-version = "0.1.0"
-description = "Python Golem (https://www.golem.network/) Core API"
-authors = ["Jan Betley <jan.betley@golem.network>", "GolemFactory <contact@golem.network>"]
+name = "golem-api-python"
+version = "0.1.1"
+description = "Golem Netowrk (https://www.golem.network/) API for Python"
+authors = ["Golem Factory <contact@golem.network>"]
 license = "LGPL-3.0-or-later"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -11,6 +11,7 @@ classifiers = [
     "Topic :: System :: Distributed Computing"
 ]
 repository = "https://github.com/golemfactory/golem-core-python"
+packages = [{ include = "golem" }]
 
 [build-system]
 requires = ["poetry_core>=1.0.0"]
@@ -28,6 +29,8 @@ jsonrpc-base = "^1.0.3"
 srvresolver = "^0.3.5"
 semantic-version = "^2.8"
 async-exit-stack = "1.0.1"
+textx = "^3.1.1"
+setuptools = "*"  # textx external dependency
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7"
@@ -55,7 +58,7 @@ poethepoet = "^0.8"
 [tool.poe.tasks]
 checks = {sequence = ["checks_codestyle", "checks_typing", "checks_license"], help = "Run all available code checks"}
 checks_codestyle = {sequence = ["_checks_codestyle_flake8", "_checks_codestyle_isort", "_checks_codestyle_black"], help = "Run only code style checks"}
-_checks_codestyle_flake8 = "flake8 golem_core tests examples"
+_checks_codestyle_flake8 = "flake8 golem tests examples"
 _checks_codestyle_isort = "isort --check-only --diff ."
 _checks_codestyle_black = "black --check --diff ."
 checks_typing  = {cmd = "mypy .", help = "Run only code typing checks" }
@@ -146,7 +149,16 @@ target-version = ['py38']
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-addopts = "--cov --cov-report html --cov-report term-missing -sv"
+addopts = "--cov golem --cov-report html --cov-report term-missing --no-cov-on-fail -sv"
 testspaths = [
-    "tests"
+    "tests",
+]
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+
+    # Don't complain about abstract methods, they aren't run:
+    """@(abc\\.)?abstractmethod""",
 ]

@@ -4,18 +4,18 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Dict, Optional, Tuple
 
-from golem_core.core.activity_api import Activity, commands
-from golem_core.core.golem_node import GolemNode
-from golem_core.core.market_api import (
+from golem.event_bus import Event
+from golem.node import GolemNode
+from golem.payload import RepositoryVmPayload
+from golem.pipeline import Buffer, Chain, DefaultPaymentHandler, Limit, Map
+from golem.resources import (
     Proposal,
-    RepositoryVmPayload,
     default_create_activity,
     default_create_agreement,
     default_negotiate,
 )
-from golem_core.managers import DefaultPaymentManager
-from golem_core.pipeline import Buffer, Chain, Limit, Map
-from golem_core.utils.logging import DefaultLogger
+from golem.resources.activity import Activity, commands
+from golem.utils.logging import DefaultLogger
 
 FRAME_CONFIG_TEMPLATE = json.loads(Path(__file__).with_name("frame_params.json").read_text())
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
@@ -82,11 +82,11 @@ async def on_exception(func: Callable, args: Tuple, e: Exception) -> None:
 
 async def main() -> None:
     golem = GolemNode()
-    golem.event_bus.listen(DefaultLogger().on_event)
+    await golem.event_bus.on(Event, DefaultLogger().on_event)
 
     async with golem:
         allocation = await golem.create_allocation(1.0)
-        payment_manager = DefaultPaymentManager(golem, allocation)
+        payment_handler = DefaultPaymentHandler(golem, allocation)
         demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
         # `set_no_more_children` has to be called so `initial_proposals` will eventually stop
@@ -111,8 +111,8 @@ async def main() -> None:
             print(f"{[(s, scores[s]) for s in scores if scores[s] is not None]}")
 
         print("TASK DONE")
-        await payment_manager.terminate_agreements()
-        await payment_manager.wait_for_invoices()
+        await payment_handler.terminate_agreements()
+        await payment_handler.wait_for_invoices()
 
 
 if __name__ == "__main__":

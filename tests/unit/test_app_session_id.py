@@ -1,4 +1,4 @@
-from golem_core.core.golem_node import GolemNode
+from golem.node import GolemNode
 
 
 def test_different_app_session_id() -> None:

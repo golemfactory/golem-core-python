@@ -2,9 +2,8 @@ import asyncio
 
 import pytest
 
-from golem_core.core.golem_node import GolemNode
-from golem_core.core.payment_api import DebitNote, Invoice
-from golem_core.core.resources import ResourceEvent
+from golem.node import GolemNode
+from golem.resources import DebitNote, Invoice, ResourceEvent
 
 from .helpers import get_activity
 
@@ -26,7 +25,7 @@ async def test_app_session_id(kwargs: dict, has_events: bool) -> None:
         events.append(event)
 
     golem = GolemNode(**kwargs)
-    golem.event_bus.resource_listen(save_event)
+    await golem.event_bus.on(ResourceEvent, save_event)
 
     async with golem:
         other_golem = GolemNode(app_session_id="0")

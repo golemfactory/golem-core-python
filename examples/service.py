@@ -5,17 +5,19 @@ from typing import Awaitable, Callable, Tuple
 from urllib.parse import urlparse
 from uuid import uuid4
 
-from golem_core.core.activity_api import Activity, commands
-from golem_core.core.golem_node import GolemNode
-from golem_core.core.market_api import (
-    RepositoryVmPayload,
+from golem.event_bus import Event
+from golem.node import GolemNode
+from golem.payload import RepositoryVmPayload
+from golem.pipeline import Buffer, Chain, Limit, Map
+from golem.resources import (
+    Activity,
     default_create_activity,
     default_create_agreement,
     default_negotiate,
 )
-from golem_core.core.network_api import Network
-from golem_core.pipeline import Buffer, Chain, Limit, Map
-from golem_core.utils.logging import DefaultLogger
+from golem.resources.activity import commands
+from golem.resources.network import Network
+from golem.utils.logging import DefaultLogger
 
 PAYLOAD = RepositoryVmPayload(
     "1e06505997e8bd1b9e1a00bd10d255fc6a390905e4d6840a22a79902",
@@ -56,7 +58,7 @@ def create_ssh_connection(network: Network) -> Callable[[Activity], Awaitable[Tu
 
 async def main() -> None:
     golem = GolemNode()
-    golem.event_bus.listen(DefaultLogger().on_event)
+    await golem.event_bus.on(Event, DefaultLogger().on_event)
 
     async with golem:
         network = await golem.create_network("192.168.0.1/24")

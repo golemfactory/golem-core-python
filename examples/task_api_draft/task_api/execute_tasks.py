@@ -2,19 +2,20 @@ from datetime import timedelta
 from random import random
 from typing import AsyncIterator, Awaitable, Callable, Iterable, Optional, Tuple, TypeVar
 
-from golem_core.core.activity_api import Activity, default_prepare_activity
-from golem_core.core.golem_node import GolemNode
-from golem_core.core.market_api import (
+from golem.event_bus import Event
+from golem.node import GolemNode
+from golem.payload import Payload
+from golem.pipeline import Buffer, Chain, DefaultPaymentHandler, Map, Sort, Zip
+from golem.resources import (
+    Activity,
     Demand,
-    Payload,
     Proposal,
     default_create_activity,
     default_create_agreement,
     default_negotiate,
+    default_prepare_activity,
 )
-from golem_core.managers import DefaultPaymentManager
-from golem_core.pipeline import Buffer, Chain, Map, Sort, Zip
-from golem_core.utils.logging import DefaultLogger
+from golem.utils.logging import DefaultLogger
 
 from .activity_pool import ActivityPool
 from .redundance_manager import RedundanceManager
@@ -143,12 +144,12 @@ async def execute_tasks(
     task_stream = TaskDataStream(task_data)
 
     golem = GolemNode()
-    golem.event_bus.listen(DefaultLogger().on_event)
+    await golem.event_bus.on(Event, DefaultLogger().on_event)
 
     async with golem:
         allocation = await golem.create_allocation(budget)
 
-        payment_manager = DefaultPaymentManager(golem, allocation)
+        payment_handler = DefaultPaymentHandler(golem, allocation)
         demand = await golem.create_demand(payload, allocations=[allocation])
 
         chain = get_chain(
@@ -168,5 +169,5 @@ async def execute_tasks(
             if task_stream.in_stream_empty and returned == task_stream.task_cnt:
                 break
 
-        await payment_manager.terminate_agreements()
-        await payment_manager.wait_for_invoices()
+        await payment_handler.terminate_agreements()
+        await payment_handler.wait_for_invoices()

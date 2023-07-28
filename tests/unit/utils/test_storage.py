@@ -7,7 +7,7 @@ from typing import List, cast
 
 import pytest
 
-from golem_core.utils.storage import gftp
+from golem.utils.storage.gftp import provider as gftp
 
 
 @pytest.fixture(scope="function")

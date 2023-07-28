@@ -23,19 +23,23 @@ from examples.task_api_draft.examples.yacat_no_business_logic import (
     tasks_queue,
 )
 from examples.task_api_draft.task_api.activity_pool import ActivityPool
-from golem_core.core.activity_api import Activity, PoolingBatch, default_prepare_activity
-from golem_core.core.golem_node import GolemNode
-from golem_core.core.market_api import (
+from golem.event_bus import Event
+from golem.node import GolemNode
+from golem.pipeline import Buffer, Chain, DefaultPaymentHandler, Map, Sort, Zip
+from golem.resources import (
+    Activity,
+    DebitNote,
+    NewDebitNote,
+    NewResource,
+    PoolingBatch,
     Proposal,
+    ResourceClosed,
     default_create_activity,
     default_create_agreement,
     default_negotiate,
+    default_prepare_activity,
 )
-from golem_core.core.payment_api import DebitNote
-from golem_core.core.resources import NewResource, ResourceClosed
-from golem_core.managers import DefaultPaymentManager
-from golem_core.pipeline import Buffer, Chain, Map, Sort, Zip
-from golem_core.utils.logging import DefaultLogger
+from golem.utils.logging import DefaultLogger
 
 ###########################
 #   APP LOGIC CONFIG
@@ -68,7 +72,7 @@ async def count_batches(event: NewResource) -> None:
 
 
 async def gather_debit_note_log(event: NewResource) -> None:
-    debit_note: DebitNote = event.resource  # type: ignore
+    debit_note: DebitNote = event.resource
     activity_id = (await debit_note.get_data()).activity_id
     if not any(activity.id == activity_id for activity in activity_data):
         #   This is a debit note for an unknown activity (e.g. from a previous run)
@@ -82,7 +86,7 @@ async def gather_debit_note_log(event: NewResource) -> None:
 
 
 async def note_activity_destroyed(event: ResourceClosed) -> None:
-    activity: Activity = event.resource  # type: ignore
+    activity: Activity = event.resource
     if activity not in activity_data:
         #   Destroyed activity from a previous run
         return
@@ -93,7 +97,7 @@ async def note_activity_destroyed(event: ResourceClosed) -> None:
 
 
 async def update_new_activity_status(event: NewResource) -> None:
-    activity: Activity = event.resource  # type: ignore
+    activity: Activity = event.resource
     activity_data[activity]["status"] = "new"
 
     if not activity.has_parent:
@@ -171,15 +175,21 @@ async def main() -> None:
     asyncio.create_task(manage_activities())
 
     golem = GolemNode()
-    golem.event_bus.listen(DefaultLogger().on_event)
-    golem.event_bus.resource_listen(count_batches, [NewResource], [PoolingBatch])
-    golem.event_bus.resource_listen(gather_debit_note_log, [NewResource], [DebitNote])
-    golem.event_bus.resource_listen(update_new_activity_status, [NewResource], [Activity])
-    golem.event_bus.resource_listen(note_activity_destroyed, [ResourceClosed], [Activity])
+    await golem.event_bus.on(Event, DefaultLogger().on_event)
+    await golem.event_bus.on(
+        NewResource, count_batches, lambda e: isinstance(e.resource, PoolingBatch)
+    )
+    await golem.event_bus.on(NewDebitNote, gather_debit_note_log)
+    await golem.event_bus.on(
+        NewResource, update_new_activity_status, lambda e: isinstance(e.resource, Activity)
+    )
+    await golem.event_bus.on(
+        ResourceClosed, note_activity_destroyed, lambda e: isinstance(e.resource, Activity)
+    )
 
     async with golem:
         allocation = await golem.create_allocation(amount=1)
-        payment_manager = DefaultPaymentManager(golem, allocation)
+        payment_handler = DefaultPaymentHandler(golem, allocation)
 
         demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
@@ -201,8 +211,8 @@ async def main() -> None:
             ):
                 pass
         except asyncio.CancelledError:
-            await payment_manager.terminate_agreements()
-            await payment_manager.wait_for_invoices()
+            await payment_handler.terminate_agreements()
+            await payment_handler.wait_for_invoices()
 
     #   TODO: This removes the "destroyed but pending" messages, probably there's
     #         some even prettier solution available?

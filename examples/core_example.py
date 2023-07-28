@@ -4,17 +4,19 @@ from os import path
 from tempfile import TemporaryDirectory
 from typing import AsyncGenerator, Optional
 
-from golem_core.core.activity_api import (
+from golem.node import GolemNode
+from golem.payload import RepositoryVmPayload
+from golem.resources import (
     Activity,
     BatchError,
     CommandCancelled,
     CommandFailed,
+    NewResource,
+    ResourceClosed,
+    ResourceEvent,
     Script,
-    commands,
 )
-from golem_core.core.golem_node import GolemNode
-from golem_core.core.market_api import RepositoryVmPayload
-from golem_core.core.resources import NewResource, ResourceClosed, ResourceEvent
+from golem.resources.activity import commands
 
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
@@ -116,10 +118,10 @@ async def example_5() -> None:
     golem = GolemNode()
     got_events = []
 
-    async def on_event(event: ResourceEvent) -> None:
+    async def collect_resource_events(event: ResourceEvent) -> None:
         got_events.append(event)
 
-    golem.event_bus.resource_listen(on_event)
+    await golem.event_bus.on(ResourceEvent, collect_resource_events)
     async with golem:
         allocation = await golem.create_allocation(1)
 

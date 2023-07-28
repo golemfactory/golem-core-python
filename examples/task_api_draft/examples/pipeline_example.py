@@ -4,18 +4,18 @@ from random import random
 from typing import AsyncIterator, Callable, Tuple
 
 from examples.task_api_draft.task_api.activity_pool import ActivityPool
-from golem_core.core.activity_api import Activity, commands
-from golem_core.core.golem_node import GolemNode
-from golem_core.core.market_api import (
+from golem.events_bus import Event
+from golem.node import GolemNode
+from golem.payload import RepositoryVmPayload
+from golem.pipeline import Buffer, Chain, DefaultPaymentHandler, Map, Sort, Zip
+from golem.resources import (
     Proposal,
-    RepositoryVmPayload,
     default_create_activity,
     default_create_agreement,
     default_negotiate,
 )
-from golem_core.managers import DefaultPaymentManager
-from golem_core.pipeline import Buffer, Chain, Map, Sort, Zip
-from golem_core.utils.logging import DefaultLogger
+from golem.resources.activity import Activity, commands
+from golem.utils.logging import DefaultLogger
 
 PAYLOAD = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
 
@@ -68,12 +68,12 @@ async def on_exception(func: Callable, args: Tuple, e: Exception) -> None:
 
 async def main() -> None:
     golem = GolemNode()
-    golem.event_bus.listen(DefaultLogger().on_event)
+    await golem.event_bus.on(Event, DefaultLogger().on_event)
 
     async with golem:
         allocation = await golem.create_allocation(1)
 
-        payment_manager = DefaultPaymentManager(golem, allocation)
+        payment_handler = DefaultPaymentHandler(golem, allocation)
 
         demand = await golem.create_demand(PAYLOAD, allocations=[allocation])
 
@@ -106,8 +106,8 @@ async def main() -> None:
 
         print("ALL TASKS DONE")
 
-        await payment_manager.terminate_agreements()
-        await payment_manager.wait_for_invoices()
+        await payment_handler.terminate_agreements()
+        await payment_handler.wait_for_invoices()
 
 
 if __name__ == "__main__":

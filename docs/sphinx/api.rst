@@ -7,7 +7,7 @@ Golem Python Core API Reference
 GolemNode
 =========
 
-.. autoclass:: golem_core.core.golem_node.GolemNode
+.. autoclass:: golem.node.GolemNode
     :members: __init__, __aenter__, __aexit__, 
               create_allocation, create_demand, create_network,
               allocation, debit_note, invoice, 
@@ -19,7 +19,7 @@ GolemNode
 .. High-Level API
 .. ==============
 
-.. .. autofunction:: golem_core.high.execute_tasks.execute_tasks
+.. .. autofunction:: golem.high.execute_tasks.execute_tasks
 
 Mid-level API
 =============
@@ -33,15 +33,15 @@ General components
 Classes in this section know nothing about any Golem-specific logic. They should one day be extracted to a sparate library.
 
 
-.. autoclass:: golem_core.pipeline.Sort
+.. autoclass:: golem.pipeline.Sort
     :members: __init__, __call__
-.. autoclass:: golem_core.pipeline.Chain
-.. autoclass:: golem_core.pipeline.Map
+.. autoclass:: golem.pipeline.Chain
+.. autoclass:: golem.pipeline.Map
     :members: __init__, __call__
-.. autoclass:: golem_core.pipeline.Zip
-.. autoclass:: golem_core.pipeline.Buffer
+.. autoclass:: golem.pipeline.Zip
+.. autoclass:: golem.pipeline.Buffer
     :members: __init__, __call__
-.. autoclass:: golem_core.pipeline.Limit
+.. autoclass:: golem.pipeline.Limit
     :members: __init__
 
 
@@ -49,10 +49,10 @@ Golem-specific components
 ------------------------------
 Components in this section contain the common logic that is shared by various Golem applications.
 
-.. autofunction:: golem_core.core.market_api.default_negotiate
-.. autofunction:: golem_core.core.market_api.default_create_agreement
-.. autofunction:: golem_core.core.market_api.default_create_activity
-.. autofunction:: golem_core.core.activity_api.default_prepare_activity
+.. autofunction:: golem.resources.default_negotiate
+.. autofunction:: golem.resources.default_create_agreement
+.. autofunction:: golem.resources.default_create_activity
+.. autofunction:: golem.resources.default_prepare_activity
 
 
 Low-level API
@@ -67,7 +67,7 @@ by performing operations on the low-level objects.
 Resource
 --------
 
-.. autoclass:: golem_core.core.resources.Resource
+.. autoclass:: golem.resources.Resource
     :members: id, node,
               get_data, data,
               parent, children, child_aiter, 
@@ -76,103 +76,91 @@ Resource
 Market API
 ----------
 
-.. autoclass:: golem_core.core.market_api.Demand
+.. autoclass:: golem.resources.Demand
     :members: initial_proposals, unsubscribe, proposal
 
-.. autoclass:: golem_core.core.market_api.Proposal
+.. autoclass:: golem.resources.Proposal
     :members: initial, draft, rejected, demand,
               respond, responses, reject, create_agreement
 
-.. autoclass:: golem_core.core.market_api.Agreement
+.. autoclass:: golem.resources.Agreement
     :members: confirm, wait_for_approval, terminate, create_activity,
               invoice, activities, close_all
 
 Payment API
 -----------
 
-.. autoclass:: golem_core.core.payment_api.Allocation
+.. autoclass:: golem.resources.Allocation
     :members: release
 
-.. autoclass:: golem_core.core.payment_api.DebitNote
+.. autoclass:: golem.resources.DebitNote
     :members: accept_full
 
-.. autoclass:: golem_core.core.payment_api.Invoice
+.. autoclass:: golem.resources.Invoice
     :members: accept_full
 
 Activity API
 ------------
 
-.. autoclass:: golem_core.core.activity_api.Activity
+.. autoclass:: golem.resources.Activity
     :members: execute_commands, execute_script, destroy,
               idle, destroyed, wait_busy, wait_idle, wait_destroyed,
               debit_notes, batch
 
-.. autoclass:: golem_core.core.activity_api.PoolingBatch
+.. autoclass:: golem.resources.PoolingBatch
     :members: wait, events, done, success
 
-.. autoclass:: golem_core.core.activity_api.Script
+.. autoclass:: golem.resources.Script
     :members: add_command
 
 Network API
 -----------
 
-.. autoclass:: golem_core.core.network_api.Network
+.. autoclass:: golem.resources.Network
     :members: create_node, deploy_args, refresh_nodes, remove
 
 Commands
 --------
 
-.. autoclass:: golem_core.core.activity_api.commands.Command
-.. autoclass:: golem_core.core.activity_api.commands.Deploy
-.. autoclass:: golem_core.core.activity_api.commands.Start
-.. autoclass:: golem_core.core.activity_api.commands.Run
+.. autoclass:: golem.resources.Command
+.. autoclass:: golem.resources.Deploy
+.. autoclass:: golem.resources.Start
+.. autoclass:: golem.resources.Run
     :members: __init__
-.. autoclass:: golem_core.core.activity_api.commands.SendFile
+.. autoclass:: golem.resources.SendFile
     :members: __init__
-.. autoclass:: golem_core.core.activity_api.commands.DownloadFile
+.. autoclass:: golem.resources.DownloadFile
     :members: __init__
 
 Exceptions
 ----------
 
-.. autoclass:: golem_core.core.resources.ResourceNotFound
+.. autoclass:: golem.resources.ResourceNotFound
     :members: resource
-.. autoclass:: golem_core.core.payment_api.NoMatchingAccount
+.. autoclass:: golem.resources.NoMatchingAccount
     :members: network, driver
-.. autoclass:: golem_core.core.activity_api.BatchTimeoutError
+.. autoclass:: golem.resources.BatchTimeoutError
     :members: batch, timeout
-.. autoclass:: golem_core.core.activity_api.BatchError
+.. autoclass:: golem.resources.BatchError
     :members: batch
-.. autoclass:: golem_core.core.activity_api.CommandFailed
+.. autoclass:: golem.resources.CommandFailed
     :members: batch
-.. autoclass:: golem_core.core.activity_api.CommandCancelled
+.. autoclass:: golem.resources.CommandCancelled
     :members: batch
-.. autoclass:: golem_core.core.network_api.NetworkFull
+.. autoclass:: golem.resources.NetworkFull
     :members: network
 
 Events
 ======
 
-.. autoclass:: golem_core.core.events.EventBus
-    :members: listen, resource_listen, emit
-
-.. automodule:: golem_core.core.events.event
+.. automodule:: golem.event_bus.base
     :members:
 
-.. automodule:: golem_core.core.activity_api.events
-    :members:
-
-.. automodule:: golem_core.core.resources.events
+.. automodule:: golem.resources.events
     :members:
 
 Logging
 =======
 
-.. autoclass:: golem_core.utils.logging.DefaultLogger
+.. autoclass:: golem.utils.logging.DefaultLogger
     :members: __init__, file_name, logger, on_event
-
-Managers
-========
-
-.. autoclass:: golem_core.managers.DefaultPaymentManager
-    :members: __init__, terminate_agreements, wait_for_invoices

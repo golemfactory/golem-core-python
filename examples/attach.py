@@ -1,16 +1,16 @@
 import asyncio
 import sys
 
-from golem_core.core.activity_api import commands
-from golem_core.core.golem_node import GolemNode
-from golem_core.core.payment_api import DebitNote
-from golem_core.core.resources import NewResource
+from golem.node import GolemNode
+from golem.resources import DebitNote, NewResource
+from golem.resources.activity import commands
+from golem.resources.debit_note.events import NewDebitNote
 
 ACTIVITY_ID = sys.argv[1].strip()
 
 
 async def accept_debit_note(payment_event: NewResource) -> None:
-    debit_note: DebitNote = payment_event.resource  # type: ignore
+    debit_note: DebitNote = payment_event.resource
 
     this_activity_id = (await debit_note.get_data()).activity_id
     if this_activity_id == ACTIVITY_ID:
@@ -22,7 +22,7 @@ async def accept_debit_note(payment_event: NewResource) -> None:
 
 async def main() -> None:
     golem = GolemNode()
-    golem.event_bus.resource_listen(accept_debit_note, [NewResource], [DebitNote])
+    await golem.event_bus.on(NewDebitNote, accept_debit_note)
 
     async with golem:
         activity = golem.activity(ACTIVITY_ID)
