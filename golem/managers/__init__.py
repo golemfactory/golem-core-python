@@ -40,7 +40,6 @@ from golem.managers.work import (
     retry,
     work_plugin,
 )
-from golem.managers.work.asynchronous import AsynchronousWorkManager
 
 __all__ = (
     "ActivityPoolManager",
@@ -79,5 +78,4 @@ __all__ = (
     "redundancy_cancel_others_on_first_done",
     "retry",
     "work_plugin",
-    "AsynchronousWorkManager",
 )
