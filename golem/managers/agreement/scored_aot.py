@@ -18,7 +18,7 @@ class ScoredAheadOfTimeAgreementManager(WeightProposalScoringPluginsMixin, Agree
         self,
         golem: GolemNode,
         get_draft_proposal: Callable[[], Awaitable[Proposal]],
-        buffer_size: Tuple[int, int] = (0, 1),
+        buffer_size: Tuple[int, int] = (1, 3),
         *args,
         **kwargs,
     ):

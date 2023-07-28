@@ -42,7 +42,7 @@ class SequentialNegotiationManager(
 
     @trace_span()
     async def _background_loop(self) -> None:
-        while True:  # TODO add buffer
+        while True:
             proposal = await self._get_initial_proposal()
 
             demand_data = await self._get_demand_data_from_proposal(proposal)

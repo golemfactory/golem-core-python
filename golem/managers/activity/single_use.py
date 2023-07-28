@@ -27,9 +27,11 @@ class SingleUseActivityManager(ActivityPrepareReleaseMixin, ActivityManager):
             try:
                 activity = await self._prepare_activity(agreement)
                 logger.info(f"Activity `{activity}` created")
-                yield activity
-                await self._release_activity(activity)
-                break
+                try:
+                    yield activity
+                finally:
+                    await self._release_activity(activity)
+                    break
             except Exception:
                 logger.exception("Creating activity failed, but will be retried with new agreement")
 

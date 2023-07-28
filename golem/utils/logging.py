@@ -35,6 +35,9 @@ DEFAULT_LOGGING = {
         "golem": {
             "level": "INFO",
         },
+        "golem.utils": {
+            "level": "INFO",
+        },
         "golem.managers": {
             "level": "INFO",
         },
