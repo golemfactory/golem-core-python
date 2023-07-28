@@ -40,10 +40,11 @@ class SshHandler:
 
     async def work(self, context: WorkContext) -> None:
         password = await self._run_ssh_server(context)
+        provider_id = context._activity.parent.parent.data.issuer_id
         print(
             "Connect with:\n"
             "  ssh -o ProxyCommand='websocat asyncstdio: "
-            f"{await self._network_manager.get_provider_uri(context._activity.parent.parent.data.issuer_id, 'ws')}"
+            f"{await self._network_manager.get_provider_uri(provider_id, 'ws')}"
             f" --binary "
             f'-H=Authorization:"Bearer {self._app_key}"\' root@{uuid4().hex} '
         )

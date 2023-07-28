@@ -16,8 +16,8 @@ class QueueWorkManager(WorkManagerPluginsMixin, WorkManager):
         self._do_work = do_work
         self._size = size
 
-        self._queue = asyncio.Queue()
-        self._results = []
+        self._queue: asyncio.Queue[Work] = asyncio.Queue()
+        self._results: List[WorkResult] = []
 
         super().__init__(*args, **kwargs)
 
@@ -30,7 +30,8 @@ class QueueWorkManager(WorkManagerPluginsMixin, WorkManager):
     @trace_span(show_arguments=True, show_results=True)
     async def do_work_list(self, work_list: List[Work]) -> List[WorkResult]:
         workers = [create_task_with_logging(self.worker()) for _ in range(self._size)]
-        [self._queue.put_nowait(work) for work in work_list]
+        for work in work_list:
+            self._queue.put_nowait(work)
         await self._queue.join()
         [w.cancel() for w in workers]
         await asyncio.gather(*workers, return_exceptions=True)
