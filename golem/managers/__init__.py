@@ -33,7 +33,7 @@ from golem.managers.negotiation import (
 from golem.managers.network import SingleNetworkManager
 from golem.managers.payment import PayAllPaymentManager
 from golem.managers.work import (
-    QueueWorkManager,
+    ConcurrentWorkManager,
     SequentialWorkManager,
     WorkManagerPluginsMixin,
     redundancy_cancel_others_on_first_done,
@@ -73,7 +73,7 @@ __all__ = (
     "SingleNetworkManager",
     "PayAllPaymentManager",
     "SequentialWorkManager",
-    "QueueWorkManager",
+    "ConcurrentWorkManager",
     "WorkManagerPluginsMixin",
     "redundancy_cancel_others_on_first_done",
     "retry",

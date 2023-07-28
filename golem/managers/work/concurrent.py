@@ -11,7 +11,7 @@ from golem.utils.logging import trace_span
 logger = logging.getLogger(__name__)
 
 
-class QueueWorkManager(WorkManagerPluginsMixin, WorkManager):
+class ConcurrentWorkManager(WorkManagerPluginsMixin, WorkManager):
     def __init__(self, golem: GolemNode, do_work: DoWorkCallable, size: int, *args, **kwargs):
         self._do_work = do_work
         self._size = size

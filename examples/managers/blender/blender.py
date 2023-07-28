@@ -9,10 +9,10 @@ from golem.managers import (
     ActivityPoolManager,
     AddChosenPaymentPlatform,
     AutoDemandManager,
+    ConcurrentWorkManager,
     LinearAverageCostPricing,
     MapScore,
     PayAllPaymentManager,
-    QueueWorkManager,
     ScoredAheadOfTimeAgreementManager,
     SequentialNegotiationManager,
     WorkContext,
@@ -62,7 +62,7 @@ async def run_on_golem(
     activity_manager = ActivityPoolManager(
         golem, agreement_manager.get_agreement, size=threads, on_activity_start=init_func
     )
-    work_manager = QueueWorkManager(
+    work_manager = ConcurrentWorkManager(
         golem, activity_manager.do_work, size=threads, plugins=task_plugins
     )
 
