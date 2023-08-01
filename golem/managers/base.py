@@ -139,6 +139,13 @@ class DemandManager(Manager, ABC):
         ...
 
 
+class ProposalManager(Manager):
+    @abstractmethod
+    async def get_draft_proposal(self) -> Proposal:
+        ...
+
+
+# TODO remove NegotiationManager
 class NegotiationManager(Manager, ABC):
     @abstractmethod
     async def get_draft_proposal(self) -> Proposal:
@@ -165,12 +172,29 @@ class RejectProposal(ManagerPluginException):
     pass
 
 
-class NegotiationManagerPlugin(ABC):
+class NegotiationPlugin(ABC):
     @abstractmethod
     def __call__(
         self, demand_data: DemandData, proposal_data: ProposalData
     ) -> Union[Awaitable[Optional[RejectProposal]], Optional[RejectProposal]]:
         ...
+
+
+class ProposalManagerPlugin(ABC):
+    _get_proposal: Callable[[], Awaitable[Proposal]]
+
+    def set_callback(self, get_proposal: Callable[[], Awaitable[Proposal]]):
+        self._get_proposal = get_proposal
+
+    @abstractmethod
+    async def get_proposal(self) -> Proposal:
+        ...
+
+    async def start(self) -> None:
+        pass
+
+    async def stop(self) -> None:
+        pass
 
 
 ProposalPluginResult = Sequence[Optional[float]]

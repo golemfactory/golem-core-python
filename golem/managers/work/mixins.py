@@ -7,13 +7,13 @@ from golem.managers.base import (
     WorkManagerPlugin,
     WorkResult,
 )
-from golem.managers.mixins import ManagerPluginsMixin
+from golem.managers.mixins import PluginsMixin
 from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
 
-class WorkManagerPluginsMixin(ManagerPluginsMixin[WorkManagerPlugin]):
+class WorkManagerPluginsMixin(PluginsMixin[WorkManagerPlugin]):
     @trace_span()
     def _apply_plugins_from_manager(self, do_work: DoWorkCallable) -> DoWorkCallable:
         do_work_with_plugins = do_work

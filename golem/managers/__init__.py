@@ -16,6 +16,8 @@ from golem.managers.base import (
     NegotiationManager,
     NetworkManager,
     PaymentManager,
+    ProposalManager,
+    ProposalManagerPlugin,
     RejectProposal,
     Work,
     WorkContext,
@@ -32,6 +34,7 @@ from golem.managers.negotiation import (
 )
 from golem.managers.network import SingleNetworkManager
 from golem.managers.payment import PayAllPaymentManager
+from golem.managers.proposal import DefaultProposalManager
 from golem.managers.work import (
     ConcurrentWorkManager,
     SequentialWorkManager,
@@ -59,6 +62,8 @@ __all__ = (
     "WorkResult",
     "NetworkManager",
     "PaymentManager",
+    "ProposalManager",
+    "ProposalManagerPlugin",
     "DemandManager",
     "NegotiationManager",
     "AgreementManager",
@@ -72,6 +77,7 @@ __all__ = (
     "SequentialNegotiationManager",
     "SingleNetworkManager",
     "PayAllPaymentManager",
+    "DefaultProposalManager",
     "SequentialWorkManager",
     "ConcurrentWorkManager",
     "WorkManagerPluginsMixin",

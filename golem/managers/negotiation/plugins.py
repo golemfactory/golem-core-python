@@ -1,14 +1,14 @@
 import logging
 from typing import Sequence, Set
 
-from golem.managers.base import NegotiationManagerPlugin, PricingCallable, RejectProposal
+from golem.managers.base import NegotiationPlugin, PricingCallable, RejectProposal
 from golem.payload import Properties
 from golem.resources import DemandData, ProposalData
 
 logger = logging.getLogger(__name__)
 
 
-class BlacklistProviderId(NegotiationManagerPlugin):
+class BlacklistProviderId(NegotiationPlugin):
     def __init__(self, blacklist: Sequence[str]) -> None:
         self._blacklist = blacklist
 
@@ -28,7 +28,7 @@ class BlacklistProviderId(NegotiationManagerPlugin):
         )
 
 
-class AddChosenPaymentPlatform(NegotiationManagerPlugin):
+class AddChosenPaymentPlatform(NegotiationPlugin):
     async def __call__(self, demand_data: DemandData, proposal_data: ProposalData) -> None:
         logger.debug("Calling chosen payment platform plugin...")
 
@@ -59,7 +59,7 @@ class AddChosenPaymentPlatform(NegotiationManagerPlugin):
         }
 
 
-class RejectIfCostsExceeds(NegotiationManagerPlugin):
+class RejectIfCostsExceeds(NegotiationPlugin):
     def __init__(
         self, cost: float, pricing_callable: PricingCallable, reject_on_unpricable=True
     ) -> None:

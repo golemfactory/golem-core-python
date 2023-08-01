@@ -44,7 +44,7 @@ class BackgroundLoopMixin:
         pass
 
 
-class ManagerPluginsMixin(Generic[TPlugin]):
+class PluginsMixin(Generic[TPlugin]):
     def __init__(self, plugins: Optional[Sequence[TPlugin]] = None, *args, **kwargs) -> None:
         self._plugins: List[TPlugin] = list(plugins) if plugins is not None else []
 
@@ -59,7 +59,7 @@ class ManagerPluginsMixin(Generic[TPlugin]):
         self._plugins.remove(plugin)
 
 
-class WeightProposalScoringPluginsMixin(ManagerPluginsMixin[ManagerPluginWithOptionalWeight]):
+class WeightProposalScoringPluginsMixin(PluginsMixin[ManagerPluginWithOptionalWeight]):
     def __init__(
         self, demand_offer_parser: Optional[PayloadSyntaxParser] = None, *args, **kwargs
     ) -> None:
