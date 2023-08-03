@@ -23,7 +23,7 @@ class DefaultProposalManager(ProposalManager):
 
     async def start(self) -> None:
         for p in self._plugins:
-            p.set_callback(self._get_proposal_with_plugins)
+            p.set_proposal_callback(self._get_proposal_with_plugins)
             self._get_proposal_with_plugins = p.get_proposal
             await p.start()
 

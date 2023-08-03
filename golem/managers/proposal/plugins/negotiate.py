@@ -25,7 +25,7 @@ class NegotiateProposal(PluginsMixin[NegotiationPlugin], ProposalManagerPlugin):
     @trace_span(show_results=True)
     async def get_proposal(self) -> Proposal:
         while True:
-            proposal = await self._get_proposal()
+            proposal = await self._get_proposal_callback()
 
             demand_data = await self._get_demand_data_from_proposal(proposal)
 
