@@ -10,10 +10,10 @@ from golem.managers import (
     AddChosenPaymentPlatform,
     AutoDemandManager,
     ConcurrentWorkManager,
+    DefaultAgreementManager,
     LinearAverageCostPricing,
     MapScore,
     PayAllPaymentManager,
-    ScoredAheadOfTimeAgreementManager,
     SequentialNegotiationManager,
     WorkContext,
     WorkResult,
@@ -53,11 +53,10 @@ async def run_on_golem(
         demand_manager.get_initial_proposal,
         plugins=market_plugins,
     )
-    agreement_manager = ScoredAheadOfTimeAgreementManager(
+    agreement_manager = DefaultAgreementManager(
         golem,
         negotiation_manager.get_draft_proposal,
-        plugins=scoring_plugins,
-        buffer_size=(3, 10),
+        # plugins=scoring_plugins,
     )
     activity_manager = ActivityPoolManager(
         golem, agreement_manager.get_agreement, size=threads, on_activity_start=init_func

@@ -1,21 +1,18 @@
 import asyncio
 import logging.config
 from datetime import timedelta
-from random import randint, random
+from random import randint
 
 from golem.managers import (
     ActivityPoolManager,
     AddChosenPaymentPlatform,
     AutoDemandManager,
     BlacklistProviderId,
+    DefaultAgreementManager,
     LinearAverageCostPricing,
-    MapScore,
     PayAllPaymentManager,
-    PropertyValueLerpScore,
-    RandomScore,
     RejectIfCostsExceeds,
     RejectProposal,
-    ScoredAheadOfTimeAgreementManager,
     SequentialNegotiationManager,
     SequentialWorkManager,
     WorkContext,
@@ -25,7 +22,7 @@ from golem.managers import (
     work_plugin,
 )
 from golem.node import GolemNode
-from golem.payload import RepositoryVmPayload, defaults
+from golem.payload import RepositoryVmPayload
 from golem.resources import DemandData, ProposalData
 from golem.utils.logging import DEFAULT_LOGGING
 
@@ -88,16 +85,16 @@ async def main():
             else None,
         ],
     )
-    agreement_manager = ScoredAheadOfTimeAgreementManager(
+    agreement_manager = DefaultAgreementManager(
         golem,
         negotiation_manager.get_draft_proposal,
-        plugins=[
-            MapScore(linear_average_cost, normalize=True, normalize_flip=True),
-            [0.5, PropertyValueLerpScore(defaults.INF_MEM, zero_at=1, one_at=8)],
-            [0.1, RandomScore()],
-            [0.0, lambda proposals_data: [random() for _ in range(len(proposals_data))]],
-            [0.0, MapScore(lambda proposal_data: random())],
-        ],
+        # plugins=[
+        #     MapScore(linear_average_cost, normalize=True, normalize_flip=True),
+        #     [0.5, PropertyValueLerpScore(defaults.INF_MEM, zero_at=1, one_at=8)],
+        #     [0.1, RandomScore()],
+        #     [0.0, lambda proposals_data: [random() for _ in range(len(proposals_data))]],
+        #     [0.0, MapScore(lambda proposal_data: random())],
+        # ],
     )
     activity_manager = ActivityPoolManager(golem, agreement_manager.get_agreement, size=3)
     work_manager = SequentialWorkManager(

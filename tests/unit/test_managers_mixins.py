@@ -11,16 +11,16 @@ from golem.managers import (
     DoWorkCallable,
     LinearAverageCostPricing,
     Manager,
-    ManagerScorePlugin,
     MapScore,
     PropertyValueLerpScore,
-    WeightProposalScoringPluginsMixin,
+    Scorer,
     Work,
     WorkContext,
     WorkManager,
     WorkManagerPluginsMixin,
     WorkResult,
 )
+from golem.managers.proposal.plugins.mixins import ProposalScoringMixin
 from golem.payload import defaults
 
 
@@ -52,7 +52,7 @@ async def test_background_loop_mixin_ok():
     assert manager.bar == given_bar
 
 
-class FooBarWeightProposalScoringPluginsManager(WeightProposalScoringPluginsMixin, Manager):
+class FooBarWeightProposalScoringPluginsManager(ProposalScoringMixin, Manager):
     ...
 
 
@@ -131,7 +131,7 @@ class FooBarWeightProposalScoringPluginsManager(WeightProposalScoringPluginsMixi
 )
 async def test_weight_proposal_scoring_plugins_mixin_ok(
     yagna_proposal,
-    given_plugins: Sequence[Tuple[float, ManagerScorePlugin]],
+    given_plugins: Sequence[Tuple[float, Scorer]],
     properties: Iterable[Dict],
     expected_weights: Sequence[float],
 ):
@@ -141,7 +141,7 @@ async def test_weight_proposal_scoring_plugins_mixin_ok(
         proposal.get_data.return_value = yagna_proposal(properties=props)
         given_proposals.append(proposal)
 
-    manager = FooBarWeightProposalScoringPluginsManager(plugins=given_plugins)
+    manager = FooBarWeightProposalScoringPluginsManager(scorers=given_plugins)
     received_proposals = await manager.do_scoring(given_proposals)
     assert expected_weights == [weight for weight, _ in received_proposals]
 

@@ -1,44 +1,32 @@
 import logging
-from datetime import timedelta
-from typing import Awaitable, Callable, MutableSequence, Sequence, Tuple
+from typing import Awaitable, Callable
 
 from golem.managers.agreement.events import AgreementReleased
 from golem.managers.base import AgreementManager
-from golem.managers.mixins import WeightProposalScoringPluginsMixin
 from golem.node import GolemNode
 from golem.resources import Agreement, Proposal
-from golem.utils.buffer import ConcurrentlyFilledBuffer
 from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
 
-class ScoredAheadOfTimeAgreementManager(WeightProposalScoringPluginsMixin, AgreementManager):
+class DefaultAgreementManager(AgreementManager):
     def __init__(
         self,
         golem: GolemNode,
         get_draft_proposal: Callable[[], Awaitable[Proposal]],
-        buffer_size: Tuple[int, int] = (1, 3),
         *args,
         **kwargs,
     ):
         self._get_draft_proposal = get_draft_proposal
         self._event_bus = golem.event_bus
 
-        self._buffer = ConcurrentlyFilledBuffer(
-            fill_callback=self._get_draft_proposal,
-            min_size=buffer_size[0],
-            max_size=buffer_size[1],
-            update_callback=self._update_buffer_callback,
-            update_interval=timedelta(seconds=2),
-        )
-
         super().__init__(*args, **kwargs)
 
     @trace_span(show_arguments=True)
     async def get_agreement(self) -> Agreement:
         while True:
-            proposal = await self._buffer.get_item()
+            proposal = await self._get_draft_proposal()
             try:
                 agreement = await proposal.create_agreement()
                 await agreement.confirm()
@@ -56,24 +44,7 @@ class ScoredAheadOfTimeAgreementManager(WeightProposalScoringPluginsMixin, Agree
                 )
                 return agreement
 
-    @trace_span()
-    async def start(self) -> None:
-        await self._buffer.start(fill=True)
-
-    @trace_span()
-    async def stop(self) -> None:
-        await self._buffer.stop()
-
-    @trace_span(show_arguments=True)
-    async def _update_buffer_callback(
-        self, items: MutableSequence[Proposal], items_to_process: Sequence[Proposal]
-    ) -> None:
-        scored_proposals = [
-            proposal for _, proposal in await self.do_scoring([*items, *items_to_process])
-        ]
-        items.clear()
-        items.extend(scored_proposals)
-
+    # TODO make sure it is erminated on Ctrl+C
     @trace_span(show_arguments=True)
     async def _terminate_agreement(self, event: AgreementReleased) -> None:
         agreement: Agreement = event.resource

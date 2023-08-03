@@ -1,7 +1,7 @@
 from random import random
 from typing import Callable, List, Optional, Sequence, Tuple, Union
 
-from golem.managers.base import ManagerPluginException, ManagerScorePlugin, ProposalPluginResult
+from golem.managers.base import ManagerPluginException, ProposalScoringResult, Scorer
 from golem.payload.constraints import PropertyName
 from golem.resources import ProposalData
 
@@ -9,7 +9,7 @@ PropertyValueNumeric = Union[int, float]
 BoundaryValues = Tuple[Tuple[float, PropertyValueNumeric], Tuple[float, PropertyValueNumeric]]
 
 
-class PropertyValueLerpScore(ManagerScorePlugin):
+class PropertyValueLerpScore(Scorer):
     def __init__(
         self,
         property_name: PropertyName,
@@ -25,7 +25,7 @@ class PropertyValueLerpScore(ManagerScorePlugin):
         self._raise_on_missing = raise_on_missing
         self._raise_on_bad_value = raise_on_bad_value
 
-    def __call__(self, proposals_data: Sequence[ProposalData]) -> ProposalPluginResult:
+    def __call__(self, proposals_data: Sequence[ProposalData]) -> ProposalScoringResult:
         return [self._calculate_linear_score(proposal_data) for proposal_data in proposals_data]
 
     def _calculate_linear_score(self, proposal_data: ProposalData) -> Optional[float]:
@@ -90,12 +90,12 @@ class PropertyValueLerpScore(ManagerScorePlugin):
         return bounds_min, bounds_max
 
 
-class RandomScore(ManagerScorePlugin):
-    def __call__(self, proposals_data: Sequence[ProposalData]) -> ProposalPluginResult:
+class RandomScore(Scorer):
+    def __call__(self, proposals_data: Sequence[ProposalData]) -> ProposalScoringResult:
         return [random() for _ in range(len(proposals_data))]
 
 
-class MapScore(ManagerScorePlugin):
+class MapScore(Scorer):
     def __init__(
         self,
         callback: Callable[[ProposalData], Optional[float]],
@@ -106,7 +106,7 @@ class MapScore(ManagerScorePlugin):
         self._normalize = normalize
         self._normalize_flip = normalize_flip
 
-    def __call__(self, proposals_data: Sequence[ProposalData]) -> ProposalPluginResult:
+    def __call__(self, proposals_data: Sequence[ProposalData]) -> ProposalScoringResult:
         result = [self._callback(proposal_data) for proposal_data in proposals_data]
 
         if not self._normalize or result is None:

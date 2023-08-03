@@ -1,10 +1,10 @@
 from golem.managers.activity import ActivityPoolManager, SingleUseActivityManager
 from golem.managers.agreement import (
+    DefaultAgreementManager,
     LinearAverageCostPricing,
     MapScore,
     PropertyValueLerpScore,
     RandomScore,
-    ScoredAheadOfTimeAgreementManager,
 )
 from golem.managers.base import (
     ActivityManager,
@@ -12,20 +12,20 @@ from golem.managers.base import (
     DemandManager,
     DoWorkCallable,
     Manager,
-    ManagerScorePlugin,
     NegotiationManager,
     NetworkManager,
     PaymentManager,
     ProposalManager,
     ProposalManagerPlugin,
     RejectProposal,
+    Scorer,
     Work,
     WorkContext,
     WorkManager,
     WorkResult,
 )
 from golem.managers.demand import AutoDemandManager
-from golem.managers.mixins import BackgroundLoopMixin, WeightProposalScoringPluginsMixin
+from golem.managers.mixins import BackgroundLoopMixin
 from golem.managers.negotiation import (
     AddChosenPaymentPlatform,
     BlacklistProviderId,
@@ -51,10 +51,10 @@ __all__ = (
     "MapScore",
     "PropertyValueLerpScore",
     "RandomScore",
-    "ScoredAheadOfTimeAgreementManager",
+    "DefaultAgreementManager",
     "DoWorkCallable",
     "Manager",
-    "ManagerScorePlugin",
+    "Scorer",
     "RejectProposal",
     "Work",
     "WorkManager",
@@ -70,7 +70,6 @@ __all__ = (
     "ActivityManager",
     "AutoDemandManager",
     "BackgroundLoopMixin",
-    "WeightProposalScoringPluginsMixin",
     "AddChosenPaymentPlatform",
     "BlacklistProviderId",
     "RejectIfCostsExceeds",

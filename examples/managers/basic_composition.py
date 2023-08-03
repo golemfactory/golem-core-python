@@ -6,8 +6,8 @@ from typing import List
 from golem.managers import (
     AddChosenPaymentPlatform,
     AutoDemandManager,
+    DefaultAgreementManager,
     PayAllPaymentManager,
-    ScoredAheadOfTimeAgreementManager,
     SequentialNegotiationManager,
     SequentialWorkManager,
     SingleUseActivityManager,
@@ -61,9 +61,7 @@ async def main():
             AddChosenPaymentPlatform(),
         ],
     )
-    agreement_manager = ScoredAheadOfTimeAgreementManager(
-        golem, negotiation_manager.get_draft_proposal
-    )
+    agreement_manager = DefaultAgreementManager(golem, negotiation_manager.get_draft_proposal)
     activity_manager = SingleUseActivityManager(golem, agreement_manager.get_agreement)
     work_manager = SequentialWorkManager(golem, activity_manager.do_work)
 

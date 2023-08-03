@@ -9,10 +9,13 @@ from golem.managers import (
     WorkResult,
 )
 from golem.managers.activity.pool import ActivityPoolManager
-from golem.managers.agreement.scored_aot import ScoredAheadOfTimeAgreementManager
+from golem.managers.agreement.default import DefaultAgreementManager
 from golem.managers.negotiation.plugins import AddChosenPaymentPlatform
 from golem.managers.proposal.default import DefaultProposalManager
-from golem.managers.proposal.plugins import BlacklistProviderId, NegotiateProposal
+from golem.managers.proposal.plugins.blacklist import BlacklistProviderId
+from golem.managers.proposal.plugins.buffer import Buffer
+from golem.managers.proposal.plugins.negotiate import NegotiateProposal
+from golem.managers.proposal.plugins.scoring_buffer import ScoringBuffer
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
 from golem.utils.logging import DEFAULT_LOGGING
@@ -47,31 +50,28 @@ async def main():
         golem,
         demand_manager.get_initial_proposal,
         plugins=[
+            Buffer(
+                min_size=10,
+                max_size=1000,
+                concurrency_size=5,
+            ),
             BlacklistProviderId(BLACKLISTED_PROVIDERS),
             NegotiateProposal(plugins=[AddChosenPaymentPlatform()]),
+            ScoringBuffer(
+                min_size=3,
+                max_size=5,
+                concurrency_size=3,
+            ),
         ],
     )
 
-    # PluginManager(callback, plugins*)
-    # negoatiation_plugin_manager = PluginManager(
-    #     demand_manager.get_proposal,
-    #     Blacklist(),
-    #     MostPromising(),
-    #     AddChosenPaymentPlatform(),
-    #     Negotiate(),
-    #     OrderByPrice(),
-    # )
-
-    # agreement_manager without scoring
-    agreement_manager = ScoredAheadOfTimeAgreementManager(
-        golem, proposal_manager.get_draft_proposal
-    )
+    agreement_manager = DefaultAgreementManager(golem, proposal_manager.get_draft_proposal)
     activity_manager = ActivityPoolManager(golem, agreement_manager.get_agreement, size=3)
     work_manager = SequentialWorkManager(golem, activity_manager.do_work)
 
     async with golem:
         async with payment_manager, demand_manager, proposal_manager, agreement_manager, activity_manager:  # noqa: E501 line too long
-            await asyncio.sleep(20)
+            await asyncio.sleep(30)
             results: WorkResult = await work_manager.do_work(commands_work_example)
             print(f"\nWORK MANAGER RESULT:{results}\n")
 

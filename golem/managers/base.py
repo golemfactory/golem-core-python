@@ -197,18 +197,18 @@ class ProposalManagerPlugin(ABC):
         pass
 
 
-ProposalPluginResult = Sequence[Optional[float]]
+ProposalScoringResult = Sequence[Optional[float]]
 
 
-class ManagerScorePlugin(ABC):
+class Scorer(ABC):
     @abstractmethod
     def __call__(
         self, proposals_data: Sequence[ProposalData]
-    ) -> Union[Awaitable[ProposalPluginResult], ProposalPluginResult]:
+    ) -> Union[Awaitable[ProposalScoringResult], ProposalScoringResult]:
         ...
 
 
-ManagerPluginWithOptionalWeight = Union[ManagerScorePlugin, Tuple[float, ManagerScorePlugin]]
+ScorerWithOptionalWeight = Union[Scorer, Tuple[float, Scorer]]
 
 
 class WorkManagerPlugin(ABC):

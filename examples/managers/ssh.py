@@ -6,8 +6,8 @@ from uuid import uuid4
 
 from golem.managers import (
     AutoDemandManager,
+    DefaultAgreementManager,
     PayAllPaymentManager,
-    ScoredAheadOfTimeAgreementManager,
     SequentialNegotiationManager,
     SequentialWorkManager,
     SingleNetworkManager,
@@ -85,10 +85,9 @@ async def main():
         payload,
     )
     negotiation_manager = SequentialNegotiationManager(golem, demand_manager.get_initial_proposal)
-    agreement_manager = ScoredAheadOfTimeAgreementManager(
+    agreement_manager = DefaultAgreementManager(
         golem,
         negotiation_manager.get_draft_proposal,
-        buffer_size=(1, 2),
     )
 
     ssh_handler = SshHandler(golem._api_config.app_key, network_manager=network_manager)
