@@ -2,8 +2,8 @@ import asyncio
 import logging.config
 
 from golem.managers import (
-    AutoDemandManager,
     PayAllPaymentManager,
+    RefreshingDemandManager,
     SequentialWorkManager,
     WorkContext,
     WorkResult,
@@ -44,7 +44,7 @@ async def main():
 
     payment_manager = PayAllPaymentManager(golem, budget=1.0)
     # demand_manager without scoring
-    demand_manager = AutoDemandManager(golem, payment_manager.get_allocation, payload)
+    demand_manager = RefreshingDemandManager(golem, payment_manager.get_allocation, payload)
 
     proposal_manager = DefaultProposalManager(
         golem,

@@ -6,11 +6,11 @@ from random import randint
 from golem.managers import (
     ActivityPoolManager,
     AddChosenPaymentPlatform,
-    AutoDemandManager,
     BlacklistProviderId,
     DefaultAgreementManager,
     LinearAverageCostPricing,
     PayAllPaymentManager,
+    RefreshingDemandManager,
     RejectIfCostsExceeds,
     RejectProposal,
     SequentialNegotiationManager,
@@ -62,7 +62,7 @@ async def main():
     )
 
     payment_manager = PayAllPaymentManager(golem, budget=1.0)
-    demand_manager = AutoDemandManager(
+    demand_manager = RefreshingDemandManager(
         golem,
         payment_manager.get_allocation,
         payload,

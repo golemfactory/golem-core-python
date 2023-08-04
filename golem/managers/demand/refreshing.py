@@ -17,7 +17,7 @@ from golem.utils.logging import trace_span
 logger = logging.getLogger(__name__)
 
 
-class AutoDemandManager(BackgroundLoopMixin, DemandManager):
+class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
     def __init__(
         self,
         golem: GolemNode,

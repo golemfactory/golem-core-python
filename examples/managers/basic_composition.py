@@ -5,9 +5,9 @@ from typing import List
 
 from golem.managers import (
     AddChosenPaymentPlatform,
-    AutoDemandManager,
     DefaultAgreementManager,
     PayAllPaymentManager,
+    RefreshingDemandManager,
     SequentialNegotiationManager,
     SequentialWorkManager,
     SingleUseActivityManager,
@@ -53,7 +53,7 @@ async def main():
     golem = GolemNode()
 
     payment_manager = PayAllPaymentManager(golem, budget=1.0)
-    demand_manager = AutoDemandManager(golem, payment_manager.get_allocation, payload)
+    demand_manager = RefreshingDemandManager(golem, payment_manager.get_allocation, payload)
     negotiation_manager = SequentialNegotiationManager(
         golem,
         demand_manager.get_initial_proposal,

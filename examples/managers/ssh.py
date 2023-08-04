@@ -5,9 +5,9 @@ import string
 from uuid import uuid4
 
 from golem.managers import (
-    AutoDemandManager,
     DefaultAgreementManager,
     PayAllPaymentManager,
+    RefreshingDemandManager,
     SequentialNegotiationManager,
     SequentialWorkManager,
     SingleNetworkManager,
@@ -79,7 +79,7 @@ async def main():
 
     network_manager = SingleNetworkManager(golem, network_ip)
     payment_manager = PayAllPaymentManager(golem, budget=1.0)
-    demand_manager = AutoDemandManager(
+    demand_manager = RefreshingDemandManager(
         golem,
         payment_manager.get_allocation,
         payload,

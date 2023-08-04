@@ -24,7 +24,7 @@ from golem.managers.base import (
     WorkManager,
     WorkResult,
 )
-from golem.managers.demand import AutoDemandManager
+from golem.managers.demand import RefreshingDemandManager
 from golem.managers.mixins import BackgroundLoopMixin
 from golem.managers.negotiation import (
     AddChosenPaymentPlatform,
@@ -68,7 +68,7 @@ __all__ = (
     "NegotiationManager",
     "AgreementManager",
     "ActivityManager",
-    "AutoDemandManager",
+    "RefreshingDemandManager",
     "BackgroundLoopMixin",
     "AddChosenPaymentPlatform",
     "BlacklistProviderId",
