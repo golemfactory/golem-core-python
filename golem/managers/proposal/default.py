@@ -1,6 +1,7 @@
 from typing import Awaitable, Callable, List, Optional, Sequence
 
 from golem.managers.base import ProposalManager, ProposalManagerPlugin
+from golem.managers.proposal.plugins.negotiating.negotiating_plugin import NegotiatingPlugin
 from golem.node.node import GolemNode
 from golem.resources import Proposal
 
@@ -15,8 +16,9 @@ class DefaultProposalManager(ProposalManager):
         self._golem = golem
         self._get_initial_proposal = get_initial_proposal
         self._get_proposal_with_plugins = self._get_initial_proposal
-        # TODO add deafult negotiation plugin
-        self._plugins: List[ProposalManagerPlugin] = list(plugins) if plugins is not None else []
+        self._plugins: List[ProposalManagerPlugin] = (
+            list(plugins) if plugins is not None else [NegotiatingPlugin()]
+        )
 
     async def get_draft_proposal(self) -> Proposal:
         return await self._get_proposal_with_plugins()

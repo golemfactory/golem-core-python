@@ -44,9 +44,9 @@ class DefaultAgreementManager(AgreementManager):
                 )
                 return agreement
 
-    # TODO make sure it is erminated on Ctrl+C
     @trace_span(show_arguments=True)
     async def _terminate_agreement(self, event: AgreementReleased) -> None:
+        # TODO ensure agreement it is terminated on SIGINT
         agreement: Agreement = event.resource
         await agreement.terminate()
         logger.info(f"Agreement `{agreement}` closed")

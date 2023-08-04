@@ -29,7 +29,7 @@ class LinearAverageCostPricing:
             )
             return None
 
-        # TODO golem.com.pricing.model.linear.coeffs can come with any order of params
+        # TODO order of params golem.com.pricing.model.linear.coeffs order of params may vary
         coeffs = proposal_data.properties.get("golem.com.pricing.model.linear.coeffs")
 
         if not (isinstance(coeffs, (list, tuple)) and len(coeffs) == 3):
