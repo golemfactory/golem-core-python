@@ -172,7 +172,7 @@ class RejectProposal(ManagerPluginException):
     pass
 
 
-class NegotiationPlugin(ABC):
+class Negotiator(ABC):
     @abstractmethod
     def __call__(
         self, demand_data: DemandData, proposal_data: ProposalData

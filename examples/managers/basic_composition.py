@@ -1,14 +1,14 @@
 import asyncio
 import logging.config
-from random import randint
 from typing import List
 
 from golem.managers import (
     AddChosenPaymentPlatform,
     DefaultAgreementManager,
+    DefaultProposalManager,
+    NegotiatingPlugin,
     PayAllPaymentManager,
     RefreshingDemandManager,
-    SequentialNegotiationManager,
     SequentialWorkManager,
     SingleUseActivityManager,
     WorkContext,
@@ -29,8 +29,6 @@ async def commands_work_example(context: WorkContext) -> str:
 
 
 async def batch_work_example(context: WorkContext):
-    if randint(0, 1):
-        raise Exception("Random fail")
     batch = await context.create_batch()
     batch.run("echo 'hello batch'")
     batch.run("echo 'bye batch'")
@@ -54,19 +52,19 @@ async def main():
 
     payment_manager = PayAllPaymentManager(golem, budget=1.0)
     demand_manager = RefreshingDemandManager(golem, payment_manager.get_allocation, payload)
-    negotiation_manager = SequentialNegotiationManager(
+    proposal_manager = DefaultProposalManager(
         golem,
         demand_manager.get_initial_proposal,
         plugins=[
-            AddChosenPaymentPlatform(),
+            NegotiatingPlugin(negotiators=[AddChosenPaymentPlatform()]),
         ],
     )
-    agreement_manager = DefaultAgreementManager(golem, negotiation_manager.get_draft_proposal)
+    agreement_manager = DefaultAgreementManager(golem, proposal_manager.get_draft_proposal)
     activity_manager = SingleUseActivityManager(golem, agreement_manager.get_agreement)
     work_manager = SequentialWorkManager(golem, activity_manager.do_work)
 
     async with golem:
-        async with payment_manager, demand_manager, negotiation_manager, agreement_manager:
+        async with payment_manager, demand_manager, proposal_manager, agreement_manager:
             results: List[WorkResult] = await work_manager.do_work_list(work_list)
             print(f"\nWORK MANAGER RESULTS:{[result.result for result in results]}\n", flush=True)
 

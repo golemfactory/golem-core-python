@@ -2,20 +2,20 @@ import asyncio
 import logging.config
 
 from golem.managers import (
+    ActivityPoolManager,
+    AddChosenPaymentPlatform,
+    BlacklistProviderIdPlugin,
+    Buffer,
+    DefaultAgreementManager,
+    DefaultProposalManager,
+    NegotiatingPlugin,
     PayAllPaymentManager,
     RefreshingDemandManager,
+    ScoringBuffer,
     SequentialWorkManager,
     WorkContext,
     WorkResult,
 )
-from golem.managers.activity.pool import ActivityPoolManager
-from golem.managers.agreement.default import DefaultAgreementManager
-from golem.managers.negotiation.plugins import AddChosenPaymentPlatform
-from golem.managers.proposal.default import DefaultProposalManager
-from golem.managers.proposal.plugins.blacklist import BlacklistProviderId
-from golem.managers.proposal.plugins.buffer import Buffer
-from golem.managers.proposal.plugins.negotiate import NegotiateProposal
-from golem.managers.proposal.plugins.scoring_buffer import ScoringBuffer
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
 from golem.utils.logging import DEFAULT_LOGGING
@@ -55,8 +55,8 @@ async def main():
                 max_size=1000,
                 concurrency_size=5,
             ),
-            BlacklistProviderId(BLACKLISTED_PROVIDERS),
-            NegotiateProposal(plugins=[AddChosenPaymentPlatform()]),
+            BlacklistProviderIdPlugin(BLACKLISTED_PROVIDERS),
+            NegotiatingPlugin(negotiators=[AddChosenPaymentPlatform()]),
             ScoringBuffer(
                 min_size=3,
                 max_size=5,

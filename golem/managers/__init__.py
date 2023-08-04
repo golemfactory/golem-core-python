@@ -1,11 +1,5 @@
 from golem.managers.activity import ActivityPoolManager, SingleUseActivityManager
-from golem.managers.agreement import (
-    DefaultAgreementManager,
-    LinearAverageCostPricing,
-    MapScore,
-    PropertyValueLerpScore,
-    RandomScore,
-)
+from golem.managers.agreement import AgreementReleased, DefaultAgreementManager
 from golem.managers.base import (
     ActivityManager,
     AgreementManager,
@@ -26,15 +20,23 @@ from golem.managers.base import (
 )
 from golem.managers.demand import RefreshingDemandManager
 from golem.managers.mixins import BackgroundLoopMixin
-from golem.managers.negotiation import (
-    AddChosenPaymentPlatform,
-    BlacklistProviderId,
-    RejectIfCostsExceeds,
-    SequentialNegotiationManager,
-)
 from golem.managers.network import SingleNetworkManager
 from golem.managers.payment import PayAllPaymentManager
-from golem.managers.proposal import DefaultProposalManager
+from golem.managers.proposal.default import DefaultProposalManager
+from golem.managers.proposal.plugins import (
+    AddChosenPaymentPlatform,
+    BlacklistProviderIdNegotiator,
+    BlacklistProviderIdPlugin,
+    Buffer,
+    LinearAverageCostPricing,
+    MapScore,
+    NegotiatingPlugin,
+    PropertyValueLerpScore,
+    ProposalScoringMixin,
+    RandomScore,
+    RejectIfCostsExceeds,
+    ScoringBuffer,
+)
 from golem.managers.work import (
     ConcurrentWorkManager,
     SequentialWorkManager,
@@ -47,10 +49,7 @@ from golem.managers.work import (
 __all__ = (
     "ActivityPoolManager",
     "SingleUseActivityManager",
-    "LinearAverageCostPricing",
-    "MapScore",
-    "PropertyValueLerpScore",
-    "RandomScore",
+    "AgreementReleased",
     "DefaultAgreementManager",
     "DoWorkCallable",
     "Manager",
@@ -70,13 +69,23 @@ __all__ = (
     "ActivityManager",
     "RefreshingDemandManager",
     "BackgroundLoopMixin",
-    "AddChosenPaymentPlatform",
     "BlacklistProviderId",
-    "RejectIfCostsExceeds",
     "SequentialNegotiationManager",
     "SingleNetworkManager",
     "PayAllPaymentManager",
     "DefaultProposalManager",
+    "BlacklistProviderIdPlugin",
+    "Buffer",
+    "AddChosenPaymentPlatform",
+    "BlacklistProviderIdNegotiator",
+    "NegotiatingPlugin",
+    "RejectIfCostsExceeds",
+    "MapScore",
+    "ProposalScoringMixin",
+    "LinearAverageCostPricing",
+    "PropertyValueLerpScore",
+    "RandomScore",
+    "ScoringBuffer",
     "SequentialWorkManager",
     "ConcurrentWorkManager",
     "WorkManagerPluginsMixin",

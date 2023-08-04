@@ -5,7 +5,7 @@ from golem.resources import Proposal
 from golem.utils.logging import trace_span
 
 
-class BlacklistProviderId(ProposalManagerPlugin):
+class BlacklistProviderIdPlugin(ProposalManagerPlugin):
     def __init__(self, blacklist: Sequence[str]) -> None:
         self._blacklist = blacklist
 

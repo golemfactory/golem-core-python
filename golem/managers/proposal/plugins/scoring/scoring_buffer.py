@@ -4,7 +4,7 @@ from datetime import timedelta
 from typing import List, Optional
 
 from golem.managers.proposal.plugins.buffer import Buffer
-from golem.managers.proposal.plugins.mixins import ProposalScoringMixin
+from golem.managers.proposal.plugins.scoring.mixins import ProposalScoringMixin
 from golem.resources import Proposal
 from golem.utils.asyncio import create_task_with_logging
 from golem.utils.logging import trace_span
