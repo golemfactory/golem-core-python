@@ -1,13 +1,13 @@
 from typing import Callable, List, Optional, Sequence, Tuple, Union
 
-from golem.managers.base import ProposalScoringResult, Scorer
+from golem.managers.base import ProposalScorer, ProposalScoringResult
 from golem.resources import ProposalData
 
 PropertyValueNumeric = Union[int, float]
 BoundaryValues = Tuple[Tuple[float, PropertyValueNumeric], Tuple[float, PropertyValueNumeric]]
 
 
-class MapScore(Scorer):
+class MapScore(ProposalScorer):
     def __init__(
         self,
         callback: Callable[[ProposalData], Optional[float]],

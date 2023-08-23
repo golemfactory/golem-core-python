@@ -1,12 +1,12 @@
 import logging
 
-from golem.managers.base import Negotiator, PricingCallable, RejectProposal
+from golem.managers.base import PricingCallable, ProposalNegotiator, RejectProposal
 from golem.resources import DemandData, ProposalData
 
 logger = logging.getLogger(__name__)
 
 
-class RejectIfCostsExceeds(Negotiator):
+class RejectIfCostsExceeds(ProposalNegotiator):
     def __init__(
         self, cost: float, pricing_callable: PricingCallable, reject_on_unpricable=True
     ) -> None:

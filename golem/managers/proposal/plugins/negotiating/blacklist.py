@@ -1,13 +1,13 @@
 import logging
 from typing import Sequence
 
-from golem.managers.base import Negotiator, RejectProposal
+from golem.managers.base import ProposalNegotiator, RejectProposal
 from golem.resources import DemandData, ProposalData
 
 logger = logging.getLogger(__name__)
 
 
-class BlacklistProviderIdNegotiator(Negotiator):
+class BlacklistProviderIdNegotiator(ProposalNegotiator):
     def __init__(self, blacklist: Sequence[str]) -> None:
         self._blacklist = blacklist
 

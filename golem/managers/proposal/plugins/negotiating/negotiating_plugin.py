@@ -6,7 +6,7 @@ from typing import List, Optional, Sequence, cast
 from ya_market import ApiException
 
 from golem.managers import ProposalManagerPlugin, RejectProposal
-from golem.managers.base import Negotiator
+from golem.managers.base import ProposalNegotiator
 from golem.payload import PayloadSyntaxParser, Properties
 from golem.resources import DemandData, Proposal, ProposalData
 from golem.utils.logging import trace_span
@@ -16,7 +16,7 @@ class NegotiatingPlugin(ProposalManagerPlugin):
     def __init__(
         self,
         demand_offer_parser: Optional[PayloadSyntaxParser] = None,
-        proposal_negotiators: Optional[Sequence[Negotiator]] = None,
+        proposal_negotiators: Optional[Sequence[ProposalNegotiator]] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -25,7 +25,7 @@ class NegotiatingPlugin(ProposalManagerPlugin):
 
             demand_offer_parser = TextXPayloadSyntaxParser()
         self._demand_offer_parser = demand_offer_parser
-        self._proposal_negotiators: List[Negotiator] = (
+        self._proposal_negotiators: List[ProposalNegotiator] = (
             list(proposal_negotiators) if proposal_negotiators is not None else []
         )
 

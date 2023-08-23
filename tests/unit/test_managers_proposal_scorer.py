@@ -8,8 +8,8 @@ from golem.managers import (
     LinearAverageCostPricing,
     MapScore,
     PropertyValueLerpScore,
+    ProposalScorer,
     ProposalScoringMixin,
-    Scorer,
 )
 from golem.payload import defaults
 
@@ -93,7 +93,7 @@ class FooBarProposalScorer(ProposalScoringMixin):
 )
 async def test_weight_proposal_scoring_plugins_mixin_ok(
     yagna_proposal,
-    given_plugins: Sequence[Tuple[float, Scorer]],
+    given_plugins: Sequence[Tuple[float, ProposalScorer]],
     properties: Iterable[Dict],
     expected_weights: Sequence[float],
 ):

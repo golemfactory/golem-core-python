@@ -165,7 +165,7 @@ class RejectProposal(ManagerPluginException):
     pass
 
 
-class Negotiator(ABC):
+class ProposalNegotiator(ABC):
     @abstractmethod
     def __call__(
         self, demand_data: DemandData, proposal_data: ProposalData
@@ -193,7 +193,7 @@ class ProposalManagerPlugin(ABC):
 ProposalScoringResult = Sequence[Optional[float]]
 
 
-class Scorer(ABC):
+class ProposalScorer(ABC):
     @abstractmethod
     def __call__(
         self, proposals_data: Sequence[ProposalData]
@@ -201,7 +201,7 @@ class Scorer(ABC):
         ...
 
 
-ScorerWithOptionalWeight = Union[Scorer, Tuple[float, Scorer]]
+ScorerWithOptionalWeight = Union[ProposalScorer, Tuple[float, ProposalScorer]]
 
 
 class WorkManagerPlugin(ABC):

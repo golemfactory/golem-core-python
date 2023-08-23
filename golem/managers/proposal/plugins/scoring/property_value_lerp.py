@@ -1,6 +1,6 @@
 from typing import Optional, Sequence, Tuple, Union
 
-from golem.managers.base import ManagerPluginException, ProposalScoringResult, Scorer
+from golem.managers.base import ManagerPluginException, ProposalScorer, ProposalScoringResult
 from golem.payload.constraints import PropertyName
 from golem.resources import ProposalData
 
@@ -8,7 +8,7 @@ PropertyValueNumeric = Union[int, float]
 BoundaryValues = Tuple[Tuple[float, PropertyValueNumeric], Tuple[float, PropertyValueNumeric]]
 
 
-class PropertyValueLerpScore(Scorer):
+class PropertyValueLerpScore(ProposalScorer):
     """Linear interpolation."""
 
     def __init__(
