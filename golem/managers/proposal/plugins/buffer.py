@@ -80,7 +80,7 @@ class Buffer(ProposalManagerPlugin):
         while True:
             await self._requests_queue.get()
 
-            item = await self._get_proposal_callback()
+            item = await self._get_proposal()
 
             logger.debug("Requested item `%s` received", item)
 

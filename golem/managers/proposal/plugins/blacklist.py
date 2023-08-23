@@ -12,7 +12,7 @@ class BlacklistProviderIdPlugin(ProposalManagerPlugin):
     @trace_span(show_results=True)
     async def get_proposal(self) -> Proposal:
         while True:
-            proposal: Proposal = await self._get_proposal_callback()
+            proposal: Proposal = await self._get_proposal()
             proposal_data = await proposal.get_data()
             provider_id = proposal_data.issuer_id
             if provider_id not in self._blacklist:

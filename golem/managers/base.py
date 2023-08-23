@@ -174,10 +174,10 @@ class Negotiator(ABC):
 
 
 class ProposalManagerPlugin(ABC):
-    _get_proposal_callback: Callable[[], Awaitable[Proposal]]
+    _get_proposal: Callable[[], Awaitable[Proposal]]
 
     def set_proposal_callback(self, get_proposal: Callable[[], Awaitable[Proposal]]):
-        self._get_proposal_callback = get_proposal
+        self._get_proposal = get_proposal
 
     @abstractmethod
     async def get_proposal(self) -> Proposal:
