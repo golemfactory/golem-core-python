@@ -7,8 +7,7 @@ from ya_market import ApiException
 
 from golem.managers import ProposalManagerPlugin, RejectProposal
 from golem.managers.base import Negotiator
-from golem.payload import PayloadSyntaxParser, Properties
-from golem.payload.parsers.textx import TextXPayloadSyntaxParser
+from golem.payload import PayloadSyntaxParser, Properties, TextXPayloadSyntaxParser
 from golem.resources import DemandData, Proposal, ProposalData
 from golem.utils.logging import trace_span
 

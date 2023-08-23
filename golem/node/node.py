@@ -9,9 +9,8 @@ from uuid import uuid4
 from golem.event_bus import EventBus
 from golem.event_bus.in_memory import InMemoryEventBus
 from golem.node.events import SessionStarted, ShutdownFinished, ShutdownStarted
-from golem.payload import Payload
+from golem.payload import Payload, TextXPayloadSyntaxParser
 from golem.payload import defaults as payload_defaults
-from golem.payload.parsers.textx import TextXPayloadSyntaxParser
 from golem.resources import (
     Activity,
     Agreement,

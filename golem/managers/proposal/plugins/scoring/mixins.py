@@ -3,9 +3,7 @@ from datetime import datetime
 from typing import List, Optional, Sequence, Tuple, cast
 
 from golem.managers.base import ScorerWithOptionalWeight
-from golem.payload import Properties
-from golem.payload.parsers.base import PayloadSyntaxParser
-from golem.payload.parsers.textx.parser import TextXPayloadSyntaxParser
+from golem.payload import PayloadSyntaxParser, Properties, TextXPayloadSyntaxParser
 from golem.resources import Proposal, ProposalData
 from golem.utils.logging import trace_span
 

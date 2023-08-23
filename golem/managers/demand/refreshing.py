@@ -6,9 +6,7 @@ from typing import Awaitable, Callable, List, Optional, Tuple
 from golem.managers.base import DemandManager
 from golem.managers.mixins import BackgroundLoopMixin
 from golem.node import GolemNode
-from golem.payload import Payload
-from golem.payload.parsers.base import PayloadSyntaxParser
-from golem.payload.parsers.textx.parser import TextXPayloadSyntaxParser
+from golem.payload import Payload, PayloadSyntaxParser, TextXPayloadSyntaxParser
 from golem.resources import Allocation, Demand, Proposal
 from golem.resources.demand.demand_builder import DemandBuilder
 from golem.utils.asyncio import create_task_with_logging
