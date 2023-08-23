@@ -16,7 +16,6 @@ class BlacklistProviderIdPlugin(ProposalManagerPlugin):
             proposal_data = await proposal.get_data()
             provider_id = proposal_data.issuer_id
             if provider_id not in self._blacklist:
-                break
+                return proposal
             if not proposal.initial:
                 await proposal.reject("provider_id on blacklist")
-        return proposal
