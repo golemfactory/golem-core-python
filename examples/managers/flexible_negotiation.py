@@ -11,7 +11,6 @@ from golem.managers import (
     NegotiatingPlugin,
     PayAllPaymentManager,
     RefreshingDemandManager,
-    ScoringBuffer,
     SequentialWorkManager,
     WorkContext,
     WorkResult,
@@ -56,7 +55,7 @@ async def main():
             ),
             BlacklistProviderIdPlugin(BLACKLISTED_PROVIDERS),
             NegotiatingPlugin(negotiators=[AddChosenPaymentPlatform()]),
-            ScoringBuffer(
+            Buffer(
                 min_size=3,
                 max_size=5,
                 concurrency_size=3,
