@@ -7,7 +7,7 @@ from ya_market import ApiException
 
 from golem.managers import ProposalManagerPlugin, RejectProposal
 from golem.managers.base import Negotiator
-from golem.payload import PayloadSyntaxParser, Properties, TextXPayloadSyntaxParser
+from golem.payload import PayloadSyntaxParser, Properties
 from golem.resources import DemandData, Proposal, ProposalData
 from golem.utils.logging import trace_span
 
@@ -20,7 +20,11 @@ class NegotiatingPlugin(ProposalManagerPlugin):
         *args,
         **kwargs,
     ) -> None:
-        self._demand_offer_parser = demand_offer_parser or TextXPayloadSyntaxParser()
+        if demand_offer_parser is None:
+            from golem.payload import TextXPayloadSyntaxParser
+
+            demand_offer_parser = TextXPayloadSyntaxParser()
+        self._demand_offer_parser = demand_offer_parser
         self._negotiators: List[Negotiator] = list(negotiators) if negotiators is not None else []
 
         super().__init__(*args, **kwargs)

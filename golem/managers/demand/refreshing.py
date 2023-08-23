@@ -6,7 +6,7 @@ from typing import Awaitable, Callable, List, Optional, Tuple
 from golem.managers.base import DemandManager
 from golem.managers.mixins import BackgroundLoopMixin
 from golem.node import GolemNode
-from golem.payload import Payload, PayloadSyntaxParser, TextXPayloadSyntaxParser
+from golem.payload import Payload, PayloadSyntaxParser
 from golem.resources import Allocation, Demand, Proposal
 from golem.resources.demand.demand_builder import DemandBuilder
 from golem.utils.asyncio import create_task_with_logging
@@ -28,8 +28,11 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         self._golem = golem
         self._get_allocation = get_allocation
         self._payload = payload
+        if demand_offer_parser is None:
+            from golem.payload import TextXPayloadSyntaxParser
 
-        self._demand_offer_parser = demand_offer_parser or TextXPayloadSyntaxParser()
+            demand_offer_parser = TextXPayloadSyntaxParser()
+        self._demand_offer_parser = demand_offer_parser
 
         self._initial_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
 

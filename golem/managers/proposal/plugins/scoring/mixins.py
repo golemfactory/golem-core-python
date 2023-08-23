@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional, Sequence, Tuple, cast
 
 from golem.managers.base import ScorerWithOptionalWeight
-from golem.payload import PayloadSyntaxParser, Properties, TextXPayloadSyntaxParser
+from golem.payload import PayloadSyntaxParser, Properties
 from golem.resources import Proposal, ProposalData
 from golem.utils.logging import trace_span
 
@@ -16,7 +16,11 @@ class ProposalScoringMixin:
         *args,
         **kwargs,
     ) -> None:
-        self._demand_offer_parser = demand_offer_parser or TextXPayloadSyntaxParser()
+        if demand_offer_parser is None:
+            from golem.payload import TextXPayloadSyntaxParser
+
+            demand_offer_parser = TextXPayloadSyntaxParser()
+        self._demand_offer_parser = demand_offer_parser
         self._scorers: List[ScorerWithOptionalWeight] = list(scorers) if scorers is not None else []
 
         super().__init__(*args, **kwargs)
