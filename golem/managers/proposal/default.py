@@ -30,5 +30,5 @@ class DefaultProposalManager(ProposalManager):
             await p.start()
 
     async def stop(self) -> None:
-        for p in self._plugins[::-1]:
+        for p in reversed(self._plugins):
             await p.stop()
