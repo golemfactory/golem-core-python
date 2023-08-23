@@ -18,14 +18,14 @@ class ActivityPoolManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, Acti
         self,
         golem: GolemNode,
         get_agreement: Callable[[], Awaitable[Agreement]],
-        size: int,
+        pool_size: int,
         *args,
         **kwargs,
     ):
         self._get_agreement = get_agreement
         self._event_bus = golem.event_bus
 
-        self._pool_target_size = size
+        self._pool_target_size = pool_size
         self._pool_current_size = 0
         self._pool: asyncio.Queue[Activity] = asyncio.Queue()
         super().__init__(*args, **kwargs)

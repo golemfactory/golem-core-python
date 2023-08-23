@@ -63,7 +63,7 @@ async def run_on_golem(
         proposal_manager.get_draft_proposal,
     )
     activity_manager = ActivityPoolManager(
-        golem, agreement_manager.get_agreement, size=threads, on_activity_start=init_func
+        golem, agreement_manager.get_agreement, pool_size=threads, on_activity_start=init_func
     )
     work_manager = ConcurrentWorkManager(
         golem, activity_manager.do_work, size=threads, plugins=task_plugins
