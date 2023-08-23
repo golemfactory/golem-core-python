@@ -21,12 +21,12 @@ from golem.managers.demand import RefreshingDemandManager
 from golem.managers.mixins import BackgroundLoopMixin
 from golem.managers.network import SingleNetworkManager
 from golem.managers.payment import PayAllPaymentManager
-from golem.managers.proposal.default import DefaultProposalManager
-from golem.managers.proposal.plugins import (
+from golem.managers.proposal import (
     AddChosenPaymentPlatform,
     BlacklistProviderIdNegotiator,
     BlacklistProviderIdPlugin,
     Buffer,
+    DefaultProposalManager,
     LinearAverageCostPricing,
     MapScore,
     NegotiatingPlugin,
