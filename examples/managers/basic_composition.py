@@ -56,7 +56,7 @@ async def main():
         golem,
         demand_manager.get_initial_proposal,
         plugins=[
-            NegotiatingPlugin(negotiators=[AddChosenPaymentPlatform()]),
+            NegotiatingPlugin(proposal_negotiators=[AddChosenPaymentPlatform()]),
         ],
     )
     agreement_manager = DefaultAgreementManager(golem, proposal_manager.get_draft_proposal)

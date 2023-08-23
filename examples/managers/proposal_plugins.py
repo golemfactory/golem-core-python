@@ -85,7 +85,7 @@ async def main():
             ),
             BlacklistProviderIdPlugin(BLACKLISTED_PROVIDERS),
             NegotiatingPlugin(
-                negotiators=[
+                proposal_negotiators=[
                     AddChosenPaymentPlatform(),
                     # class based plugin
                     BlacklistProviderIdNegotiator(BLACKLISTED_PROVIDERS),
@@ -107,7 +107,7 @@ async def main():
                 min_size=3,
                 max_size=5,
                 concurrency_size=3,
-                scorers=[
+                proposal_scorers=[
                     MapScore(linear_average_cost, normalize=True, normalize_flip=True),
                     [0.5, PropertyValueLerpScore(defaults.INF_MEM, zero_at=1, one_at=8)],
                     [0.1, RandomScore()],

@@ -12,7 +12,7 @@ class ProposalScoringMixin:
     def __init__(
         self,
         demand_offer_parser: Optional[PayloadSyntaxParser] = None,
-        scorers: Optional[Sequence[ScorerWithOptionalWeight]] = None,
+        proposal_scorers: Optional[Sequence[ScorerWithOptionalWeight]] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -21,7 +21,9 @@ class ProposalScoringMixin:
 
             demand_offer_parser = TextXPayloadSyntaxParser()
         self._demand_offer_parser = demand_offer_parser
-        self._scorers: List[ScorerWithOptionalWeight] = list(scorers) if scorers is not None else []
+        self._proposal_scorers: List[ScorerWithOptionalWeight] = (
+            list(proposal_scorers) if proposal_scorers is not None else []
+        )
 
         super().__init__(*args, **kwargs)
 
@@ -40,7 +42,7 @@ class ProposalScoringMixin:
     ) -> Sequence[Tuple[float, Sequence[float]]]:
         proposal_scores: List[Tuple[float, Sequence[float]]] = []
 
-        for scorer in self._scorers:
+        for scorer in self._proposal_scorers:
             if isinstance(scorer, (list, tuple)):
                 weight, scorer = scorer
             else:

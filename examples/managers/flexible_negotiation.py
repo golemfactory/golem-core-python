@@ -54,7 +54,7 @@ async def main():
                 concurrency_size=5,
             ),
             BlacklistProviderIdPlugin(BLACKLISTED_PROVIDERS),
-            NegotiatingPlugin(negotiators=[AddChosenPaymentPlatform()]),
+            NegotiatingPlugin(proposal_negotiators=[AddChosenPaymentPlatform()]),
             Buffer(
                 min_size=3,
                 max_size=5,

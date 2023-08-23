@@ -103,6 +103,6 @@ async def test_weight_proposal_scoring_plugins_mixin_ok(
         proposal.get_data.return_value = yagna_proposal(properties=props)
         given_proposals.append(proposal)
 
-    scorer = FooBarProposalScorer(scorers=given_plugins)
+    scorer = FooBarProposalScorer(proposal_scorers=given_plugins)
     received_proposals = await scorer.do_scoring(given_proposals)
     assert expected_weights == [weight for weight, _ in received_proposals]

@@ -16,7 +16,7 @@ class NegotiatingPlugin(ProposalManagerPlugin):
     def __init__(
         self,
         demand_offer_parser: Optional[PayloadSyntaxParser] = None,
-        negotiators: Optional[Sequence[Negotiator]] = None,
+        proposal_negotiators: Optional[Sequence[Negotiator]] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -25,7 +25,9 @@ class NegotiatingPlugin(ProposalManagerPlugin):
 
             demand_offer_parser = TextXPayloadSyntaxParser()
         self._demand_offer_parser = demand_offer_parser
-        self._negotiators: List[Negotiator] = list(negotiators) if negotiators is not None else []
+        self._proposal_negotiators: List[Negotiator] = (
+            list(proposal_negotiators) if proposal_negotiators is not None else []
+        )
 
         super().__init__(*args, **kwargs)
 
@@ -127,7 +129,7 @@ class NegotiatingPlugin(ProposalManagerPlugin):
     ):
         proposal_data = await self._get_proposal_data_from_proposal(offer_proposal)
 
-        for negotiator in self._negotiators:
+        for negotiator in self._proposal_negotiators:
             negotiator_result = negotiator(demand_data_after_negotiators, proposal_data)
 
             if asyncio.iscoroutine(negotiator_result):
