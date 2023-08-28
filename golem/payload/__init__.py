@@ -9,7 +9,7 @@ from golem.payload.constraints import (
     PropertyValue,
 )
 from golem.payload.exceptions import InvalidProperties, PayloadException
-from golem.payload.parsers import PayloadSyntaxParser, SyntaxException, TextXPayloadSyntaxParser
+from golem.payload.parsers import PayloadSyntaxParser, SyntaxException
 from golem.payload.properties import Properties
 from golem.payload.vm import ManifestVmPayload, RepositoryVmPayload, VmPayload, VmPayloadException
 
@@ -30,7 +30,6 @@ __all__ = (
     "InvalidProperties",
     "SyntaxException",
     "PayloadSyntaxParser",
-    "TextXPayloadSyntaxParser",
     "PropertyName",
     "PropertyValue",
     "defaults",

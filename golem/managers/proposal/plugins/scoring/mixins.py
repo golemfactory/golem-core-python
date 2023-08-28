@@ -17,7 +17,7 @@ class ProposalScoringMixin:
         **kwargs,
     ) -> None:
         if demand_offer_parser is None:
-            from golem.payload import TextXPayloadSyntaxParser
+            from golem.payload.parsers.textx.parser import TextXPayloadSyntaxParser
 
             demand_offer_parser = TextXPayloadSyntaxParser()
         self._demand_offer_parser = demand_offer_parser
