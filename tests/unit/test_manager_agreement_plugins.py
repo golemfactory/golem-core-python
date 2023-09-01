@@ -38,7 +38,8 @@ def test_linear_score_plugin(kwargs, property_value, expected, mocker):
 @pytest.mark.parametrize("expected_value", (0.876, 0.0, 0.2, 0.5, 1))
 def test_random_score_plugin(mocker, expected_value):
     mocker.patch(
-        "golem.managers.agreement.plugins.random", mocker.Mock(return_value=expected_value)
+        "golem.managers.proposal.plugins.scoring.random.random",
+        mocker.Mock(return_value=expected_value),
     )
 
     proposal_id = "foo"

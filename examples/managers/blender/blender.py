@@ -8,13 +8,15 @@ from typing import List
 from golem.managers import (
     ActivityPoolManager,
     AddChosenPaymentPlatform,
-    AutoDemandManager,
     ConcurrentWorkManager,
+    DefaultAgreementManager,
+    DefaultProposalManager,
     LinearAverageCostPricing,
     MapScore,
+    NegotiatingPlugin,
     PayAllPaymentManager,
-    ScoredAheadOfTimeAgreementManager,
-    SequentialNegotiationManager,
+    RefreshingDemandManager,
+    ScoringBuffer,
     WorkContext,
     WorkResult,
     retry,
@@ -25,7 +27,7 @@ from golem.utils.logging import DEFAULT_LOGGING
 
 BLENDER_IMAGE_HASH = "9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"
 FRAME_CONFIG_TEMPLATE = json.loads(Path(__file__).with_name("frame_params.json").read_text())
-FRAMES = list(range(0, 60, 5))
+FRAMES = list(range(0, 60, 8))
 
 
 async def run_on_golem(
@@ -34,39 +36,40 @@ async def run_on_golem(
     init_func,
     threads=6,
     budget=1.0,
-    market_plugins=[
+    negotiators=[
         AddChosenPaymentPlatform(),
     ],
-    scoring_plugins=None,
+    scorers=None,
     task_plugins=None,
 ):
     golem = GolemNode()
 
     payment_manager = PayAllPaymentManager(golem, budget=budget)
-    demand_manager = AutoDemandManager(
+    demand_manager = RefreshingDemandManager(
         golem,
         payment_manager.get_allocation,
         payload,
     )
-    negotiation_manager = SequentialNegotiationManager(
+    proposal_manager = DefaultProposalManager(
         golem,
         demand_manager.get_initial_proposal,
-        plugins=market_plugins,
+        plugins=[
+            NegotiatingPlugin(proposal_negotiators=negotiators),
+            ScoringBuffer(min_size=3, max_size=5, concurrency_size=3, proposal_scorers=scorers),
+        ],
     )
-    agreement_manager = ScoredAheadOfTimeAgreementManager(
+    agreement_manager = DefaultAgreementManager(
         golem,
-        negotiation_manager.get_draft_proposal,
-        plugins=scoring_plugins,
-        buffer_size=(3, 10),
+        proposal_manager.get_draft_proposal,
     )
     activity_manager = ActivityPoolManager(
-        golem, agreement_manager.get_agreement, size=threads, on_activity_start=init_func
+        golem, agreement_manager.get_agreement, pool_size=threads, on_activity_start=init_func
     )
     work_manager = ConcurrentWorkManager(
         golem, activity_manager.do_work, size=threads, plugins=task_plugins
     )
 
-    async with golem, payment_manager, demand_manager, negotiation_manager, agreement_manager, activity_manager:  # noqa: E501 line too long
+    async with golem, payment_manager, demand_manager, proposal_manager, agreement_manager, activity_manager:  # noqa: E501 line too long
         results: List[WorkResult] = await work_manager.do_work_list(task_list)
     return results
 
@@ -111,10 +114,10 @@ async def main():
         payload=payload,
         task_list=task_list,
         init_func=load_blend_file,
-        threads=6,
+        threads=4,
         budget=1.0,
         task_plugins=[retry(tries=3)],
-        scoring_plugins=[
+        scorers=[
             MapScore(
                 LinearAverageCostPricing(
                     average_cpu_load=0.2, average_duration=timedelta(seconds=5)

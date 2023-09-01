@@ -1,78 +1,67 @@
 import asyncio
-import logging
 from copy import deepcopy
 from datetime import datetime
-from typing import Awaitable, Callable, Optional, cast
+from typing import List, Optional, Sequence, cast
 
 from ya_market import ApiException
 
-from golem.managers.base import NegotiationManager, NegotiationManagerPlugin, RejectProposal
-from golem.managers.mixins import BackgroundLoopMixin, ManagerPluginsMixin
-from golem.node import GolemNode
-from golem.payload import Properties
-from golem.payload.parsers.textx import TextXPayloadSyntaxParser
+from golem.managers import ProposalManagerPlugin, RejectProposal
+from golem.managers.base import ProposalNegotiator
+from golem.payload import PayloadSyntaxParser, Properties
 from golem.resources import DemandData, Proposal, ProposalData
 from golem.utils.logging import trace_span
 
-logger = logging.getLogger(__name__)
 
-
-class SequentialNegotiationManager(
-    BackgroundLoopMixin, ManagerPluginsMixin[NegotiationManagerPlugin], NegotiationManager
-):
-    # TODO remove unused methods
+class NegotiatingPlugin(ProposalManagerPlugin):
     def __init__(
         self,
-        golem: GolemNode,
-        get_initial_proposal: Callable[[], Awaitable[Proposal]],
+        demand_offer_parser: Optional[PayloadSyntaxParser] = None,
+        proposal_negotiators: Optional[Sequence[ProposalNegotiator]] = None,
         *args,
         **kwargs,
     ) -> None:
-        self._golem = golem
-        self._get_initial_proposal = get_initial_proposal
+        if demand_offer_parser is None:
+            from golem.payload.parsers.textx import TextXPayloadSyntaxParser
 
-        self._eligible_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
-        self._demand_offer_parser = TextXPayloadSyntaxParser()
+            demand_offer_parser = TextXPayloadSyntaxParser()
+        self._demand_offer_parser = demand_offer_parser
+        self._proposal_negotiators: List[ProposalNegotiator] = (
+            list(proposal_negotiators) if proposal_negotiators is not None else []
+        )
 
         super().__init__(*args, **kwargs)
 
     @trace_span(show_results=True)
-    async def get_draft_proposal(self) -> Proposal:
-        return await self._eligible_proposals.get()
-
-    @trace_span()
-    async def _background_loop(self) -> None:
+    async def get_proposal(self) -> Proposal:
         while True:
-            proposal = await self._get_initial_proposal()
+            proposal = await self._get_proposal()
 
             demand_data = await self._get_demand_data_from_proposal(proposal)
 
             offer_proposal = await self._negotiate_proposal(demand_data, proposal)
 
             if offer_proposal is not None:
-                await self._eligible_proposals.put(offer_proposal)
+                return offer_proposal
 
     @trace_span(show_arguments=True, show_results=True)
     async def _negotiate_proposal(
         self, demand_data: DemandData, offer_proposal: Proposal
     ) -> Optional[Proposal]:
         while True:
-            demand_data_after_plugins = deepcopy(demand_data)
+            demand_data_after_negotiators = deepcopy(demand_data)
 
             try:
-                await self._run_plugins(demand_data_after_plugins, offer_proposal)
+                await self._run_negotiators(demand_data_after_negotiators, offer_proposal)
             except RejectProposal as e:
-                logger.debug(f"Proposal `{offer_proposal}` was rejected by plugins")
-
                 if not offer_proposal.initial:
                     await offer_proposal.reject(str(e))
 
                 return None
 
-            if not offer_proposal.initial and demand_data_after_plugins == demand_data:
+            if not offer_proposal.initial and demand_data_after_negotiators == demand_data:
                 return offer_proposal
 
-            demand_data = demand_data_after_plugins
+            demand_data = demand_data_after_negotiators
 
             demand_proposal = await self._send_demand_proposal(offer_proposal, demand_data)
             if demand_proposal is None:
@@ -82,28 +71,14 @@ class SequentialNegotiationManager(
             if new_offer_proposal is None:
                 return None
 
-            logger.debug(
-                f"Proposal `{offer_proposal}` received counter proposal `{new_offer_proposal}`"
-            )
-
             offer_proposal = new_offer_proposal
 
     @trace_span()
-    async def _run_plugins(self, demand_data_after_plugins: DemandData, offer_proposal: Proposal):
-        proposal_data = await self._get_proposal_data_from_proposal(offer_proposal)
-
-        for plugin in self._plugins:
-            plugin_result = plugin(demand_data_after_plugins, proposal_data)
-
-            if asyncio.iscoroutine(plugin_result):
-                plugin_result = await plugin_result
-
-            if isinstance(plugin_result, RejectProposal):
-                raise plugin_result
-
-            # Note: Explicit identity to False desired here, not "falsy" check
-            if plugin_result is False:
-                raise RejectProposal()
+    async def _wait_for_proposal_response(self, demand_proposal: Proposal) -> Optional[Proposal]:
+        try:
+            return await demand_proposal.responses().__anext__()
+        except StopAsyncIteration:
+            return None
 
     @trace_span()
     async def _send_demand_proposal(
@@ -115,13 +90,6 @@ class SequentialNegotiationManager(
                 demand_data.constraints,
             )
         except (ApiException, asyncio.TimeoutError):
-            return None
-
-    @trace_span()
-    async def _wait_for_proposal_response(self, demand_proposal: Proposal) -> Optional[Proposal]:
-        try:
-            return await demand_proposal.responses().__anext__()
-        except StopAsyncIteration:
             return None
 
     async def _get_demand_data_from_proposal(self, proposal: Proposal) -> DemandData:
@@ -154,3 +122,22 @@ class SequentialNegotiationManager(
             timestamp=cast(datetime, data.timestamp),
             prev_proposal_id=data.prev_proposal_id,
         )
+
+    @trace_span()
+    async def _run_negotiators(
+        self, demand_data_after_negotiators: DemandData, offer_proposal: Proposal
+    ):
+        proposal_data = await self._get_proposal_data_from_proposal(offer_proposal)
+
+        for negotiator in self._proposal_negotiators:
+            negotiator_result = negotiator(demand_data_after_negotiators, proposal_data)
+
+            if asyncio.iscoroutine(negotiator_result):
+                negotiator_result = await negotiator_result
+
+            if isinstance(negotiator_result, RejectProposal):
+                raise negotiator_result
+
+            # Note: Explicit identity to False desired here, not "falsy" check
+            if negotiator_result is False:
+                raise RejectProposal()

@@ -5,10 +5,12 @@ import string
 from uuid import uuid4
 
 from golem.managers import (
-    AutoDemandManager,
+    AddChosenPaymentPlatform,
+    DefaultAgreementManager,
+    DefaultProposalManager,
+    NegotiatingPlugin,
     PayAllPaymentManager,
-    ScoredAheadOfTimeAgreementManager,
-    SequentialNegotiationManager,
+    RefreshingDemandManager,
     SequentialWorkManager,
     SingleNetworkManager,
     SingleUseActivityManager,
@@ -79,16 +81,21 @@ async def main():
 
     network_manager = SingleNetworkManager(golem, network_ip)
     payment_manager = PayAllPaymentManager(golem, budget=1.0)
-    demand_manager = AutoDemandManager(
+    demand_manager = RefreshingDemandManager(
         golem,
         payment_manager.get_allocation,
         payload,
     )
-    negotiation_manager = SequentialNegotiationManager(golem, demand_manager.get_initial_proposal)
-    agreement_manager = ScoredAheadOfTimeAgreementManager(
+    proposal_manager = DefaultProposalManager(
         golem,
-        negotiation_manager.get_draft_proposal,
-        buffer_size=(1, 2),
+        demand_manager.get_initial_proposal,
+        plugins=[
+            NegotiatingPlugin(proposal_negotiators=[AddChosenPaymentPlatform()]),
+        ],
+    )
+    agreement_manager = DefaultAgreementManager(
+        golem,
+        proposal_manager.get_draft_proposal,
     )
 
     ssh_handler = SshHandler(golem._api_config.app_key, network_manager=network_manager)
@@ -99,7 +106,7 @@ async def main():
         on_activity_start=ssh_handler.on_activity_start,
     )
     work_manager = SequentialWorkManager(golem, activity_manager.do_work)
-    async with golem, network_manager, payment_manager, demand_manager, negotiation_manager, agreement_manager:  # noqa: E501 line too long
+    async with golem, network_manager, payment_manager, demand_manager, proposal_manager, agreement_manager:  # noqa: E501 line too long
         task = asyncio.create_task(work_manager.do_work(ssh_handler.work))
         while not ssh_handler.started:
             await asyncio.sleep(0.1)

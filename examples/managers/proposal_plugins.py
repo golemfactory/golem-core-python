@@ -6,17 +6,21 @@ from random import randint, random
 from golem.managers import (
     ActivityPoolManager,
     AddChosenPaymentPlatform,
-    AutoDemandManager,
-    BlacklistProviderId,
+    BlacklistProviderIdNegotiator,
+    BlacklistProviderIdPlugin,
+    Buffer,
+    DefaultAgreementManager,
+    DefaultProposalManager,
     LinearAverageCostPricing,
     MapScore,
+    NegotiatingPlugin,
     PayAllPaymentManager,
     PropertyValueLerpScore,
     RandomScore,
+    RefreshingDemandManager,
     RejectIfCostsExceeds,
     RejectProposal,
-    ScoredAheadOfTimeAgreementManager,
-    SequentialNegotiationManager,
+    ScoringBuffer,
     SequentialWorkManager,
     WorkContext,
     WorkResult,
@@ -65,41 +69,60 @@ async def main():
     )
 
     payment_manager = PayAllPaymentManager(golem, budget=1.0)
-    demand_manager = AutoDemandManager(
+    demand_manager = RefreshingDemandManager(
         golem,
         payment_manager.get_allocation,
         payload,
     )
-    negotiation_manager = SequentialNegotiationManager(
+    proposal_manager = DefaultProposalManager(
         golem,
         demand_manager.get_initial_proposal,
         plugins=[
-            AddChosenPaymentPlatform(),
-            # class based plugin
-            BlacklistProviderId(BLACKLISTED_PROVIDERS),
-            RejectIfCostsExceeds(1, linear_average_cost),
-            # func plugin
-            blacklist_func,
-            # lambda plugin
-            lambda _, proposal_data: proposal_data.issuer_id not in BLACKLISTED_PROVIDERS,
-            # lambda plugin with reject reason
-            lambda _, proposal_data: RejectProposal(f"Blacklisting {proposal_data.issuer_id}")
-            if proposal_data.issuer_id in BLACKLISTED_PROVIDERS
-            else None,
+            Buffer(
+                min_size=10,
+                max_size=1000,
+                concurrency_size=5,
+            ),
+            BlacklistProviderIdPlugin(BLACKLISTED_PROVIDERS),
+            NegotiatingPlugin(
+                proposal_negotiators=[
+                    AddChosenPaymentPlatform(),
+                    # class based plugin
+                    BlacklistProviderIdNegotiator(BLACKLISTED_PROVIDERS),
+                    RejectIfCostsExceeds(1, linear_average_cost),
+                    # func plugin
+                    blacklist_func,  # type: ignore[list-item]
+                    # lambda plugin
+                    lambda _, proposal_data: proposal_data.issuer_id  # type: ignore[list-item]
+                    not in BLACKLISTED_PROVIDERS,
+                    # lambda plugin with reject reason
+                    lambda _, proposal_data: RejectProposal(  # type: ignore[list-item]
+                        f"Blacklisting {proposal_data.issuer_id}"
+                    )
+                    if proposal_data.issuer_id in BLACKLISTED_PROVIDERS
+                    else None,
+                ]
+            ),
+            ScoringBuffer(
+                min_size=3,
+                max_size=5,
+                concurrency_size=3,
+                proposal_scorers=[
+                    # List of Scorer or Tuple[float, Scorer], float in [-1,1] range
+                    MapScore(linear_average_cost, normalize=True, normalize_flip=True),
+                    [0.5, PropertyValueLerpScore(defaults.INF_MEM, zero_at=1, one_at=8)],
+                    [0.1, RandomScore()],
+                    [0.0, lambda proposals_data: [random() for _ in range(len(proposals_data))]],
+                    [0.0, MapScore(lambda proposal_data: random())],
+                ],
+            ),
         ],
     )
-    agreement_manager = ScoredAheadOfTimeAgreementManager(
+    agreement_manager = DefaultAgreementManager(
         golem,
-        negotiation_manager.get_draft_proposal,
-        plugins=[
-            MapScore(linear_average_cost, normalize=True, normalize_flip=True),
-            [0.5, PropertyValueLerpScore(defaults.INF_MEM, zero_at=1, one_at=8)],
-            [0.1, RandomScore()],
-            [0.0, lambda proposals_data: [random() for _ in range(len(proposals_data))]],
-            [0.0, MapScore(lambda proposal_data: random())],
-        ],
+        proposal_manager.get_draft_proposal,
     )
-    activity_manager = ActivityPoolManager(golem, agreement_manager.get_agreement, size=3)
+    activity_manager = ActivityPoolManager(golem, agreement_manager.get_agreement, pool_size=3)
     work_manager = SequentialWorkManager(
         golem,
         activity_manager.do_work,
@@ -109,7 +132,7 @@ async def main():
     )
 
     async with golem:
-        async with payment_manager, demand_manager, negotiation_manager, agreement_manager, activity_manager:  # noqa: E501 line too long
+        async with payment_manager, demand_manager, proposal_manager, agreement_manager, activity_manager:  # noqa: E501 line too long
             await asyncio.sleep(10)
             result: WorkResult = await work_manager.do_work(commands_work_example)
             print(f"\nWORK MANAGER RESULT:{result}\n")

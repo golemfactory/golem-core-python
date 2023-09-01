@@ -139,7 +139,7 @@ class DemandManager(Manager, ABC):
         ...
 
 
-class NegotiationManager(Manager, ABC):
+class ProposalManager(Manager):
     @abstractmethod
     async def get_draft_proposal(self) -> Proposal:
         ...
@@ -165,7 +165,7 @@ class RejectProposal(ManagerPluginException):
     pass
 
 
-class NegotiationManagerPlugin(ABC):
+class ProposalNegotiator(ABC):
     @abstractmethod
     def __call__(
         self, demand_data: DemandData, proposal_data: ProposalData
@@ -173,18 +173,35 @@ class NegotiationManagerPlugin(ABC):
         ...
 
 
-ProposalPluginResult = Sequence[Optional[float]]
+class ProposalManagerPlugin(ABC):
+    _get_proposal: Callable[[], Awaitable[Proposal]]
+
+    def set_proposal_callback(self, get_proposal: Callable[[], Awaitable[Proposal]]):
+        self._get_proposal = get_proposal
+
+    @abstractmethod
+    async def get_proposal(self) -> Proposal:
+        ...
+
+    async def start(self) -> None:
+        pass
+
+    async def stop(self) -> None:
+        pass
 
 
-class ManagerScorePlugin(ABC):
+ProposalScoringResult = Sequence[Optional[float]]
+
+
+class ProposalScorer(ABC):
     @abstractmethod
     def __call__(
         self, proposals_data: Sequence[ProposalData]
-    ) -> Union[Awaitable[ProposalPluginResult], ProposalPluginResult]:
+    ) -> Union[Awaitable[ProposalScoringResult], ProposalScoringResult]:
         ...
 
 
-ManagerPluginWithOptionalWeight = Union[ManagerScorePlugin, Tuple[float, ManagerScorePlugin]]
+ScorerWithOptionalWeight = Union[ProposalScorer, Tuple[float, ProposalScorer]]
 
 
 class WorkManagerPlugin(ABC):

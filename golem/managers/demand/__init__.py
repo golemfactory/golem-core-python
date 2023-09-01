@@ -1,3 +1,3 @@
-from golem.managers.demand.auto import AutoDemandManager
+from golem.managers.demand.refreshing import RefreshingDemandManager
 
-__all__ = ("AutoDemandManager",)
+__all__ = ("RefreshingDemandManager",)
