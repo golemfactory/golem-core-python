@@ -108,6 +108,7 @@ async def main():
                 max_size=5,
                 concurrency_size=3,
                 proposal_scorers=[
+                    # List of Scorer or Tuple[float, Scorer], float in [-1,1] range
                     MapScore(linear_average_cost, normalize=True, normalize_flip=True),
                     [0.5, PropertyValueLerpScore(defaults.INF_MEM, zero_at=1, one_at=8)],
                     [0.1, RandomScore()],

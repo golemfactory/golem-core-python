@@ -1,7 +1,7 @@
 import pytest
 
 from golem.payload import Constraint, ConstraintException, ConstraintGroup, SyntaxException
-from golem.payload.parsers.textx.parser import TextXPayloadSyntaxParser
+from golem.payload.parsers.textx import TextXPayloadSyntaxParser
 
 
 @pytest.fixture(scope="module")

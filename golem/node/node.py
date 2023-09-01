@@ -11,7 +11,7 @@ from golem.event_bus.in_memory import InMemoryEventBus
 from golem.node.events import SessionStarted, ShutdownFinished, ShutdownStarted
 from golem.payload import Payload
 from golem.payload import defaults as payload_defaults
-from golem.payload.parsers.textx.parser import TextXPayloadSyntaxParser
+from golem.payload.parsers.textx import TextXPayloadSyntaxParser
 from golem.resources import (
     Activity,
     Agreement,

@@ -21,7 +21,7 @@ class NegotiatingPlugin(ProposalManagerPlugin):
         **kwargs,
     ) -> None:
         if demand_offer_parser is None:
-            from golem.payload.parsers.textx.parser import TextXPayloadSyntaxParser
+            from golem.payload.parsers.textx import TextXPayloadSyntaxParser
 
             demand_offer_parser = TextXPayloadSyntaxParser()
         self._demand_offer_parser = demand_offer_parser
