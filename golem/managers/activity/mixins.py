@@ -3,7 +3,6 @@ from typing import Awaitable, Callable, Optional
 
 from golem.event_bus.base import EventBus
 from golem.managers.activity.defaults import default_on_activity_start, default_on_activity_stop
-from golem.managers.agreement.events import AgreementReleased
 from golem.managers.base import WorkContext
 from golem.resources import Activity
 from golem.utils.logging import trace_span
@@ -53,6 +52,3 @@ class ActivityPrepareReleaseMixin:
                 " before activity is released. Looks like you forgot calling"
                 " `context.terminate()` in custom `on_activity_end` callback."
             )
-
-        event = AgreementReleased(activity.parent)
-        await self._event_bus.emit(event)
