@@ -28,6 +28,10 @@ def test_parse_raises_exception_on_bad_syntax(demand_offer_parser):
             "(foo=http://google.com)",
             Constraint("foo", "=", "http://google.com"),
         ),
+        (
+            "(foo=some-value)",
+            Constraint("foo", "=", "some-value"),
+        ),
         ("(foo=[1, 2, 3])", Constraint("foo", "=", ["1", "2", "3"])),
         ("(foo=[a, b, c])", Constraint("foo", "=", ["a", "b", "c"])),
         ("(some.nested.param=1)", Constraint("some.nested.param", "=", "1")),
