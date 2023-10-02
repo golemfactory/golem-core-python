@@ -6,7 +6,7 @@ from typing import List, Optional
 from golem.managers import ProposalManagerPlugin
 from golem.resources import Proposal
 from golem.utils.asyncio import create_task_with_logging
-from golem.utils.logging import trace_span
+from golem.utils.logging import get_trace_id_name, trace_span
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +46,12 @@ class Buffer(ProposalManagerPlugin):
         if self.is_started():
             raise RuntimeError("Already started!")
 
-        for _ in range(self._concurrency_size):
-            self._worker_tasks.append(create_task_with_logging(self._worker_loop()))
+        for i in range(self._concurrency_size):
+            self._worker_tasks.append(
+                create_task_with_logging(
+                    self._worker_loop(), trace_id=get_trace_id_name(self, f"worker-{i}")
+                )
+            )
 
         if self._fill_at_start:
             self._handle_item_requests()

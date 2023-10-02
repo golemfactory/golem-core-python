@@ -1,3 +1,4 @@
+import contextvars
 import inspect
 import logging
 from datetime import datetime, timezone
@@ -11,24 +12,30 @@ if TYPE_CHECKING:
 DEFAULT_LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "filters": {
+        "add_trace_id": {
+            "()": "golem.utils.logging.AddTraceIdFilter",
+        },
+    },
     "formatters": {
         "default": {
-            "format": "[%(asctime)s %(levelname)-7s %(name)s] %(message)s",
+            "format": "[%(asctime)s] [%(levelname)-7s] [%(name)s:%(lineno)d] [%(traceid)s] %(message)s",
         },
     },
     "handlers": {
         "console": {
-            "formatter": "default",
             "class": "logging.StreamHandler",
+            "formatter": "default",
+            "filters": ["add_trace_id"],
         },
     },
+    "root": {
+        "level": "INFO",
+        "handlers": [
+            "console",
+        ],
+    },
     "loggers": {
-        "": {
-            "level": "INFO",
-            "handlers": [
-                "console",
-            ],
-        },
         "asyncio": {
             "level": "INFO",
         },
@@ -131,13 +138,25 @@ class DefaultLogger:
         self.logger.info(event)
 
 
+trace_id_var = contextvars.ContextVar("trace_id", default="root")
+
+
+def get_trace_id_name(obj: Any, postfix: str) -> str:
+    return f"{obj.__class__.__name__}-{id(obj)}-{postfix}"
+
+
 class TraceSpan:
     def __init__(
-        self, name: Optional[str] = None, show_arguments: bool = False, show_results: bool = False
+        self,
+        name: Optional[str] = None,
+        show_arguments: bool = False,
+        show_results: bool = False,
+        log_level: int = logging.DEBUG,
     ) -> None:
         self._name = name
         self._show_arguments = show_arguments
         self._show_results = show_results
+        self._log_level = log_level
 
     def __call__(self, func):
         wrapper = self._async_wrapper if inspect.iscoroutinefunction(func) else self._sync_wrapper
@@ -164,9 +183,9 @@ class TraceSpan:
                     *["{}={}".format(k, repr(v)) for (k, v) in kwargs.items()],
                 ]
             )
-            return f"{span_name}({arguments})"
+            return f"Calling {span_name}({arguments})"
 
-        return span_name
+        return f"Calling {span_name}"
 
     def _get_logger(self, func: Callable, args: Sequence) -> logging.Logger:
         module_name = (
@@ -182,18 +201,18 @@ class TraceSpan:
         span_name = self._get_span_name(func, args, kwargs)
         logger = self._get_logger(func, args)
 
-        logger.debug("Calling %s...", span_name)
+        logger.log(self._log_level, "%s...", span_name)
 
         try:
             result = func(*args, **kwargs)
         except Exception as e:
-            logger.debug("Calling %s failed with `%s`", span_name, e)
+            logger.log(self._log_level, "%s failed with `%s`", span_name, e)
             raise
 
         if self._show_results:
-            logger.debug("Calling %s done with `%s`", span_name, result)
+            logger.log(self._log_level, "%s done with `%s`", span_name, result)
         else:
-            logger.debug("Calling %s done", span_name)
+            logger.log(self._log_level, "%s done", span_name)
 
         return result
 
@@ -201,20 +220,27 @@ class TraceSpan:
         span_name = self._get_span_name(func, args, kwargs)
         logger = self._get_logger(func, args)
 
-        logger.debug("Calling %s...", span_name)
+        logger.log(self._log_level, "%s...", span_name)
 
         try:
             result = await func(*args, **kwargs)
         except Exception as e:
-            logger.debug("Calling %s failed with `%s`", span_name, e)
+            logger.log(self._log_level, "%s failed with `%s`", span_name, e)
             raise
 
         if self._show_results:
-            logger.debug("Calling %s done with `%s`", span_name, result)
+            logger.log(self._log_level, "%s done with `%s`", span_name, result)
         else:
-            logger.debug("Calling %s done", span_name)
+            logger.log(self._log_level, "%s done", span_name)
 
         return result
 
 
 trace_span = TraceSpan
+
+
+class AddTraceIdFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.traceid = trace_id_var.get()
+
+        return super().filter(record)

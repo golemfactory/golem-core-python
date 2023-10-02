@@ -3,7 +3,7 @@ import logging
 
 import pytest
 
-from golem.utils.logging import trace_span
+from golem.utils.logging import AddTraceIdFilter, trace_id_var, trace_span
 
 
 def test_trace_span_on_standalone_function(caplog):
@@ -86,9 +86,8 @@ def test_trace_span_on_async_function(caplog):
     async def foobar(a):
         return a
 
-    loop = asyncio.get_event_loop()
     value = "foobar"
-    assert loop.run_until_complete(foobar(value)) == value
+    assert asyncio.run(foobar(value)) == value
 
     assert caplog.record_tuples == [
         ("tests.unit.utils.test_logging", logging.DEBUG, "Calling foobar..."),
@@ -103,13 +102,29 @@ def test_trace_span_on_async_function_with_result(caplog):
     async def foobar(a):
         return a
 
-    loop = asyncio.get_event_loop()
     value = "foobar"
-    assert loop.run_until_complete(foobar(value)) == value
+    assert asyncio.run(foobar(value)) == value
 
     assert caplog.record_tuples == [
         ("tests.unit.utils.test_logging", logging.DEBUG, "Calling foobar..."),
         ("tests.unit.utils.test_logging", logging.DEBUG, f"Calling foobar done with `{value}`"),
+    ]
+
+
+def test_trace_span_on_async_function_with_custom_name(caplog):
+    caplog.set_level(logging.DEBUG, logger="tests.unit.utils.test_logging")
+    custom_name = "custom_name"
+
+    @trace_span(name=custom_name)
+    async def foobar(a):
+        return a
+
+    value = "foobar"
+    assert asyncio.run(foobar(value)) == value
+
+    assert caplog.record_tuples == [
+        ("tests.unit.utils.test_logging", logging.DEBUG, f"{custom_name}..."),
+        ("tests.unit.utils.test_logging", logging.DEBUG, f"{custom_name} done"),
     ]
 
 
@@ -121,9 +136,8 @@ def test_trace_span_on_async_function_with_exception(caplog):
     async def foobar():
         raise Exception(exc_message)
 
-    loop = asyncio.get_event_loop()
     with pytest.raises(Exception, match=exc_message) as exc_info:
-        loop.run_until_complete(foobar())
+        asyncio.run(foobar())
 
     assert caplog.record_tuples == [
         ("tests.unit.utils.test_logging", logging.DEBUG, "Calling foobar..."),
@@ -132,6 +146,23 @@ def test_trace_span_on_async_function_with_exception(caplog):
             logging.DEBUG,
             f"Calling foobar failed with `{exc_info.value}`",
         ),
+    ]
+
+
+def test_trace_span_on_async_function_with_log_level(caplog):
+    caplog.set_level(logging.DEBUG, logger="tests.unit.utils.test_logging")
+    log_level = logging.ERROR
+
+    @trace_span(log_level=log_level)
+    async def foobar(a):
+        return a
+
+    value = "foobar"
+    assert asyncio.run(foobar(value)) == value
+
+    assert caplog.record_tuples == [
+        ("tests.unit.utils.test_logging", log_level, f"Calling foobar..."),
+        ("tests.unit.utils.test_logging", log_level, f"Calling foobar done"),
     ]
 
 
@@ -164,8 +195,25 @@ def test_trace_span_with_custom_name(caplog):
     assert foobar(value) == value
 
     assert caplog.record_tuples == [
-        ("tests.unit.utils.test_logging", logging.DEBUG, f"Calling {custom_name}..."),
-        ("tests.unit.utils.test_logging", logging.DEBUG, f"Calling {custom_name} done"),
+        ("tests.unit.utils.test_logging", logging.DEBUG, f"{custom_name}..."),
+        ("tests.unit.utils.test_logging", logging.DEBUG, f"{custom_name} done"),
+    ]
+
+
+def test_trace_span_with_log_level(caplog):
+    caplog.set_level(logging.DEBUG)
+    log_level = logging.ERROR
+
+    @trace_span(log_level=log_level)
+    def foobar(a):
+        return a
+
+    value = "foobar"
+    assert foobar(value) == value
+
+    assert caplog.record_tuples == [
+        ("tests.unit.utils.test_logging", log_level, "Calling foobar..."),
+        ("tests.unit.utils.test_logging", log_level, "Calling foobar done"),
     ]
 
 
@@ -193,3 +241,24 @@ def test_trace_span_with_arguments(caplog):
             f"Calling foobar({repr(a)}, {repr(b)}, c={repr(c)}) done",
         ),
     ]
+
+
+def test_trace_id_filter(caplog):
+    caplog.set_level(logging.DEBUG)
+    trace_id_name = "custom-trace-id"
+    logger_name = "logger_name"
+
+    logger = logging.getLogger(logger_name)
+    logger.addFilter(AddTraceIdFilter())
+
+    logger.debug("log1")
+
+    trace_id_var.set(trace_id_name)
+
+    logger.debug("log2")
+
+    assert caplog.record_tuples == [
+        (logger_name, logging.DEBUG, "log1"),
+        (logger_name, logging.DEBUG, "log2"),
+    ]
+    assert [getattr(rec, "traceid") for rec in caplog.records] == ["root", trace_id_name]

@@ -4,7 +4,7 @@ from typing import Generic, List, Optional, Sequence
 
 from golem.managers.base import ManagerException, TPlugin
 from golem.utils.asyncio import create_task_with_logging
-from golem.utils.logging import trace_span
+from golem.utils.logging import get_trace_id_name, trace_span
 
 logger = logging.getLogger(__name__)
 
@@ -15,14 +15,15 @@ class BackgroundLoopMixin:
 
         super().__init__(*args, **kwargs)
 
-    @trace_span()
     async def start(self) -> None:
         if self.is_started():
             raise ManagerException("Already started!")
 
-        self._background_loop_task = create_task_with_logging(self._background_loop())
+        self._background_loop_task = create_task_with_logging(
+            self._background_loop(),
+            trace_id=get_trace_id_name(self, "background-loop"),
+        )
 
-    @trace_span()
     async def stop(self) -> None:
         if not self.is_started():
             raise ManagerException("Already stopped!")

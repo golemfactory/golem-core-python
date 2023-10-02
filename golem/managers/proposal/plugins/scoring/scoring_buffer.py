@@ -7,7 +7,7 @@ from golem.managers.proposal.plugins.buffer import Buffer
 from golem.managers.proposal.plugins.scoring.mixins import ProposalScoringMixin
 from golem.resources import Proposal
 from golem.utils.asyncio import create_task_with_logging
-from golem.utils.logging import trace_span
+from golem.utils.logging import get_trace_id_name, trace_span
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,9 @@ class ScoringBuffer(ProposalScoringMixin, Buffer):
     async def start(self) -> None:
         await super().start()
 
-        self._background_loop_task = create_task_with_logging(self._background_loop())
+        self._background_loop_task = create_task_with_logging(
+            self._background_loop(), trace_id=get_trace_id_name(self, "background-loop")
+        )
 
     @trace_span()
     async def stop(self) -> None:

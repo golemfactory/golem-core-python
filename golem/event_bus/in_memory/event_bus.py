@@ -6,7 +6,7 @@ from typing import Awaitable, Callable, DefaultDict, List, Optional, Tuple, Type
 
 from golem.event_bus.base import Event, EventBus, EventBusError, TEvent
 from golem.utils.asyncio import create_task_with_logging
-from golem.utils.logging import trace_span
+from golem.utils.logging import get_trace_id_name, trace_span
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,8 @@ class InMemoryEventBus(EventBus[_CallbackHandler]):
             raise EventBusError(message)
 
         self._process_event_queue_loop_task = create_task_with_logging(
-            self._process_event_queue_loop()
+            self._process_event_queue_loop(),
+            trace_id=get_trace_id_name(self, "process-event-queue-loop"),
         )
 
     @trace_span()

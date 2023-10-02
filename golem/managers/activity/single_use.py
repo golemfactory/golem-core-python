@@ -26,7 +26,6 @@ class SingleUseActivityManager(ActivityPrepareReleaseMixin, ActivityManager):
             agreement = await self._get_agreement()
             try:
                 activity = await self._prepare_activity(agreement)
-                logger.info(f"Activity `{activity}` created")
                 try:
                     yield activity
                 finally:
