@@ -19,7 +19,7 @@ DEFAULT_LOGGING = {
     },
     "formatters": {
         "default": {
-            "format": "[%(asctime)s] [%(levelname)-7s] [%(name)s:%(lineno)d] [%(traceid)s] %(message)s",
+            "format": "[%(asctime)s] [%(levelname)-7s] [%(traceid)s] [%(name)s:%(lineno)d] %(message)s",
         },
     },
     "handlers": {

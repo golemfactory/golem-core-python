@@ -22,7 +22,7 @@ class DefaultProposalManager(ProposalManager):
             list(plugins) if plugins is not None else [NegotiatingPlugin()]
         )
 
-    @trace_span("Getting draft proposal", show_results=True, log_level=logging.INFO)
+    @trace_span("Getting draft proposal", show_results=True)
     async def get_draft_proposal(self) -> Proposal:
         return await self._get_proposal_with_plugins()
 

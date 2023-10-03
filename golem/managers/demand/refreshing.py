@@ -49,7 +49,7 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
     async def stop(self) -> None:
         return await super().stop()
 
-    @trace_span("Getting initial proposal", show_results=True, log_level=logging.INFO)
+    @trace_span("Getting initial proposal", show_results=True)
     async def get_initial_proposal(self) -> Proposal:
         return await self._get_initial_proposal()
 

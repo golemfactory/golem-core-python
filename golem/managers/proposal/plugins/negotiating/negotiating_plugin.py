@@ -49,7 +49,7 @@ class NegotiatingPlugin(ProposalManagerPlugin):
     @trace_span(show_arguments=True, show_results=True)
     async def _negotiate_proposal(
         self, demand_data: DemandData, offer_proposal: Proposal
-    ) -> Optional[Proposal]:
+    ) -> Proposal:
         while True:
             demand_data_after_negotiators = deepcopy(demand_data)
 
@@ -72,7 +72,7 @@ class NegotiatingPlugin(ProposalManagerPlugin):
             offer_proposal = new_offer_proposal
 
     @trace_span()
-    async def _wait_for_proposal_response(self, demand_proposal: Proposal) -> Optional[Proposal]:
+    async def _wait_for_proposal_response(self, demand_proposal: Proposal) -> Proposal:
         try:
             return await demand_proposal.responses().__anext__()
         except StopAsyncIteration as e:
@@ -81,7 +81,7 @@ class NegotiatingPlugin(ProposalManagerPlugin):
     @trace_span()
     async def _send_demand_proposal(
         self, offer_proposal: Proposal, demand_data: DemandData
-    ) -> Optional[Proposal]:
+    ) -> Proposal:
         try:
             return await offer_proposal.respond(
                 demand_data.properties,
