@@ -90,7 +90,7 @@ class NegotiatingPlugin(ProposalManagerPlugin):
         except (ApiException, asyncio.TimeoutError) as e:
             raise RuntimeError(f"Failed to send proposal response! {e}") from e
 
-    @trace_span
+    @trace_span()
     async def _reject_proposal(self, offer_proposal: Proposal) -> None:
         await offer_proposal.reject()
 

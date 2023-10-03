@@ -161,8 +161,8 @@ def test_trace_span_on_async_function_with_log_level(caplog):
     assert asyncio.run(foobar(value)) == value
 
     assert caplog.record_tuples == [
-        ("tests.unit.utils.test_logging", log_level, f"Calling foobar..."),
-        ("tests.unit.utils.test_logging", log_level, f"Calling foobar done"),
+        ("tests.unit.utils.test_logging", log_level, "Calling foobar..."),
+        ("tests.unit.utils.test_logging", log_level, "Calling foobar done"),
     ]
 
 
