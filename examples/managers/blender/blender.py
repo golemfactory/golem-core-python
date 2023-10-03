@@ -36,12 +36,15 @@ async def run_on_golem(
     init_func,
     threads=6,
     budget=1.0,
-    negotiators=[
-        AddChosenPaymentPlatform(),
-    ],
+    negotiators=None,
     scorers=None,
     task_plugins=None,
 ):
+    if negotiators is None:
+        negotiators = [
+            AddChosenPaymentPlatform(),
+        ]
+
     golem = GolemNode()
 
     payment_manager = PayAllPaymentManager(golem, budget=budget)

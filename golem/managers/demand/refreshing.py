@@ -10,7 +10,7 @@ from golem.payload import Payload, PayloadSyntaxParser
 from golem.resources import Allocation, Demand, Proposal
 from golem.resources.demand.demand_builder import DemandBuilder
 from golem.utils.asyncio import create_task_with_logging
-from golem.utils.logging import trace_span
+from golem.utils.logging import get_trace_id_name, trace_span
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +28,12 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         self._golem = golem
         self._get_allocation = get_allocation
         self._payload = payload
+
         if demand_offer_parser is None:
             from golem.payload.parsers.textx import TextXPayloadSyntaxParser
 
             demand_offer_parser = TextXPayloadSyntaxParser()
+
         self._demand_offer_parser = demand_offer_parser
 
         self._initial_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
@@ -39,7 +41,15 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         self._demands: List[Tuple[Demand, asyncio.Task]] = []
         super().__init__(*args, **kwargs)
 
-    @trace_span(show_results=True)
+    @trace_span("Starting RefreshingDemandManager", log_level=logging.INFO)
+    async def start(self) -> None:
+        return await super().start()
+
+    @trace_span("Stopping RefreshingDemandManager", log_level=logging.INFO)
+    async def stop(self) -> None:
+        return await super().stop()
+
+    @trace_span("Getting initial proposal", show_results=True)
     async def get_initial_proposal(self) -> Proposal:
         return await self._get_initial_proposal()
 
@@ -77,7 +87,13 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         demand.start_collecting_events()
         await demand.get_data()
         self._demands.append(
-            (demand, create_task_with_logging(self._consume_initial_proposals(demand)))
+            (
+                demand,
+                create_task_with_logging(
+                    self._consume_initial_proposals(demand),
+                    trace_id=get_trace_id_name(self, f"demand-{demand.id}-proposal-consumer-loop"),
+                ),
+            )
         )
 
     @trace_span()
@@ -87,7 +103,7 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
                 logger.debug(f"New initial proposal {initial}")
                 self._initial_proposals.put_nowait(initial)
         except asyncio.CancelledError:
-            ...
+            pass
 
     @trace_span()
     def _stop_consuming_initial_proposals(self) -> List[bool]:

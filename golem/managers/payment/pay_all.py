@@ -40,7 +40,7 @@ class PayAllPaymentManager(PaymentManager):
 
         self._event_handlers: List = []
 
-    @trace_span()
+    @trace_span("Starting PayAllPaymentManager", log_level=logging.INFO)
     async def start(self):
         # TODO: Add stop with event_bus.off()
         self._event_handlers.extend(
@@ -52,9 +52,12 @@ class PayAllPaymentManager(PaymentManager):
             ]
         )
 
-    @trace_span()
+    @trace_span("Stopping PayAllPaymentManager", log_level=logging.INFO)
     async def stop(self):
-        await self.wait_for_invoices()
+        try:
+            await self.wait_for_invoices()
+        except RuntimeError:
+            pass
 
         for event_handler in self._event_handlers:
             await self._golem.event_bus.off(event_handler)
@@ -68,7 +71,7 @@ class PayAllPaymentManager(PaymentManager):
         # TODO: We should not rely on golem node with cleanups, manager should do it by itself
         self._golem.add_autoclose_resource(self._allocation)
 
-    @trace_span(show_results=True)
+    @trace_span("Getting allocation", show_results=True, log_level=logging.INFO)
     async def get_allocation(self) -> "Allocation":
         # TODO handle NoMatchingAccount
         if self._allocation is None:
@@ -77,20 +80,21 @@ class PayAllPaymentManager(PaymentManager):
         # TODO fix type
         return self._allocation  # type: ignore[return-value]
 
-    @trace_span()
+    @trace_span("Waiting for invoices", log_level=logging.INFO)
     async def wait_for_invoices(self):
         for _ in range(60):
-            await asyncio.sleep(1)
             if (
                 self._opened_agreements_count
                 == self._closed_agreements_count
                 == self._payed_invoices_count
             ):
-                logger.info("Waiting for invoices done with all paid")
+                logger.info("All invoices paid")
                 return
 
+            await asyncio.sleep(1)
+
         # TODO: Add list of agreements without payment
-        logger.warning("Waiting for invoices failed with timeout!")
+        raise RuntimeError("Waiting for invoices failed with timeout!")
 
     async def _increment_opened_agreements(self, event: NewAgreement):
         self._opened_agreements_count += 1

@@ -15,15 +15,11 @@ class SequentialWorkManager(WorkManagerPluginsMixin, WorkManager):
 
         super().__init__(*args, **kwargs)
 
-    @trace_span(show_arguments=True, show_results=True)
+    @trace_span("Doing work", show_arguments=True, show_results=True, log_level=logging.INFO)
     async def do_work(self, work: Work) -> WorkResult:
-        result = await self._do_work_with_plugins(self._do_work, work)
+        return await self._do_work_with_plugins(self._do_work, work)
 
-        logger.info(f"Work `{work}` completed")
-
-        return result
-
-    @trace_span(show_arguments=True, show_results=True)
+    @trace_span("Doing work list", show_arguments=True, show_results=True, log_level=logging.INFO)
     async def do_work_list(self, work_list: List[Work]) -> List[WorkResult]:
         results = []
 

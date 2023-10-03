@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from copy import deepcopy
 from datetime import datetime
 from typing import List, Optional, Sequence, cast
@@ -38,25 +39,27 @@ class NegotiatingPlugin(ProposalManagerPlugin):
 
             demand_data = await self._get_demand_data_from_proposal(proposal)
 
-            offer_proposal = await self._negotiate_proposal(demand_data, proposal)
-
-            if offer_proposal is not None:
-                return offer_proposal
+            try:
+                return await self._negotiate_proposal(demand_data, proposal)
+            except Exception:
+                logging.debug(
+                    f"Negotiation based on proposal `{proposal}` failed, retrying with new one..."
+                )
 
     @trace_span(show_arguments=True, show_results=True)
     async def _negotiate_proposal(
         self, demand_data: DemandData, offer_proposal: Proposal
-    ) -> Optional[Proposal]:
+    ) -> Proposal:
         while True:
             demand_data_after_negotiators = deepcopy(demand_data)
 
             try:
                 await self._run_negotiators(demand_data_after_negotiators, offer_proposal)
-            except RejectProposal as e:
+            except RejectProposal:
                 if not offer_proposal.initial:
-                    await offer_proposal.reject(str(e))
+                    await self._reject_proposal(offer_proposal)
 
-                return None
+                raise
 
             if not offer_proposal.initial and demand_data_after_negotiators == demand_data:
                 return offer_proposal
@@ -64,33 +67,32 @@ class NegotiatingPlugin(ProposalManagerPlugin):
             demand_data = demand_data_after_negotiators
 
             demand_proposal = await self._send_demand_proposal(offer_proposal, demand_data)
-            if demand_proposal is None:
-                return None
-
             new_offer_proposal = await self._wait_for_proposal_response(demand_proposal)
-            if new_offer_proposal is None:
-                return None
 
             offer_proposal = new_offer_proposal
 
     @trace_span()
-    async def _wait_for_proposal_response(self, demand_proposal: Proposal) -> Optional[Proposal]:
+    async def _wait_for_proposal_response(self, demand_proposal: Proposal) -> Proposal:
         try:
             return await demand_proposal.responses().__anext__()
-        except StopAsyncIteration:
-            return None
+        except StopAsyncIteration as e:
+            raise RuntimeError("Failed to receive proposal response!") from e
 
     @trace_span()
     async def _send_demand_proposal(
         self, offer_proposal: Proposal, demand_data: DemandData
-    ) -> Optional[Proposal]:
+    ) -> Proposal:
         try:
             return await offer_proposal.respond(
                 demand_data.properties,
                 demand_data.constraints,
             )
-        except (ApiException, asyncio.TimeoutError):
-            return None
+        except (ApiException, asyncio.TimeoutError) as e:
+            raise RuntimeError(f"Failed to send proposal response! {e}") from e
+
+    @trace_span()
+    async def _reject_proposal(self, offer_proposal: Proposal) -> None:
+        await offer_proposal.reject()
 
     async def _get_demand_data_from_proposal(self, proposal: Proposal) -> DemandData:
         # FIXME: Unnecessary serialisation from DemandBuilder to Demand,

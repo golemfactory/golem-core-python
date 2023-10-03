@@ -22,7 +22,7 @@ class DefaultAgreementManager(AgreementManager):
 
         super().__init__(*args, **kwargs)
 
-    @trace_span(show_arguments=True)
+    @trace_span("Getting agreement", show_results=True, log_level=logging.INFO)
     async def get_agreement(self) -> Agreement:
         while True:
             proposal = await self._get_draft_proposal()
@@ -33,8 +33,6 @@ class DefaultAgreementManager(AgreementManager):
             except Exception as e:
                 logger.debug(f"Creating agreement failed with `{e}`. Retrying...")
             else:
-                logger.info(f"Agreement `{agreement}` created")
-
                 # TODO: Support removing callback on resource close
                 await self._event_bus.on_once(
                     ActivityClosed,
