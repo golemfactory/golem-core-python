@@ -1,5 +1,5 @@
 from golem.managers.activity import ActivityPoolManager, SingleUseActivityManager
-from golem.managers.agreement import AgreementReleased, DefaultAgreementManager
+from golem.managers.agreement import DefaultAgreementManager
 from golem.managers.base import (
     ActivityManager,
     AgreementManager,
@@ -48,7 +48,6 @@ from golem.managers.work import (
 __all__ = (
     "ActivityPoolManager",
     "SingleUseActivityManager",
-    "AgreementReleased",
     "DefaultAgreementManager",
     "DoWorkCallable",
     "Manager",

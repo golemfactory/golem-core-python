@@ -1,10 +1,9 @@
 import logging
 from typing import Awaitable, Callable
 
-from golem.managers.agreement.events import AgreementReleased
 from golem.managers.base import AgreementManager
 from golem.node import GolemNode
-from golem.resources import Agreement, Proposal
+from golem.resources import ActivityClosed, Agreement, Proposal
 from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
@@ -38,15 +37,15 @@ class DefaultAgreementManager(AgreementManager):
 
                 # TODO: Support removing callback on resource close
                 await self._event_bus.on_once(
-                    AgreementReleased,
+                    ActivityClosed,
                     self._terminate_agreement,
-                    lambda event: event.resource.id == agreement.id,
+                    lambda event: event.resource.parent.id == agreement.id,
                 )
                 return agreement
 
     @trace_span(show_arguments=True)
-    async def _terminate_agreement(self, event: AgreementReleased) -> None:
+    async def _terminate_agreement(self, event: ActivityClosed) -> None:
         # TODO ensure agreement it is terminated on SIGINT
-        agreement: Agreement = event.resource
+        agreement: Agreement = event.resource.parent
         await agreement.terminate()
         logger.info(f"Agreement `{agreement}` closed")
