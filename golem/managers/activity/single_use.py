@@ -1,14 +1,28 @@
 import logging
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Awaitable, Callable
+from typing import Awaitable, Callable
 
-from golem.managers.activity.mixins import ActivityPrepareReleaseMixin
-from golem.managers.base import ActivityManager, Work, WorkContext, WorkResult
+from golem.managers.activity.mixins import ActivityPrepareReleaseMixin, ActivityWrapperMixin
+from golem.managers.base import ActivityManager
 from golem.node import GolemNode
 from golem.resources import Activity, Agreement
 from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
+
+
+@Activity.register
+class SingleUseActivity(ActivityWrapperMixin):
+    def __init__(
+        self,
+        release_activity_func,
+        *args,
+        **kwargs,
+    ) -> None:
+        self._release_activity_func = release_activity_func
+        super().__init__(*args, **kwargs)
+
+    async def destroy(self) -> None:
+        await self._release_activity_func(self._activity)
 
 
 class SingleUseActivityManager(ActivityPrepareReleaseMixin, ActivityManager):
@@ -20,29 +34,18 @@ class SingleUseActivityManager(ActivityPrepareReleaseMixin, ActivityManager):
 
         super().__init__(*args, **kwargs)
 
-    @asynccontextmanager
-    async def _prepare_single_use_activity(self) -> AsyncGenerator[Activity, None]:
+    @trace_span(show_arguments=True, show_results=True)
+    async def get_activity(self) -> Activity:
         while True:
             agreement = await self._get_agreement()
             try:
                 activity = await self._prepare_activity(agreement)
-                try:
-                    yield activity
-                finally:
-                    await self._release_activity(activity)
-                    break
+
+                logger.info(f"Activity `{activity}` created")
+                # mypy doesn't support `ABCMeta.register` https://github.com/python/mypy/issues/2922
+                return SingleUseActivity(
+                    self._release_activity, activity=activity
+                )  # type: ignore[return-value]
+
             except Exception:
                 logger.exception("Creating activity failed, but will be retried with new agreement")
-
-    @trace_span(show_arguments=True, show_results=True)
-    async def do_work(self, work: Work) -> WorkResult:
-        async with self._prepare_single_use_activity() as activity:
-            work_context = WorkContext(activity)
-            try:
-                work_result = await work(work_context)
-            except Exception as e:
-                work_result = WorkResult(exception=e)
-            else:
-                if not isinstance(work_result, WorkResult):
-                    work_result = WorkResult(result=work_result)
-        return work_result

@@ -87,13 +87,12 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
         """
         try:
             await self.api.terminate_agreement(self.id, request_body={"message": reason})
+            await self.node.event_bus.emit(AgreementClosed(self))
         except ApiException as e:
             if self._is_permanent_410(e):
                 pass
             else:
                 raise
-
-        await self.node.event_bus.emit(AgreementClosed(self))
 
     @property
     def invoice(self) -> Optional[Invoice]:

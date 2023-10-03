@@ -1,10 +1,9 @@
 import asyncio
 import logging
-from contextlib import asynccontextmanager
 from typing import Awaitable, Callable
 
-from golem.managers.activity.mixins import ActivityPrepareReleaseMixin
-from golem.managers.base import ActivityManager, Work, WorkContext, WorkResult
+from golem.managers.activity.mixins import ActivityPrepareReleaseMixin, ActivityWrapperMixin
+from golem.managers.base import ActivityManager
 from golem.managers.mixins import BackgroundLoopMixin
 from golem.node import GolemNode
 from golem.resources import Activity, Agreement
@@ -13,7 +12,22 @@ from golem.utils.logging import trace_span
 logger = logging.getLogger(__name__)
 
 
-class ActivityPoolManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, ActivityManager):
+@Activity.register
+class PoolActivity(ActivityWrapperMixin):
+    def __init__(
+        self,
+        put_activity_in_pool_func,
+        *args,
+        **kwargs,
+    ) -> None:
+        self._put_activity_in_pool_func = put_activity_in_pool_func
+        super().__init__(*args, **kwargs)
+
+    async def destroy(self) -> None:
+        await self._put_activity_in_pool_func(self._activity)
+
+
+class PoolActivityManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, ActivityManager):
     def __init__(
         self,
         golem: GolemNode,
@@ -75,26 +89,20 @@ class ActivityPoolManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, Acti
         await self._pool.put(activity)
         self._pool_current_size += 1
 
-    @asynccontextmanager
     async def _get_activity_from_pool(self):
         activity = await self._pool.get()
         self._pool.task_done()
         logger.debug(f"Activity `{activity}` taken from the pool")
-        try:
-            yield activity
-        finally:
-            await self._pool.put(activity)
-            logger.debug(f"Activity `{activity}` back in the pool")
+        return activity
+
+    async def _put_activity_in_pool(self, activity):
+        await self._pool.put(activity)
+        logger.debug(f"Activity `{activity}` back in the pool")
 
     @trace_span(show_arguments=True, show_results=True)
-    async def do_work(self, work: Work) -> WorkResult:
-        async with self._get_activity_from_pool() as activity:
-            work_context = WorkContext(activity)
-            try:
-                work_result = await work(work_context)
-            except Exception as e:
-                work_result = WorkResult(exception=e)
-            else:
-                if not isinstance(work_result, WorkResult):
-                    work_result = WorkResult(result=work_result)
-        return work_result
+    async def get_activity(self) -> Activity:
+        activity = await self._get_activity_from_pool()
+        # mypy doesn't support `ABCMeta.register` https://github.com/python/mypy/issues/2922
+        return PoolActivity(
+            self._put_activity_in_pool, activity=activity
+        )  # type: ignore[return-value]
