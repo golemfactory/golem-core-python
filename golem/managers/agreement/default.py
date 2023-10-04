@@ -61,7 +61,7 @@ class DefaultAgreementManager(AgreementManager):
         try:
             self._agreements.remove(agreement)
         except ValueError:
-            logger.warning(f"{agreement} not found when removing it from tracked list")
+            logger.warning(f"Agreement `{agreement}` not found when removing it from tracked list")
         await agreement.terminate()
 
         logger.info(f"Agreement `{agreement}` closed")
