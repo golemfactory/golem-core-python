@@ -18,8 +18,6 @@ class ActivityWrapperMixin:
 
     def __getattr__(self, item):
         result = self._activity.__getattribute__(item)
-        if callable(result):
-            return lambda *args, **kwargs: result(*args, **kwargs)
         return result
 
 
