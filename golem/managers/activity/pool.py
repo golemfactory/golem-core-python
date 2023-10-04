@@ -61,7 +61,7 @@ class PoolActivityManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, Acti
                 # TODO: Use events instead of sleep
                 await asyncio.sleep(0.01)
         finally:
-            logger.info(f"Releasing all {self._pool_current_size} activity from ol")
+            logger.info(f"Releasing all {self._pool_current_size} activities from the pool")
             # TODO cancel release adn prepare tasks
             await asyncio.gather(
                 *[
