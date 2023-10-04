@@ -10,15 +10,12 @@ from golem.utils.logging import trace_span
 logger = logging.getLogger(__name__)
 
 
-class ActivityWrapperMixin:
-    def __init__(self, activity: Activity, *args, **kwargs) -> None:
+class ActivityWrapper:
+    def __init__(self, activity: Activity) -> None:
         self._activity = activity
 
-        super().__init__(*args, **kwargs)
-
     def __getattr__(self, item):
-        result = self._activity.__getattribute__(item)
-        return result
+        return getattr(self._activity, item)
 
 
 class ActivityPrepareReleaseMixin:

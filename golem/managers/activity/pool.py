@@ -2,7 +2,7 @@ import asyncio
 import logging
 from typing import Awaitable, Callable
 
-from golem.managers.activity.mixins import ActivityPrepareReleaseMixin, ActivityWrapperMixin
+from golem.managers.activity.mixins import ActivityPrepareReleaseMixin, ActivityWrapper
 from golem.managers.base import ActivityManager
 from golem.managers.mixins import BackgroundLoopMixin
 from golem.node import GolemNode
@@ -13,18 +13,13 @@ logger = logging.getLogger(__name__)
 
 
 @Activity.register
-class PoolActivity(ActivityWrapperMixin):
-    def __init__(
-        self,
-        put_activity_in_pool_func,
-        *args,
-        **kwargs,
-    ) -> None:
-        self._put_activity_in_pool_func = put_activity_in_pool_func
-        super().__init__(*args, **kwargs)
+class PoolActivity(ActivityWrapper):
+    def __init__(self, activity, put_activity_to_pool_func) -> None:
+        super().__init__(activity)
+        self._put_activity_to_pool_func = put_activity_to_pool_func
 
     async def destroy(self) -> None:
-        await self._put_activity_in_pool_func(self._activity)
+        await self._put_activity_to_pool_func(self._activity)
 
 
 class PoolActivityManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, ActivityManager):
@@ -59,14 +54,14 @@ class PoolActivityManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, Acti
                     # TODO check tasks results and add fallback
                     await asyncio.gather(
                         *[
-                            self._prepare_activity_and_put_in_pool()
+                            self._prepare_activity_and_put_to_pool()
                             for _ in range(self._pool_target_size - self._pool_current_size)
                         ]
                     )
                 # TODO: Use events instead of sleep
                 await asyncio.sleep(0.01)
         finally:
-            logger.info(f"Releasing all {self._pool_current_size} activity from the pool")
+            logger.info(f"Releasing all {self._pool_current_size} activity from ol")
             # TODO cancel release adn prepare tasks
             await asyncio.gather(
                 *[
@@ -83,7 +78,7 @@ class PoolActivityManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, Acti
         await self._release_activity(activity)
 
     @trace_span()
-    async def _prepare_activity_and_put_in_pool(self):
+    async def _prepare_activity_and_put_to_pool(self):
         agreement = await self._get_agreement()
         activity = await self._prepare_activity(agreement)
         await self._pool.put(activity)
@@ -95,14 +90,12 @@ class PoolActivityManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, Acti
         logger.debug(f"Activity `{activity}` taken from the pool")
         return activity
 
-    async def _put_activity_in_pool(self, activity):
+    async def _put_activity_to_pool(self, activity):
         await self._pool.put(activity)
-        logger.debug(f"Activity `{activity}` back in the pool")
+        logger.debug(f"Activity `{activity}` back to the pool")
 
     @trace_span(show_arguments=True, show_results=True)
     async def get_activity(self) -> Activity:
         activity = await self._get_activity_from_pool()
         # mypy doesn't support `ABCMeta.register` https://github.com/python/mypy/issues/2922
-        return PoolActivity(
-            self._put_activity_in_pool, activity=activity
-        )  # type: ignore[return-value]
+        return PoolActivity(activity, self._put_activity_to_pool)  # type: ignore[return-value]

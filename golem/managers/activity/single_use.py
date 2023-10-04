@@ -1,7 +1,7 @@
 import logging
 from typing import Awaitable, Callable
 
-from golem.managers.activity.mixins import ActivityPrepareReleaseMixin, ActivityWrapperMixin
+from golem.managers.activity.mixins import ActivityPrepareReleaseMixin, ActivityWrapper
 from golem.managers.base import ActivityManager
 from golem.node import GolemNode
 from golem.resources import Activity, Agreement
@@ -11,15 +11,14 @@ logger = logging.getLogger(__name__)
 
 
 @Activity.register
-class SingleUseActivity(ActivityWrapperMixin):
+class SingleUseActivity(ActivityWrapper):
     def __init__(
         self,
+        activity,
         release_activity_func,
-        *args,
-        **kwargs,
     ) -> None:
+        super().__init__(activity)
         self._release_activity_func = release_activity_func
-        super().__init__(*args, **kwargs)
 
     async def destroy(self) -> None:
         await self._release_activity_func(self._activity)
@@ -44,7 +43,7 @@ class SingleUseActivityManager(ActivityPrepareReleaseMixin, ActivityManager):
                 logger.info(f"Activity `{activity}` created")
                 # mypy doesn't support `ABCMeta.register` https://github.com/python/mypy/issues/2922
                 return SingleUseActivity(
-                    self._release_activity, activity=activity
+                    activity, self._release_activity
                 )  # type: ignore[return-value]
 
             except Exception:
