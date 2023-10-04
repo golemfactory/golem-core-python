@@ -25,7 +25,7 @@ class DefaultAgreementManager(AgreementManager):
 
         super().__init__(*args, **kwargs)
 
-    @trace_span()
+    @trace_span("Stopping DefaultAgreementManager", log_level=logging.INFO)
     async def stop(self) -> None:
         if self._agreements:
             await asyncio.gather(
