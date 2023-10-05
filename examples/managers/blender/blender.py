@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import List
 
 from golem.managers import (
-    ActivityPoolManager,
     AddChosenPaymentPlatform,
     ConcurrentWorkManager,
     DefaultAgreementManager,
@@ -15,6 +14,7 @@ from golem.managers import (
     MapScore,
     NegotiatingPlugin,
     PayAllPaymentManager,
+    PoolActivityManager,
     RefreshingDemandManager,
     ScoringBuffer,
     WorkContext,
@@ -65,11 +65,11 @@ async def run_on_golem(
         golem,
         proposal_manager.get_draft_proposal,
     )
-    activity_manager = ActivityPoolManager(
+    activity_manager = PoolActivityManager(
         golem, agreement_manager.get_agreement, pool_size=threads, on_activity_start=init_func
     )
     work_manager = ConcurrentWorkManager(
-        golem, activity_manager.do_work, size=threads, plugins=task_plugins
+        golem, activity_manager.get_activity, size=threads, plugins=task_plugins
     )
 
     async with golem, payment_manager, demand_manager, proposal_manager, agreement_manager, activity_manager:  # noqa: E501 line too long

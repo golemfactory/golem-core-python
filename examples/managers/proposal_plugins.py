@@ -4,7 +4,6 @@ from datetime import timedelta
 from random import randint, random
 
 from golem.managers import (
-    ActivityPoolManager,
     AddChosenPaymentPlatform,
     BlacklistProviderIdNegotiator,
     BlacklistProviderIdPlugin,
@@ -15,6 +14,7 @@ from golem.managers import (
     MapScore,
     NegotiatingPlugin,
     PayAllPaymentManager,
+    PoolActivityManager,
     PropertyValueLerpScore,
     RandomScore,
     RefreshingDemandManager,
@@ -122,10 +122,10 @@ async def main():
         golem,
         proposal_manager.get_draft_proposal,
     )
-    activity_manager = ActivityPoolManager(golem, agreement_manager.get_agreement, pool_size=3)
+    activity_manager = PoolActivityManager(golem, agreement_manager.get_agreement, pool_size=3)
     work_manager = SequentialWorkManager(
         golem,
-        activity_manager.do_work,
+        activity_manager.get_activity,
         plugins=[
             retry(tries=5),
         ],

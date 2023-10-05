@@ -105,7 +105,7 @@ async def main():
         agreement_manager.get_agreement,
         on_activity_start=ssh_handler.on_activity_start,
     )
-    work_manager = SequentialWorkManager(golem, activity_manager.do_work)
+    work_manager = SequentialWorkManager(golem, activity_manager.get_activity)
     async with golem, network_manager, payment_manager, demand_manager, proposal_manager, agreement_manager:  # noqa: E501 line too long
         task = asyncio.create_task(work_manager.do_work(ssh_handler.work))
         while not ssh_handler.started:

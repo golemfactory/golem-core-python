@@ -61,7 +61,7 @@ async def main():
     )
     agreement_manager = DefaultAgreementManager(golem, proposal_manager.get_draft_proposal)
     activity_manager = SingleUseActivityManager(golem, agreement_manager.get_agreement)
-    work_manager = SequentialWorkManager(golem, activity_manager.do_work)
+    work_manager = SequentialWorkManager(golem, activity_manager.get_activity)
 
     async with golem:
         async with payment_manager, demand_manager, proposal_manager, agreement_manager:

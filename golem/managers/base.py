@@ -153,7 +153,7 @@ class AgreementManager(Manager, ABC):
 
 class ActivityManager(Manager, ABC):
     @abstractmethod
-    async def do_work(self, work: Work) -> WorkResult:
+    async def get_activity(self) -> Activity:
         ...
 
 

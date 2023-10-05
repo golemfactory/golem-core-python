@@ -1,10 +1,9 @@
 import asyncio
 import logging
-from contextlib import asynccontextmanager
 from typing import Awaitable, Callable
 
-from golem.managers.activity.mixins import ActivityPrepareReleaseMixin
-from golem.managers.base import ActivityManager, Work, WorkContext, WorkResult
+from golem.managers.activity.mixins import ActivityPrepareReleaseMixin, ActivityWrapper
+from golem.managers.base import ActivityManager
 from golem.managers.mixins import BackgroundLoopMixin
 from golem.node import GolemNode
 from golem.resources import Activity, Agreement
@@ -13,7 +12,17 @@ from golem.utils.logging import trace_span
 logger = logging.getLogger(__name__)
 
 
-class ActivityPoolManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, ActivityManager):
+@Activity.register
+class PoolActivity(ActivityWrapper):
+    def __init__(self, activity, put_activity_to_pool_func) -> None:
+        super().__init__(activity)
+        self._put_activity_to_pool_func = put_activity_to_pool_func
+
+    async def destroy(self) -> None:
+        await self._put_activity_to_pool_func(self._activity)
+
+
+class PoolActivityManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, ActivityManager):
     def __init__(
         self,
         golem: GolemNode,
@@ -45,14 +54,14 @@ class ActivityPoolManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, Acti
                     # TODO check tasks results and add fallback
                     await asyncio.gather(
                         *[
-                            self._prepare_activity_and_put_in_pool()
+                            self._prepare_activity_and_put_to_pool()
                             for _ in range(self._pool_target_size - self._pool_current_size)
                         ]
                     )
                 # TODO: Use events instead of sleep
                 await asyncio.sleep(0.01)
         finally:
-            logger.info(f"Releasing all {self._pool_current_size} activity from the pool")
+            logger.info(f"Releasing all {self._pool_current_size} activities from the pool")
             # TODO cancel release adn prepare tasks
             await asyncio.gather(
                 *[
@@ -69,32 +78,24 @@ class ActivityPoolManager(BackgroundLoopMixin, ActivityPrepareReleaseMixin, Acti
         await self._release_activity(activity)
 
     @trace_span()
-    async def _prepare_activity_and_put_in_pool(self):
+    async def _prepare_activity_and_put_to_pool(self):
         agreement = await self._get_agreement()
         activity = await self._prepare_activity(agreement)
         await self._pool.put(activity)
         self._pool_current_size += 1
 
-    @asynccontextmanager
     async def _get_activity_from_pool(self):
         activity = await self._pool.get()
         self._pool.task_done()
         logger.debug(f"Activity `{activity}` taken from the pool")
-        try:
-            yield activity
-        finally:
-            await self._pool.put(activity)
-            logger.debug(f"Activity `{activity}` back in the pool")
+        return activity
+
+    async def _put_activity_to_pool(self, activity):
+        await self._pool.put(activity)
+        logger.debug(f"Activity `{activity}` back to the pool")
 
     @trace_span(show_arguments=True, show_results=True)
-    async def do_work(self, work: Work) -> WorkResult:
-        async with self._get_activity_from_pool() as activity:
-            work_context = WorkContext(activity)
-            try:
-                work_result = await work(work_context)
-            except Exception as e:
-                work_result = WorkResult(exception=e)
-            else:
-                if not isinstance(work_result, WorkResult):
-                    work_result = WorkResult(result=work_result)
-        return work_result
+    async def get_activity(self) -> Activity:
+        activity = await self._get_activity_from_pool()
+        # mypy doesn't support `ABCMeta.register` https://github.com/python/mypy/issues/2922
+        return PoolActivity(activity, self._put_activity_to_pool)  # type: ignore[return-value]

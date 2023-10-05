@@ -2,7 +2,6 @@ import asyncio
 import logging.config
 
 from golem.managers import (
-    ActivityPoolManager,
     AddChosenPaymentPlatform,
     BlacklistProviderIdPlugin,
     Buffer,
@@ -10,6 +9,7 @@ from golem.managers import (
     DefaultProposalManager,
     NegotiatingPlugin,
     PayAllPaymentManager,
+    PoolActivityManager,
     RefreshingDemandManager,
     SequentialWorkManager,
     WorkContext,
@@ -64,8 +64,8 @@ async def main():
     )
 
     agreement_manager = DefaultAgreementManager(golem, proposal_manager.get_draft_proposal)
-    activity_manager = ActivityPoolManager(golem, agreement_manager.get_agreement, pool_size=3)
-    work_manager = SequentialWorkManager(golem, activity_manager.do_work)
+    activity_manager = PoolActivityManager(golem, agreement_manager.get_agreement, pool_size=3)
+    work_manager = SequentialWorkManager(golem, activity_manager.get_activity)
 
     async with golem:
         async with payment_manager, demand_manager, proposal_manager, agreement_manager, activity_manager:  # noqa: E501 line too long

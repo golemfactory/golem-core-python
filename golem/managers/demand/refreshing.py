@@ -51,9 +51,6 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
 
     @trace_span("Getting initial proposal", show_results=True)
     async def get_initial_proposal(self) -> Proposal:
-        return await self._get_initial_proposal()
-
-    async def _get_initial_proposal(self) -> Proposal:
         proposal = await self._initial_proposals.get()
         self._initial_proposals.task_done()
         return proposal
@@ -99,7 +96,14 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
     @trace_span()
     async def _consume_initial_proposals(self, demand: Demand):
         try:
-            async for initial in demand.initial_proposals():
+            initial_proposals_gen = demand.initial_proposals()
+            first_initial_proposal = await initial_proposals_gen.__anext__()
+            logger.info("Received first initial proposal")
+
+            logger.debug(f"New initial proposal {first_initial_proposal}")
+            self._initial_proposals.put_nowait(first_initial_proposal)
+
+            async for initial in initial_proposals_gen:
                 logger.debug(f"New initial proposal {initial}")
                 self._initial_proposals.put_nowait(initial)
         except asyncio.CancelledError:
