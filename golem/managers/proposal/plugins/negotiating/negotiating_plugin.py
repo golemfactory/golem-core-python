@@ -2,7 +2,7 @@ import asyncio
 import logging
 from copy import deepcopy
 from datetime import datetime
-from typing import List, Optional, Sequence, cast
+from typing import Optional, Sequence, cast
 
 from ya_market import ApiException
 
@@ -11,6 +11,8 @@ from golem.managers.base import ProposalNegotiator
 from golem.payload import PayloadSyntaxParser, Properties
 from golem.resources import DemandData, Proposal, ProposalData
 from golem.utils.logging import trace_span
+
+logger = logging.getLogger(__name__)
 
 
 class NegotiatingPlugin(ProposalManagerPlugin):
@@ -26,7 +28,7 @@ class NegotiatingPlugin(ProposalManagerPlugin):
 
             demand_offer_parser = TextXPayloadSyntaxParser()
         self._demand_offer_parser = demand_offer_parser
-        self._proposal_negotiators: List[ProposalNegotiator] = (
+        self._proposal_negotiators: Sequence[ProposalNegotiator] = (
             list(proposal_negotiators) if proposal_negotiators is not None else []
         )
 
@@ -42,7 +44,7 @@ class NegotiatingPlugin(ProposalManagerPlugin):
             try:
                 return await self._negotiate_proposal(demand_data, proposal)
             except Exception:
-                logging.debug(
+                logger.debug(
                     f"Negotiation based on proposal `{proposal}` failed, retrying with new one..."
                 )
 

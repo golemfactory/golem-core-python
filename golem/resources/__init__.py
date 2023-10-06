@@ -78,6 +78,7 @@ from golem.resources.pooling_batch import (
     PoolingBatchException,
 )
 from golem.resources.proposal import (
+    LinearCoeffs,
     NewProposal,
     Proposal,
     ProposalClosed,
@@ -151,6 +152,7 @@ __all__ = (
     "ProposalClosed",
     "default_negotiate",
     "default_create_agreement",
+    "LinearCoeffs",
     "TResourceEvent",
     "TResource",
     "Resource",

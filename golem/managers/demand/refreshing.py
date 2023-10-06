@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Awaitable, Callable, List, Optional, Tuple
 
 from golem.managers.base import DemandManager
@@ -21,6 +21,7 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         golem: GolemNode,
         get_allocation: Callable[[], Awaitable[Allocation]],
         payload: Payload,
+        demand_expiration_timeout: timedelta = timedelta(minutes=30),
         demand_offer_parser: Optional[PayloadSyntaxParser] = None,
         *args,
         **kwargs,
@@ -28,6 +29,7 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         self._golem = golem
         self._get_allocation = get_allocation
         self._payload = payload
+        self._demand_expiration_timeout = demand_expiration_timeout
 
         if demand_offer_parser is None:
             from golem.payload.parsers.textx import TextXPayloadSyntaxParser
@@ -119,7 +121,9 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         demand_builder = DemandBuilder()
 
         await demand_builder.add_default_parameters(
-            self._demand_offer_parser, allocations=[allocation]
+            self._demand_offer_parser,
+            allocations=[allocation],
+            expiration=datetime.now(timezone.utc) + self._demand_expiration_timeout,
         )
 
         await demand_builder.add(self._payload)

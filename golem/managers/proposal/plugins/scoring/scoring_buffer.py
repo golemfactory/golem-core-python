@@ -53,38 +53,59 @@ class ScoringBuffer(ProposalScoringMixin, Buffer):
         )
 
     async def _background_loop(self):
+        # TODO: Rework this flow to:
+        #  - Use composition instead of inheritance
+        #  - Get rid of loop checking state for proper state
+        #     - composable Buffer should expose async context that exposes its items
+        #       and items asyncio.Condition
+
         while True:
+            logger.debug("Waiting for any requested items...")
             await self._items_requested_event.wait()
-            try:
-                await asyncio.wait_for(
-                    self._requests_queue.join(),
-                    timeout=self._update_interval.total_seconds(),
-                )
-            except asyncio.TimeoutError:
-                logger.debug("Waiting for all requested items timed out, updating anyways...")
-            else:
-                logger.debug("Got all requested items")
-                self._items_requested_event.clear()
+            logger.debug("Waiting for any requested items done")
 
-            async with self._buffered_condition:
-                items_to_score = self._buffered[:]
-                self._buffered.clear()
+            keep_retrying = True
+            while keep_retrying:  # FIXME: Needs refactor too
+                logger.debug("Waiting up to %s for all requested items...", self._update_interval)
+                try:
+                    await asyncio.wait_for(
+                        self._requests_queue.join(),
+                        timeout=self._update_interval.total_seconds(),
+                    )
+                except asyncio.TimeoutError:
+                    logger.debug(
+                        "Waiting up to %s for all requested items failed with timeout, trying to"
+                        "update anyways...",
+                        self._update_interval,
+                    )
+                else:
+                    logger.debug(
+                        "Waiting up to %s for all requested items done", self._update_interval
+                    )
+                    keep_retrying = False
+                    self._items_requested_event.clear()
 
-            async with self._scored_condition:
-                self._scored = [
-                    proposal for _, proposal in await self.do_scoring(self._scored + items_to_score)
-                ]
+                async with self._buffered_condition:
+                    if not self._buffered:
+                        logger.debug("Update not needed, as no items were buffered in the meantime")
+                        continue
 
-                logger.debug(f"Item collection updated {self._scored}")
+                    items_to_score = self._buffered[:]
+                    self._buffered.clear()
 
-                self._scored_condition.notify_all()
+                async with self._scored_condition:
+                    scored_proposals = await self.do_scoring(self._scored + items_to_score)
+                    self._scored = [proposal for _, proposal in scored_proposals]
+
+                    logger.debug("Item collection updated %s", scored_proposals)
+
+                    self._scored_condition.notify_all()
 
     async def _get_item(self):
         async with self._scored_condition:
             if self._get_items_count() == 0:  # This supports lazy (not at start) buffer filling
                 logger.debug("No items to get, requesting fill")
                 self._handle_item_requests()
-                self._items_requested_event.set()
 
             logger.debug("Waiting for any item to pick...")
 
@@ -94,9 +115,13 @@ class ScoringBuffer(ProposalScoringMixin, Buffer):
             # Check if we need to request any additional items
             if self._get_items_count() < self._min_size:
                 self._handle_item_requests()
-                self._items_requested_event.set()
 
             return item
+
+    def _handle_item_requests(self) -> None:
+        super()._handle_item_requests()
+
+        self._items_requested_event.set()
 
     def _get_items_count(self):
         items_count = super()._get_items_count()

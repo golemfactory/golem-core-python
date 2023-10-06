@@ -1,7 +1,6 @@
 from golem.managers.proposal.default import DefaultProposalManager
 from golem.managers.proposal.plugins import (
     AddChosenPaymentPlatform,
-    BlacklistProviderIdNegotiator,
     BlacklistProviderIdPlugin,
     Buffer,
     LinearAverageCostPricing,
@@ -19,7 +18,6 @@ __all__ = (
     "BlacklistProviderIdPlugin",
     "Buffer",
     "AddChosenPaymentPlatform",
-    "BlacklistProviderIdNegotiator",
     "NegotiatingPlugin",
     "RejectIfCostsExceeds",
     "MapScore",

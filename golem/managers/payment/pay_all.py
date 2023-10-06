@@ -124,6 +124,7 @@ class PayAllPaymentManager(PaymentManager):
         invoice = event.resource
 
         if (await invoice.get_data(force=True)).status == "RECEIVED":
+            logger.debug("Accepting invoice `%s`: %s", invoice, await invoice.get_data())
             await self._accept_invoice(invoice)
 
     @trace_span()
@@ -131,4 +132,5 @@ class PayAllPaymentManager(PaymentManager):
         debit_note = event.resource
 
         if (await debit_note.get_data(force=True)).status == "RECEIVED":
+            logger.debug("Accepting debit note `%s`: %s", debit_note, await debit_note.get_data())
             await self._accept_debit_note(debit_note)
