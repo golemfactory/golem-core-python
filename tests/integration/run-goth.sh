@@ -13,7 +13,7 @@ echo INSTALLING TOOLS
 .envs/goth/bin/python -m pip install --upgrade setuptools wheel
 
 echo ISNTALLING DEPENDENCIES
-.envs/goth/bin/python -m pip install goth pytest pytest-asyncio pexpect
+.envs/goth/bin/python -m pip install goth==0.15.3 pytest pytest-asyncio pexpect
 
 echo CREATING ASSETS
 .envs/goth/bin/python -m goth create-assets .envs/goth/assets
@@ -26,7 +26,7 @@ GOTH_PID=$!
 echo $GOTH_PID
 
 echo WAITING FOR NETWORK
-STARTED_WAITING_AT=$((SECONDS + 600))
+STARTED_WAITING_AT=$((SECONDS + 900))
 while [ ! -f /tmp/goth_interactive.env ]; do
   sleep 5
   if ! ps -p $GOTH_PID >/dev/null; then
@@ -34,7 +34,7 @@ while [ ! -f /tmp/goth_interactive.env ]; do
     break
   fi
   if [ $SECONDS -gt $STARTED_WAITING_AT ]; then
-    echo GOTH NETWORK FAILED TO START IN 10 MINUTES
+    echo GOTH NETWORK FAILED TO START IN 15 MINUTES
     break
   fi
 done
