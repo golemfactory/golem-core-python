@@ -7,7 +7,7 @@ inputs:
     required: true
   PYTHON_VERSION:
     description: "python version"
-    default: "3.8.18"
+    default: "3.10"
 
 runs:
   using: "composite"
