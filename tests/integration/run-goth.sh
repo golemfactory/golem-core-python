@@ -26,7 +26,7 @@ GOTH_PID=$!
 echo $GOTH_PID
 
 echo WAITING FOR NETWORK
-STARTED_WAITING_AT=$((SECONDS + 600))
+STARTED_WAITING_AT=$((SECONDS + 900))
 while [ ! -f /tmp/goth_interactive.env ]; do
   sleep 5
   if ! ps -p $GOTH_PID >/dev/null; then
