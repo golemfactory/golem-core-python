@@ -34,7 +34,7 @@ while [ ! -f /tmp/goth_interactive.env ]; do
     break
   fi
   if [ $SECONDS -gt $STARTED_WAITING_AT ]; then
-    echo GOTH NETWORK FAILED TO START IN 10 MINUTES
+    echo GOTH NETWORK FAILED TO START IN 15 MINUTES
     break
   fi
 done
