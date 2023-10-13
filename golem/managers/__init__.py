@@ -23,7 +23,6 @@ from golem.managers.network import SingleNetworkManager
 from golem.managers.payment import PayAllPaymentManager
 from golem.managers.proposal import (
     AddChosenPaymentPlatform,
-    BlacklistProviderIdNegotiator,
     BlacklistProviderIdPlugin,
     Buffer,
     DefaultProposalManager,
@@ -66,14 +65,12 @@ __all__ = (
     "ActivityManager",
     "RefreshingDemandManager",
     "BackgroundLoopMixin",
-    "BlacklistProviderId",
     "SingleNetworkManager",
     "PayAllPaymentManager",
     "DefaultProposalManager",
     "BlacklistProviderIdPlugin",
     "Buffer",
     "AddChosenPaymentPlatform",
-    "BlacklistProviderIdNegotiator",
     "NegotiatingPlugin",
     "RejectIfCostsExceeds",
     "MapScore",

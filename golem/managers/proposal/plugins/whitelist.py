@@ -8,9 +8,9 @@ from golem.utils.logging import trace_span
 logger = logging.getLogger(__name__)
 
 
-class BlacklistProviderIdPlugin(ProposalManagerPlugin):
-    def __init__(self, blacklist: Set[str]) -> None:
-        self._blacklist = blacklist
+class WhitelistProviderIdPlugin(ProposalManagerPlugin):
+    def __init__(self, whitelist: Set[str]) -> None:
+        self._whitelist = whitelist
 
     @trace_span(show_results=True)
     async def get_proposal(self) -> Proposal:
@@ -19,14 +19,13 @@ class BlacklistProviderIdPlugin(ProposalManagerPlugin):
             proposal_data = await proposal.get_data()
             provider_id = proposal_data.issuer_id
 
-            if provider_id not in self._blacklist:
+            if provider_id in self._whitelist:
                 return proposal
 
             if not proposal.initial:
-                await proposal.reject("provider_id is on blacklist")
+                await proposal.reject("provider_id is not on whitelist")
 
             logger.debug(
-                "Provider `%s` from proposal `%s` is on blacklist, picking different proposal...",
-                provider_id,
-                proposal,
+                f"Provider id `{provider_id}` from proposal `{proposal}` is not on whitelist,"
+                f" picking different proposal..."
             )

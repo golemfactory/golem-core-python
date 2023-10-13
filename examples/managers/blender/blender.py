@@ -58,7 +58,9 @@ async def run_on_golem(
         demand_manager.get_initial_proposal,
         plugins=[
             NegotiatingPlugin(proposal_negotiators=negotiators),
-            ScoringBuffer(min_size=3, max_size=5, concurrency_size=3, proposal_scorers=scorers),
+            ScoringBuffer(
+                min_size=3, max_size=5, fill_concurrency_size=3, proposal_scorers=scorers
+            ),
         ],
     )
     agreement_manager = DefaultAgreementManager(

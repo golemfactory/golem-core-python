@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from asyncio import Queue
-from typing import List, Optional
+from typing import List
 
 from golem.managers import ProposalManagerPlugin
 from golem.resources import Proposal
@@ -16,12 +16,12 @@ class Buffer(ProposalManagerPlugin):
         self,
         min_size: int,
         max_size: int,
-        concurrency_size: Optional[int] = None,
+        fill_concurrency_size: int = 1,
         fill_at_start=False,
     ):
         self._min_size = min_size
         self._max_size = max_size
-        self._concurrency_size = concurrency_size or max_size
+        self._fill_concurrency_size = fill_concurrency_size
         self._fill_at_start = fill_at_start
 
         self._get_proposal_lock = asyncio.Lock()
@@ -46,7 +46,7 @@ class Buffer(ProposalManagerPlugin):
         if self.is_started():
             raise RuntimeError("Already started!")
 
-        for i in range(self._concurrency_size):
+        for i in range(self._fill_concurrency_size):
             self._worker_tasks.append(
                 create_task_with_logging(
                     self._worker_loop(), trace_id=get_trace_id_name(self, f"worker-{i}")
@@ -82,11 +82,9 @@ class Buffer(ProposalManagerPlugin):
 
     async def _worker_loop(self):
         while True:
-            await self._requests_queue.get()
+            await self._wait_for_any_item_requests()
 
             item = await self._get_proposal()
-
-            logger.debug("Requested item `%s` received", item)
 
             async with self._buffered_condition:
                 self._buffered.append(item)
@@ -95,6 +93,10 @@ class Buffer(ProposalManagerPlugin):
 
             self._requests_queue.task_done()
             self._requests_pending_count -= 1
+
+    @trace_span()
+    async def _wait_for_any_item_requests(self) -> None:
+        await self._requests_queue.get()
 
     async def _get_item(self):
         async with self._buffered_condition:

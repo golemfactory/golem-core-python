@@ -5,7 +5,6 @@ from random import randint, random
 
 from golem.managers import (
     AddChosenPaymentPlatform,
-    BlacklistProviderIdNegotiator,
     BlacklistProviderIdPlugin,
     Buffer,
     DefaultAgreementManager,
@@ -28,16 +27,17 @@ from golem.managers import (
     retry,
     work_plugin,
 )
+from golem.managers.proposal.plugins.linear_coeffs import LinearCoeffsCost
 from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload, defaults
 from golem.resources import DemandData, ProposalData
 from golem.utils.logging import DEFAULT_LOGGING
 
-BLACKLISTED_PROVIDERS = [
+BLACKLISTED_PROVIDERS = {
     "0x3b0f605fcb0690458064c10346af0c5f6b7202a5",
     "0x7ad8ce2f95f69be197d136e308303d2395e68379",
     "0x40f401ead13eabe677324bf50605c68caabb22c7",
-]
+}
 
 
 async def blacklist_func(demand_data: DemandData, proposal_data: ProposalData) -> None:
@@ -81,40 +81,38 @@ async def main():
             Buffer(
                 min_size=10,
                 max_size=1000,
-                concurrency_size=5,
             ),
             BlacklistProviderIdPlugin(BLACKLISTED_PROVIDERS),
+            RejectIfCostsExceeds(1, linear_average_cost),
+            RejectIfCostsExceeds(0.01, LinearCoeffsCost("price_cpu_sec")),
             NegotiatingPlugin(
-                proposal_negotiators=[
+                # FIXME ProposalNegotiator so it recognize lambdas and functions
+                proposal_negotiators=(  # type: ignore[arg-type]
                     AddChosenPaymentPlatform(),
-                    # class based plugin
-                    BlacklistProviderIdNegotiator(BLACKLISTED_PROVIDERS),
-                    RejectIfCostsExceeds(1, linear_average_cost),
                     # func plugin
-                    blacklist_func,  # type: ignore[list-item]
+                    blacklist_func,
                     # lambda plugin
-                    lambda _, proposal_data: proposal_data.issuer_id  # type: ignore[list-item]
-                    not in BLACKLISTED_PROVIDERS,
+                    lambda _, proposal_data: proposal_data.issuer_id not in BLACKLISTED_PROVIDERS,
                     # lambda plugin with reject reason
-                    lambda _, proposal_data: RejectProposal(  # type: ignore[list-item]
+                    lambda _, proposal_data: RejectProposal(
                         f"Blacklisting {proposal_data.issuer_id}"
                     )
                     if proposal_data.issuer_id in BLACKLISTED_PROVIDERS
                     else None,
-                ]
+                )
             ),
             ScoringBuffer(
                 min_size=3,
                 max_size=5,
-                concurrency_size=3,
-                proposal_scorers=[
+                fill_concurrency_size=3,
+                proposal_scorers=(
                     # List of Scorer or Tuple[float, Scorer], float in [-1,1] range
                     MapScore(linear_average_cost, normalize=True, normalize_flip=True),
-                    [0.5, PropertyValueLerpScore(defaults.INF_MEM, zero_at=1, one_at=8)],
-                    [0.1, RandomScore()],
-                    [0.0, lambda proposals_data: [random() for _ in range(len(proposals_data))]],
-                    [0.0, MapScore(lambda proposal_data: random())],
-                ],
+                    (0.5, PropertyValueLerpScore(defaults.INF_MEM, zero_at=1, one_at=8)),
+                    (0.1, RandomScore()),
+                    (0.0, lambda proposals_data: [random() for _ in range(len(proposals_data))]),
+                    (0.0, MapScore(lambda proposal_data: random())),
+                ),
             ),
         ],
     )

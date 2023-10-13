@@ -19,11 +19,11 @@ from golem.node import GolemNode
 from golem.payload import RepositoryVmPayload
 from golem.utils.logging import DEFAULT_LOGGING
 
-BLACKLISTED_PROVIDERS = [
+BLACKLISTED_PROVIDERS = {
     "0x3b0f605fcb0690458064c10346af0c5f6b7202a5",
     "0x7ad8ce2f95f69be197d136e308303d2395e68379",
     "0x40f401ead13eabe677324bf50605c68caabb22c7",
-]
+}
 
 
 async def commands_work_example(context: WorkContext) -> str:
@@ -51,14 +51,14 @@ async def main():
             Buffer(
                 min_size=10,
                 max_size=1000,
-                concurrency_size=5,
+                fill_concurrency_size=5,
             ),
             BlacklistProviderIdPlugin(BLACKLISTED_PROVIDERS),
             NegotiatingPlugin(proposal_negotiators=[AddChosenPaymentPlatform()]),
             Buffer(
                 min_size=3,
                 max_size=5,
-                concurrency_size=3,
+                fill_concurrency_size=3,
             ),
         ],
     )
