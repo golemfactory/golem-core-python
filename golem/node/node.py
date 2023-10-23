@@ -30,7 +30,7 @@ from golem.resources import (
 )
 from golem.utils.low import ApiConfig, ApiFactory
 
-PAYMENT_DRIVER: str = os.getenv("YAGNA_PAYMENT_DRIVER", "erc20").lower()
+PAYMENT_DRIVER: str = os.getenv("YAGNA_PAYMENT_DRIVER", "erc20next").lower()
 PAYMENT_NETWORK: str = os.getenv("YAGNA_PAYMENT_NETWORK", "goerli").lower()
 SUBNET: str = os.getenv("YAGNA_SUBNET", "public")
 
