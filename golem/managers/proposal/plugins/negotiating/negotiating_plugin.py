@@ -32,6 +32,9 @@ class NegotiatingPlugin(ProposalManagerPlugin):
             list(proposal_negotiators) if proposal_negotiators is not None else []
         )
 
+        self._success_count = 0
+        self._fail_count = 0
+
         super().__init__(*args, **kwargs)
 
     @trace_span(show_results=True)
@@ -42,10 +45,18 @@ class NegotiatingPlugin(ProposalManagerPlugin):
             demand_data = await self._get_demand_data_from_proposal(proposal)
 
             try:
-                return await self._negotiate_proposal(demand_data, proposal)
+                negotiated_proposal = await self._negotiate_proposal(demand_data, proposal)
+                self._success_count += 1
+                logger.info(
+                    f"Negotiation based on proposal `{proposal}` succeeded"
+                    f"\nsuccess count: {self._success_count}/{self._success_count+self._fail_count}"
+                )
+                return negotiated_proposal
             except Exception:
+                self._fail_count += 1
                 logger.debug(
                     f"Negotiation based on proposal `{proposal}` failed, retrying with new one..."
+                    f"\nsuccess count: {self._success_count}/{self._success_count+self._fail_count}"
                 )
 
     @trace_span(show_arguments=True, show_results=True)
