@@ -1,6 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from datetime import timedelta
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 
 from golem.exceptions import GolemException
@@ -53,9 +54,11 @@ class WorkContext:
     def __init__(self, activity: Activity):
         self._activity = activity
 
-    async def deploy(self, deploy_args: Optional[commands.ArgsDict] = None):
+    async def deploy(
+        self, deploy_args: Optional[commands.ArgsDict] = None, timeout: Optional[timedelta] = None
+    ):
         pooling_batch = await self._activity.execute_commands(commands.Deploy(deploy_args))
-        await pooling_batch.wait()
+        await pooling_batch.wait(timeout)
 
     async def start(self):
         pooling_batch = await self._activity.execute_commands(commands.Start())
