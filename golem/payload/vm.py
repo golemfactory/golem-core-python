@@ -52,6 +52,10 @@ class BaseVmPayload(Payload, ABC):
         "golem.srv.comp.vm.package_format", default=VmPackageFormat.GVMKIT_SQUASH
     )
 
+    debit_notes_accept_timeout: int = prop(
+        "golem.com.payment.debit-notes.accept-timeout?", default=240
+    )
+
 
 @dataclass
 class _VmPayload(Payload, ABC):

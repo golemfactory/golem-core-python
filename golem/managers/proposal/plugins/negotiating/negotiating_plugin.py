@@ -49,14 +49,17 @@ class NegotiatingPlugin(ProposalManagerPlugin):
                 self._success_count += 1
                 logger.info(
                     f"Negotiation based on proposal `{proposal}` succeeded"
-                    f"\nsuccess count: {self._success_count}/{self._success_count+self._fail_count}"
+                    "\nsuccess count: "
+                    f"{self._success_count}/{self._success_count + self._fail_count}"
                 )
                 return negotiated_proposal
             except Exception:
                 self._fail_count += 1
                 logger.debug(
                     f"Negotiation based on proposal `{proposal}` failed, retrying with new one..."
-                    f"\nsuccess count: {self._success_count}/{self._success_count+self._fail_count}"
+                    "\nsuccess count: "
+                    f"{self._success_count}/{self._success_count + self._fail_count}",
+                    exc_info=True,
                 )
 
     @trace_span(show_arguments=True, show_results=True)

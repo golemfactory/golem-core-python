@@ -162,6 +162,7 @@ def constraint(
     *,
     default: Any = dataclasses.MISSING,
     default_factory: Any = dataclasses.MISSING,
+    **kwargs,
 ):
     """Return a constraint-type dataclass field for a Payload.
 
@@ -194,4 +195,5 @@ def constraint(
             PROP_OPERATOR: operator,
             PROP_MODEL_FIELD_TYPE: PayloadFieldType.constraint,
         },
+        **kwargs,
     )

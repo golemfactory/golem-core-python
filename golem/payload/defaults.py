@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from golem.payload.base import Payload, prop
+from golem.payload.base import Payload, constraint, prop
 
 RUNTIME_NAME = "golem.runtime.name"
 RUNTIME_CAPABILITIES = "golem.runtime.capabilities"
@@ -14,13 +14,19 @@ INF_STORAGE = "golem.inf.storage.gib"
 
 @dataclass
 class NodeInfo(Payload):
-    """Properties describing the information regarding the node."""
+    """Properties and constrains describing the information regarding the node."""
 
     name: Optional[str] = prop("golem.node.id.name", default=None)
     """human-readable name of the Golem node"""
 
     subnet_tag: Optional[str] = prop("golem.node.debug.subnet", default=None)
+    _subnet_constraint: Optional[str] = constraint(
+        "golem.node.debug.subnet", default=None, init=False
+    )
     """the name of the subnet within which the Demands and Offers are matched"""
+
+    def __post_init__(self):
+        self._subnet_constraint = self.subnet_tag
 
 
 @dataclass
