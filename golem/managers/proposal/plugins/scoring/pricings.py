@@ -20,6 +20,13 @@ class LinearAverageCostPricing:
 
         return self._calculate_cost(coeffs)
 
+    def __str__(self) -> str:
+        return (
+            f"{self.__class__.__name__}("
+            f"average_cpu_load={self._average_cpu_load}, "
+            f"average_duration={self._average_duration})"
+        )
+
     def _calculate_cost(self, coeffs: LinearCoeffs) -> float:
         average_duration_sec = self._average_duration.total_seconds()
 

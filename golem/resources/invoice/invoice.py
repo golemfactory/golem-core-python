@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 class Invoice(Resource[RequestorApi, models.Invoice, "Agreement", _NULL, _NULL]):
     """A single invoice on the Golem Network.
 
-    Ususally created by a :any:`GolemNode` initialized with `collect_payment_events = True`.
+    Usually created by a :any:`GolemNode` initialized with `collect_payment_events = True`.
     """
 
     def __init__(self, node: "GolemNode", id_: str, data: Optional[models.Invoice] = None):

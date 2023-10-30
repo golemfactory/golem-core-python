@@ -10,6 +10,7 @@ from golem.payload import Constraints, Properties
 from golem.resources.agreement import Agreement
 from golem.resources.base import Resource, api_call_wrapper
 from golem.resources.proposal.events import NewProposal
+from golem.resources.proposal.exceptions import ProposalRejected
 
 if TYPE_CHECKING:
     from golem.node import GolemNode
@@ -113,9 +114,8 @@ class Proposal(
     def add_event(self, event: Union[models.ProposalEvent, models.ProposalRejectedEvent]) -> None:
         super().add_event(event)
         if isinstance(event, models.ProposalRejectedEvent):
-            self.set_no_more_children()
+            self.set_no_more_children(ProposalRejected(event.proposal_id, event.reason.message))
 
-    # TODO: Add support for rejection reason from provider
     async def responses(self) -> AsyncIterator["Proposal"]:
         """Yield responses to this proposal.
 
@@ -204,7 +204,9 @@ class Proposal(
         assert self.demand is not None
         data: models.Proposal = await self.api.get_proposal_offer(self.demand.id, self.id)
         if data.state == "Rejected":
-            self.set_no_more_children()
+            self.set_no_more_children(
+                ProposalRejected(data.proposal_id, "Proposal found at `Rejected` state")
+            )
         return data
 
     @classmethod

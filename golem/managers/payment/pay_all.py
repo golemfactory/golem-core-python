@@ -109,7 +109,7 @@ class PayAllPaymentManager(PaymentManager):
         await invoice.get_data(force=True)
         self._payed_invoices_count += 1
 
-        logger.info(f"Invoice `{invoice.id}` accepted")
+        logger.info(f"Invoice `{invoice.id}` for agreement `{invoice.data.agreement_id}` accepted")
 
     @trace_span(show_arguments=True)
     async def _accept_debit_note(self, debit_note: DebitNote) -> None:
@@ -117,7 +117,9 @@ class PayAllPaymentManager(PaymentManager):
         await debit_note.accept_full(self._allocation)
         await debit_note.get_data(force=True)
 
-        logger.info(f"DebitNote `{debit_note.id}` accepted")
+        logger.info(
+            f"DebitNote `{debit_note.id}` for agreement `{debit_note.data.agreement_id}` accepted"
+        )
 
     @trace_span()
     async def _pay_invoice_if_received(self, event: NewInvoice) -> None:

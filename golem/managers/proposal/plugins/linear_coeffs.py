@@ -11,7 +11,10 @@ class LinearCoeffsCost:
     def __init__(self, coeff_name: str) -> None:
         self._coeff_name = coeff_name
 
-    @trace_span(show_results=True)
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(coeff_name={self._coeff_name})"
+
+    @trace_span(lambda s: str(s), show_results=True)
     def __call__(self, proposal_data: ProposalData) -> Optional[float]:
         coeffs = LinearCoeffs.from_proposal_data(proposal_data)
 
