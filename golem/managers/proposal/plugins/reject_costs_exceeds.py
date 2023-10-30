@@ -45,7 +45,8 @@ class RejectIfCostsExceeds(ProposalManagerPlugin):
                     )
 
                 logger.debug(
-                    "Proposal `%s` costs `%s` of `%f` exceeds limit of `%f`, picking different one...",
+                    "Proposal `%s` costs `%s` of `%f` exceeds limit of `%f`,"
+                    " picking different one...",
                     proposal,
                     self._pricing_callable,
                     cost,

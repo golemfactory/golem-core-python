@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from golem.resources.exceptions import ResourceException
 
@@ -11,14 +11,14 @@ class ProposalException(ResourceException):
 
 
 class ProposalRejected(ResourceException):
-    def __init__(self, proposal_id: "ProposalId", reason: str):
+    def __init__(self, proposal_id: Optional["ProposalId"], reason: str):
         self._proposal_id = proposal_id
         self._reason = reason
 
         super().__init__(f"Proposal `{proposal_id}` rejected! Reason: `{reason}`")
 
     @property
-    def proposal_id(self) -> "ProposalId":
+    def proposal_id(self) -> Optional["ProposalId"]:
         return self._proposal_id
 
     @property
