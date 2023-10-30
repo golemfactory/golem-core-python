@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "golem-core"
 version = "0.2"
-description = "Golem Netowrk (https://golem.network/) API for Python"
+description = "Golem Network (https://golem.network/) API for Python"
 authors = ["Golem Factory <contact@golem.network>"]
 license = "LGPL-3.0-or-later"
 classifiers = [
