@@ -172,6 +172,7 @@ class Resource(
                 await asyncio.wait((wait_task, stop_task), return_when=asyncio.FIRST_COMPLETED)
                 if stop_task.done():
                     wait_task.cancel()
+                    stop_task.result()
                     break
 
     def add_event(self, event: TEvent) -> None:
@@ -185,14 +186,17 @@ class Resource(
         """
         return self._events.copy()
 
-    def set_no_more_children(self) -> None:
+    def set_no_more_children(self, exception: Optional[Exception] = None) -> None:
         """Stop :any:`child_aiter` iterator marking as this resource will have no more children.
 
         This can be called either from iside the resource (e.g. Proposal sets this when it receives
         a ProposalRejected event), or from outside (e.g. on shutdown).
         """
         if not self._no_more_children.done():
-            self._no_more_children.set_result(None)
+            if exception:
+                self._no_more_children.set_exception(exception)
+            else:
+                self._no_more_children.set_result(None)
 
     ####################
     #   PROPERTIES

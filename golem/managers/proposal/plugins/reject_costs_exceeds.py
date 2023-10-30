@@ -16,7 +16,7 @@ class RejectIfCostsExceeds(ProposalManagerPlugin):
     ) -> None:
         self._cost = cost
         self._pricing_callable = pricing_callable
-        self.reject_on_unpriceable = reject_on_unpriceable
+        self._reject_on_unpriceable = reject_on_unpriceable
 
     @trace_span(show_results=True)
     async def get_proposal(self) -> Proposal:
@@ -26,23 +26,32 @@ class RejectIfCostsExceeds(ProposalManagerPlugin):
 
             cost = self._pricing_callable(proposal_data)
 
-            if cost is None and self.reject_on_unpriceable:
+            if cost is None and self._reject_on_unpriceable:
                 if not proposal.initial:
                     await proposal.reject("Can't estimate costs!")
+
                 logger.debug(
-                    "Can't estimate proposal `%s` costs, picking different one...", proposal
+                    "Can't estimate proposal `%s` costs `%s`, picking different one...",
+                    proposal,
+                    self._pricing_callable,
                 )
+
                 continue
 
             if cost is not None and self._cost <= cost:
                 if not proposal.initial:
-                    await proposal.reject(f"Exceeds estimated costs of `{self._cost}`!")
+                    await proposal.reject(
+                        f"Exceeds costs `{self._pricing_callable}` limit of `{self._cost}`!"
+                    )
+
                 logger.debug(
-                    "Proposal `%s` costs of `%f` exceeds limit of `%f`, picking different one...",
+                    "Proposal `%s` costs `%s` of `%f` exceeds limit of `%f`, picking different one...",
                     proposal,
+                    self._pricing_callable,
                     cost,
                     self._cost,
                 )
+
                 continue
 
             return proposal

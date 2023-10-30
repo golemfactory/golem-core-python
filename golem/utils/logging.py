@@ -3,7 +3,7 @@ import inspect
 import logging
 from datetime import datetime, timezone
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Union
 
 if TYPE_CHECKING:
     from golem.event_bus import Event
@@ -149,7 +149,7 @@ def get_trace_id_name(obj: Any, postfix: str) -> str:
 class TraceSpan:
     def __init__(
         self,
-        name: Optional[str] = None,
+        name: Optional[Union[str, Callable[[Any], str]]] = None,
         show_arguments: bool = False,
         show_results: bool = False,
         log_level: int = logging.DEBUG,
@@ -170,7 +170,7 @@ class TraceSpan:
 
     def _get_span_name(self, func: Callable, args: Sequence, kwargs: Dict) -> str:
         if self._name is not None:
-            return self._name
+            return self._name(args[0]) if callable(self._name) else self._name
 
         # TODO: check type of func in different cases + contextmanager
         span_name = (
