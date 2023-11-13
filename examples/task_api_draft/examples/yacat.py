@@ -205,7 +205,7 @@ async def main() -> None:
                 Zip(async_queue_aiter(tasks_queue)),  # type: ignore  # mypy, why?
                 Map(
                     lambda activity, task: task.execute(activity),  # type: ignore
-                    on_exception=close_agreement_repeat_task,  # type: ignore
+                    on_exception=close_agreement_repeat_task,
                 ),
                 Buffer(size=MAX_WORKERS * 2),
             ):
