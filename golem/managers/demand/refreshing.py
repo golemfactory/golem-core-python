@@ -132,4 +132,9 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
 
     @trace_span()
     async def _unsubscribe_demands(self):
-        await asyncio.gather(*[demand.unsubscribe() for demand, _ in self._demands])
+        results = await asyncio.gather(
+            *[demand.unsubscribe() for demand, _ in self._demands], return_exceptions=True
+        )
+        for result in results:
+            if isinstance(result, Exception):
+                logger.warning(f"Unable to unsubscribe demand due to {type(result)}:\n{result}")
