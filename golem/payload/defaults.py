@@ -14,7 +14,7 @@ INF_STORAGE = "golem.inf.storage.gib"
 
 @dataclass
 class NodeInfo(Payload):
-    """Properties and constrains describing the information regarding the node."""
+    """Properties and constraints describing the information regarding the node."""
 
     name: Optional[str] = prop("golem.node.id.name", default=None)
     """human-readable name of the Golem node"""
