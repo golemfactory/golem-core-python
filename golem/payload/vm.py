@@ -53,7 +53,7 @@ class BaseVmPayload(Payload, ABC):
     )
 
     debit_notes_accept_timeout: int = prop(
-        "golem.com.payment.debit-notes.accept-timeout?", default=240
+        "golem.com.payment.debit-notes.accept-timeout?", default=120
     )
 
 

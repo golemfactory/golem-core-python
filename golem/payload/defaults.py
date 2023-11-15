@@ -20,13 +20,13 @@ class NodeInfo(Payload):
     """human-readable name of the Golem node"""
 
     subnet_tag: Optional[str] = prop("golem.node.debug.subnet", default=None)
-    _subnet_constraint: Optional[str] = constraint(
+    _subnet_tag_constraint: Optional[str] = constraint(
         "golem.node.debug.subnet", default=None, init=False
     )
     """the name of the subnet within which the Demands and Offers are matched"""
 
     def __post_init__(self):
-        self._subnet_constraint = self.subnet_tag
+        self._subnet_tag_constraint = self.subnet_tag
 
 
 @dataclass

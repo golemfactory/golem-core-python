@@ -125,7 +125,11 @@ class Payload(abc.ABC):
 
 
 def prop(
-    key: str, *, default: Any = dataclasses.MISSING, default_factory: Any = dataclasses.MISSING
+    key: str,
+    *,
+    default: Any = dataclasses.MISSING,
+    default_factory: Any = dataclasses.MISSING,
+    init: bool = True,
 ):
     """
     Return a property-type dataclass field for a Payload.
@@ -153,6 +157,7 @@ def prop(
         default=default,
         default_factory=default_factory,
         metadata={PROP_KEY: key, PROP_MODEL_FIELD_TYPE: PayloadFieldType.property},
+        init=init,
     )
 
 
@@ -162,7 +167,7 @@ def constraint(
     *,
     default: Any = dataclasses.MISSING,
     default_factory: Any = dataclasses.MISSING,
-    **kwargs,
+    init: bool = True,
 ):
     """Return a constraint-type dataclass field for a Payload.
 
@@ -195,5 +200,5 @@ def constraint(
             PROP_OPERATOR: operator,
             PROP_MODEL_FIELD_TYPE: PayloadFieldType.constraint,
         },
-        **kwargs,
+        init=init,
     )
