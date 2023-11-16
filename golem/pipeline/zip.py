@@ -73,10 +73,10 @@ class Zip:
             if inspect.isawaitable(val_2):
                 values = await asyncio.gather(val_1, val_2)
             else:
-                values = [await val_1, val_2]
+                values = (await val_1, val_2)
         elif inspect.isawaitable(val_2):
-            values = [val_1, await val_2]
+            values = (val_1, await val_2)
         else:
-            values = [val_1, val_2]
+            values = (val_1, val_2)
 
         return tuple(values)  # type: ignore
