@@ -1,12 +1,12 @@
 import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Awaitable, Callable, List, Optional, Tuple
+from typing import Awaitable, Callable, List, Tuple
 
 from golem.managers.base import DemandManager
 from golem.managers.mixins import BackgroundLoopMixin
 from golem.node import GolemNode
-from golem.payload import Payload, PayloadSyntaxParser
+from golem.payload import Payload
 from golem.resources import Allocation, Demand, Proposal
 from golem.resources.demand.demand_builder import DemandBuilder
 from golem.utils.asyncio import create_task_with_logging
@@ -22,7 +22,6 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         get_allocation: Callable[[], Awaitable[Allocation]],
         payload: Payload,
         demand_expiration_timeout: timedelta = timedelta(minutes=30),
-        demand_offer_parser: Optional[PayloadSyntaxParser] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -30,13 +29,6 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         self._get_allocation = get_allocation
         self._payload = payload
         self._demand_expiration_timeout = demand_expiration_timeout
-
-        if demand_offer_parser is None:
-            from golem.payload.parsers.textx import TextXPayloadSyntaxParser
-
-            demand_offer_parser = TextXPayloadSyntaxParser()
-
-        self._demand_offer_parser = demand_offer_parser
 
         self._initial_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
 
@@ -121,7 +113,6 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         demand_builder = DemandBuilder()
 
         await demand_builder.add_default_parameters(
-            self._demand_offer_parser,
             allocations=[allocation],
             expiration=datetime.now(timezone.utc) + self._demand_expiration_timeout,
         )
@@ -132,4 +123,9 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
 
     @trace_span()
     async def _unsubscribe_demands(self):
-        await asyncio.gather(*[demand.unsubscribe() for demand, _ in self._demands])
+        results = await asyncio.gather(
+            *[demand.unsubscribe() for demand, _ in self._demands], return_exceptions=True
+        )
+        for result in results:
+            if isinstance(result, Exception):
+                logger.warning(f"Unable to unsubscribe demand due to {type(result)}:\n{result}")

@@ -18,16 +18,11 @@ logger = logging.getLogger(__name__)
 class NegotiatingPlugin(ProposalManagerPlugin):
     def __init__(
         self,
-        demand_offer_parser: Optional[PayloadSyntaxParser] = None,
         proposal_negotiators: Optional[Sequence[ProposalNegotiator]] = None,
         *args,
         **kwargs,
     ) -> None:
-        if demand_offer_parser is None:
-            from golem.payload.parsers.textx import TextXPayloadSyntaxParser
-
-            demand_offer_parser = TextXPayloadSyntaxParser()
-        self._demand_offer_parser = demand_offer_parser
+        self._demand_offer_parser = PayloadSyntaxParser.get_instance()
         self._proposal_negotiators: Sequence[ProposalNegotiator] = (
             list(proposal_negotiators) if proposal_negotiators is not None else []
         )

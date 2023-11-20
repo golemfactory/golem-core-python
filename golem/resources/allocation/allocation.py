@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Optional, Tuple
 
 from ya_payment import RequestorApi, models
 
+from golem.payload import PayloadSyntaxParser
 from golem.payload.constraints import Constraints
-from golem.payload.parsers.base import PayloadSyntaxParser
 from golem.payload.properties import Properties
 from golem.resources.allocation.events import NewAllocation
 from golem.resources.allocation.exceptions import NoMatchingAccount
@@ -24,6 +24,7 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
     """
 
     def __init__(self, node: "GolemNode", id_: str, data: Optional[models.Allocation] = None):
+        self._demand_offer_parser = PayloadSyntaxParser.get_instance()
         super().__init__(node, id_, data)
         asyncio.create_task(node.event_bus.emit(NewAllocation(self)))
 
@@ -89,13 +90,10 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
         return cls(node, created.allocation_id, created)
 
     @api_call_wrapper()
-    async def get_properties_and_constraints_for_demand(
-        self, parser: PayloadSyntaxParser
-    ) -> Tuple[Properties, Constraints]:
+    async def get_properties_and_constraints_for_demand(self) -> Tuple[Properties, Constraints]:
         data = await self.api.get_demand_decorations([self.id])
-
         properties = Properties({prop.key: prop.value for prop in data.properties})
-
-        constraints = Constraints([parser.parse_constraints(c) for c in data.constraints])
-
+        constraints = Constraints(
+            [self._demand_offer_parser.parse_constraints(c) for c in data.constraints]
+        )
         return properties, constraints
