@@ -11,7 +11,7 @@ from golem.event_bus.in_memory import InMemoryEventBus
 from golem.node.events import SessionStarted, ShutdownFinished, ShutdownStarted
 from golem.payload import Payload
 from golem.payload import defaults as payload_defaults
-from golem.payload.parsers.textx import TextXPayloadSyntaxParser
+from golem.payload.parsers import PayloadSyntaxParser
 from golem.resources import (
     Activity,
     Agreement,
@@ -93,7 +93,7 @@ class GolemNode:
         self._resources: DefaultDict[Type[Resource], Dict[str, Resource]] = defaultdict(dict)
         self._autoclose_resources: Set[Resource] = set()
         self._event_bus = InMemoryEventBus()
-        self._demand_offer_syntax_parser = TextXPayloadSyntaxParser()
+        self._demand_offer_parser = PayloadSyntaxParser()
 
         self._invoice_event_collector = InvoiceEventCollector(self)
         self._debit_note_event_collector = DebitNoteEventCollector(self)
@@ -287,7 +287,7 @@ class GolemNode:
 
         for allocation in allocations:
             properties, constraints = await allocation.get_properties_and_constraints_for_demand(
-                self._demand_offer_syntax_parser
+                self._demand_offer_parser
             )
             builder.add_constraints(constraints)
             builder.add_properties(properties)

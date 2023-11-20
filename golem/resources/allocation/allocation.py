@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional, Tuple
 from ya_payment import RequestorApi, models
 
 from golem.payload.constraints import Constraints
-from golem.payload.parsers.base import PayloadSyntaxParser
+from golem.payload.parsers.base import BasePayloadSyntaxParser
 from golem.payload.properties import Properties
 from golem.resources.allocation.events import NewAllocation
 from golem.resources.allocation.exceptions import NoMatchingAccount
@@ -90,7 +90,7 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
 
     @api_call_wrapper()
     async def get_properties_and_constraints_for_demand(
-        self, parser: PayloadSyntaxParser
+        self, parser: BasePayloadSyntaxParser
     ) -> Tuple[Properties, Constraints]:
         data = await self.api.get_demand_decorations([self.id])
 

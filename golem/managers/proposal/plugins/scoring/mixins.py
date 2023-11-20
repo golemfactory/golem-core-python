@@ -11,16 +11,11 @@ from golem.utils.logging import trace_span
 class ProposalScoringMixin:
     def __init__(
         self,
-        demand_offer_parser: Optional[PayloadSyntaxParser] = None,
         proposal_scorers: Optional[Sequence[ScorerWithOptionalWeight]] = None,
         *args,
         **kwargs,
     ) -> None:
-        if demand_offer_parser is None:
-            from golem.payload.parsers.textx import TextXPayloadSyntaxParser
-
-            demand_offer_parser = TextXPayloadSyntaxParser()
-        self._demand_offer_parser = demand_offer_parser
+        self._demand_offer_parser = PayloadSyntaxParser()
         self._proposal_scorers: List[ScorerWithOptionalWeight] = (
             list(proposal_scorers) if proposal_scorers is not None else []
         )

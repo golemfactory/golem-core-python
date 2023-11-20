@@ -7,7 +7,7 @@ class SyntaxException(Exception):
     pass
 
 
-class PayloadSyntaxParser(ABC):
+class BasePayloadSyntaxParser(ABC):
     @abstractmethod
     def parse_constraints(self, syntax: str) -> Constraints:
         ...

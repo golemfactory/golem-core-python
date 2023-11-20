@@ -1,12 +1,12 @@
 import pytest
 
 from golem.payload import Constraint, ConstraintException, ConstraintGroup, SyntaxException
-from golem.payload.parsers.textx import TextXPayloadSyntaxParser
+from golem.payload.parsers import PayloadSyntaxParser
 
 
 @pytest.fixture(scope="module")
 def demand_offer_parser():
-    return TextXPayloadSyntaxParser()
+    return PayloadSyntaxParser()
 
 
 def test_parse_raises_exception_on_bad_syntax(demand_offer_parser):
