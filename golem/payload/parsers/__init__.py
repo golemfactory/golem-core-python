@@ -1,9 +1,4 @@
-from golem.payload.parsers.textx import TextXPayloadSyntaxParser
-from golem.payload.parsers.base import SyntaxException
-
-
-class PayloadSyntaxParser(TextXPayloadSyntaxParser):
-    ...
+from .__main__ import PayloadSyntaxParser, SyntaxException
 
 
 __all__ = (
