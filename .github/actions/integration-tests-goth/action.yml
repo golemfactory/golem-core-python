@@ -48,7 +48,7 @@ runs:
 
     - name: Log in to GitHub Docker repository
       shell: bash
-      run: echo ${{ inputs.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${{github.actor}} --password-stdin
+      run: echo ${{ inputs.GITHUB_TOKEN }} | docker login ghcr.io -u ${{github.actor}} --password-stdin
 
     - name: Setup goth golem network
       shell: bash
