@@ -15,7 +15,7 @@ class ProposalScoringMixin:
         *args,
         **kwargs,
     ) -> None:
-        self._demand_offer_parser = PayloadSyntaxParser()
+        self._demand_offer_parser = PayloadSyntaxParser.get_instance()
         self._proposal_scorers: List[ScorerWithOptionalWeight] = (
             list(proposal_scorers) if proposal_scorers is not None else []
         )

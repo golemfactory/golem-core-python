@@ -22,7 +22,7 @@ class NegotiatingPlugin(ProposalManagerPlugin):
         *args,
         **kwargs,
     ) -> None:
-        self._demand_offer_parser = PayloadSyntaxParser()
+        self._demand_offer_parser = PayloadSyntaxParser.get_instance()
         self._proposal_negotiators: Sequence[ProposalNegotiator] = (
             list(proposal_negotiators) if proposal_negotiators is not None else []
         )

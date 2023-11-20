@@ -24,7 +24,7 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
     """
 
     def __init__(self, node: "GolemNode", id_: str, data: Optional[models.Allocation] = None):
-        self._demand_offer_parser = PayloadSyntaxParser()
+        self._demand_offer_parser = PayloadSyntaxParser.get_instance()
         super().__init__(node, id_, data)
         asyncio.create_task(node.event_bus.emit(NewAllocation(self)))
 
