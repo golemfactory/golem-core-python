@@ -1,14 +1,26 @@
 from pathlib import Path
+from typing import Optional
 
 from textx import TextXSyntaxError, metamodel_from_file
 
 from golem.payload.constraints import Constraint, ConstraintGroup, Constraints
-from golem.payload.parsers.base import PayloadSyntaxParser, SyntaxException
 
 
-class TextXPayloadSyntaxParser(PayloadSyntaxParser):
+class SyntaxException(Exception):
+    pass
+
+
+class PayloadSyntaxParser:
+    __instance: Optional["PayloadSyntaxParser"] = None
+
+    @classmethod
+    def get_instance(cls):
+        if not cls.__instance:
+            cls.__instance = cls()
+        return cls.__instance
+
     def __init__(self):
-        self._metamodel = metamodel_from_file(str(Path(__file__).with_name("syntax.tx")))
+        self._metamodel = metamodel_from_file(str(Path(__file__).with_name("parser.tx")))
         self._metamodel.register_obj_processors(
             {
                 "ConstraintGroup": lambda e: ConstraintGroup(e.items, e.operator),

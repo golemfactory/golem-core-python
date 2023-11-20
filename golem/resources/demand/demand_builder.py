@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Iterable, Optional, Union
 from golem.payload import Payload
 from golem.payload import defaults as payload_defaults
 from golem.payload.constraints import Constraint, ConstraintGroup, Constraints
-from golem.payload.parsers.base import PayloadSyntaxParser
 from golem.payload.properties import Properties
 from golem.resources.allocation.allocation import Allocation
 from golem.resources.demand.demand import Demand
@@ -80,7 +79,6 @@ class DemandBuilder:
 
     async def add_default_parameters(
         self,
-        parser: PayloadSyntaxParser,
         subnet: Optional[str] = None,
         expiration: Optional[datetime] = None,
         allocations: Iterable[Allocation] = (),
@@ -106,9 +104,7 @@ class DemandBuilder:
         await self.add(payload_defaults.NodeInfo(subnet_tag=subnet))
 
         for allocation in allocations:
-            properties, constraints = await allocation.get_properties_and_constraints_for_demand(
-                parser
-            )
+            properties, constraints = await allocation.get_properties_and_constraints_for_demand()
 
             self.add_constraints(constraints)
             self.add_properties(properties)

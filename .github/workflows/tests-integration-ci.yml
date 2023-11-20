@@ -14,9 +14,18 @@ jobs:
     name: Run checks
     runs-on: goth2
     steps:
+      - run: rm -rf /root/.cache/
+      - run: rm -rf /tmp/goth-tests/
+      - run: apt-get update
+      - run: apt install -y python3.10-venv
       - uses: actions/checkout@v3
       - name: Run tests action
         uses: './.github/actions/integration-tests-goth'
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  
+      - name: Upload test logs
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: goth-logs
+          path: /tmp/goth-tests
