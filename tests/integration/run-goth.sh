@@ -12,8 +12,8 @@ echo INSTALLING TOOLS
 .envs/goth/bin/python -m pip install --upgrade pip
 .envs/goth/bin/python -m pip install --upgrade setuptools wheel
 
-echo ISNTALLING DEPENDENCIES
-.envs/goth/bin/python -m pip install goth==0.15.9 pytest pytest-asyncio pexpect
+echo INSTALLING DEPENDENCIES
+.envs/goth/bin/python -m pip install goth==0.15.10 pytest pytest-asyncio pexpect
 
 echo CREATING ASSETS
 .envs/goth/bin/python -m goth create-assets .envs/goth/assets
