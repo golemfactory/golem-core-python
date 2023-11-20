@@ -7,13 +7,14 @@ inputs:
     required: true
   PYTHON_VERSION:
     description: "python version"
-    default: "3.8"
+    default: "3.10"
 
 runs:
   using: "composite"
   steps:
     - name: Install python
       uses: actions/setup-python@v4
+      continue-on-error: true
       with:
         python-version: ${{ inputs.PYTHON_VERSION }}
     - name: Install and configure Poetry
@@ -23,7 +24,7 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-        poetry env use python${{ inputs.PYTHON_VERSION }}
+        poetry env use python${{ inputs.PYTHON_VERSION }} 
         poetry install
 
     - name: Disconnect Docker containers from default network
