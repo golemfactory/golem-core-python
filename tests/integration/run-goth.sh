@@ -21,6 +21,7 @@ echo CREATING ASSETS
 sed -Ezi 's/("\n.*use\-proxy:\s)(True)/\1False/mg' .envs/goth/assets/goth-config.yml
 
 echo STARTING NETWORK
+cat .envs/goth/assets/goth-config.yml
 .envs/goth/bin/python -m goth start .envs/goth/assets/goth-config.yml &
 GOTH_PID=$!
 echo $GOTH_PID
