@@ -24,6 +24,7 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
     """
 
     def __init__(self, node: "GolemNode", id_: str, data: Optional[models.Allocation] = None):
+        self._demand_offer_parser = PayloadSyntaxParser()
         super().__init__(node, id_, data)
         asyncio.create_task(node.event_bus.emit(NewAllocation(self)))
 
@@ -93,6 +94,6 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
         data = await self.api.get_demand_decorations([self.id])
         properties = Properties({prop.key: prop.value for prop in data.properties})
         constraints = Constraints(
-            [PayloadSyntaxParser().parse_constraints(c) for c in data.constraints]
+            [self._demand_offer_parser.parse_constraints(c) for c in data.constraints]
         )
         return properties, constraints

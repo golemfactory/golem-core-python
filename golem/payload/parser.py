@@ -11,7 +11,7 @@ class SyntaxException(Exception):
 
 class PayloadSyntaxParser:
     def __init__(self):
-        self._metamodel = metamodel_from_file(str(Path(__file__).with_name("syntax.tx")))
+        self._metamodel = metamodel_from_file(str(Path(__file__).with_name("parser.tx")))
         self._metamodel.register_obj_processors(
             {
                 "ConstraintGroup": lambda e: ConstraintGroup(e.items, e.operator),

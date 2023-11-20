@@ -9,7 +9,7 @@ from golem.payload.constraints import (
     PropertyValue,
 )
 from golem.payload.exceptions import InvalidProperties, PayloadException
-from golem.payload.parsers import PayloadSyntaxParser, SyntaxException
+from golem.payload.parser import PayloadSyntaxParser, SyntaxException
 from golem.payload.properties import Properties
 from golem.payload.vm import ManifestVmPayload, RepositoryVmPayload, VmPayload, VmPayloadException
 
