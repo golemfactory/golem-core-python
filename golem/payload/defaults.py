@@ -65,3 +65,7 @@ class ActivityInfo(Payload):
 class PaymentInfo(Payload):
     chosen_payment_platform: Optional[str] = prop("golem.com.payment.chosen-platform", default=None)
     """Payment platform selected to be used for this demand."""
+
+    debit_notes_accept_timeout: int = prop(
+        "golem.com.payment.debit-notes.accept-timeout?", default=120
+    )
