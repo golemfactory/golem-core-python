@@ -1,7 +1,6 @@
 import asyncio
-import os
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Set, Type, Union
 from uuid import uuid4
@@ -28,12 +27,6 @@ from golem.resources import (
     TResource,
 )
 from golem.utils.low import ApiConfig, ApiFactory
-
-PAYMENT_DRIVER: str = os.getenv("YAGNA_PAYMENT_DRIVER", "erc20").lower()
-PAYMENT_NETWORK: str = os.getenv("YAGNA_PAYMENT_NETWORK", "goerli").lower()
-SUBNET: str = os.getenv("YAGNA_SUBNET", "public")
-
-DEFAULT_EXPIRATION_TIMEOUT = timedelta(minutes=30)
 
 
 class _RandomSessionId:
@@ -190,8 +183,8 @@ class GolemNode:
     async def create_allocation(
         self,
         amount: Union[Decimal, float],
-        network: str = PAYMENT_NETWORK,
-        driver: str = PAYMENT_DRIVER,
+        network: str = payload_defaults.DEFAULT_PAYMENT_NETWORK,
+        driver: str = payload_defaults.DEFAULT_PAYMENT_DRIVER,
         autoclose: bool = True,
     ) -> Allocation:
         """Create a new allocation.
@@ -212,7 +205,7 @@ class GolemNode:
     async def create_demand(
         self,
         payload: Payload,
-        subnet: Optional[str] = SUBNET,
+        subnet: Optional[str] = payload_defaults.DEFAULT_SUBNET,
         expiration: Optional[datetime] = None,
         allocations: Iterable[Allocation] = (),
         autoclose: bool = True,
@@ -231,7 +224,7 @@ class GolemNode:
             :func:`Demand.start_collecting_events`.
         """
         if expiration is None:
-            expiration = datetime.now(timezone.utc) + DEFAULT_EXPIRATION_TIMEOUT
+            expiration = datetime.now(timezone.utc) + payload_defaults.DEFAULT_LIFETIME
 
         builder = DemandBuilder()
         await builder.add(payload_defaults.ActivityInfo(expiration=expiration, multi_activity=True))

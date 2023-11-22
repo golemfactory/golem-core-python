@@ -1,15 +1,24 @@
-from dataclasses import dataclass
-from datetime import datetime
+from dataclasses import dataclass, field, replace
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Optional
+from os import getenv
+from typing import Optional, Tuple
 
 from golem.payload.base import Payload, constraint, prop
+from golem.payload.constraints import Constraints
+from golem.payload.properties import Properties
 
 RUNTIME_NAME = "golem.runtime.name"
 RUNTIME_CAPABILITIES = "golem.runtime.capabilities"
 INF_CPU_THREADS = "golem.inf.cpu.threads"
 INF_MEM = "golem.inf.mem.gib"
 INF_STORAGE = "golem.inf.storage.gib"
+
+DEFAULT_PAYMENT_DRIVER: str = getenv("YAGNA_PAYMENT_DRIVER", "erc20").lower()
+DEFAULT_PAYMENT_NETWORK: str = getenv("YAGNA_PAYMENT_NETWORK", "goerli").lower()
+
+DEFAULT_LIFETIME = timedelta(minutes=30)
+DEFAULT_SUBNET: str = getenv("YAGNA_SUBNET", "public")
 
 
 @dataclass
@@ -19,7 +28,7 @@ class NodeInfo(Payload):
     name: Optional[str] = prop("golem.node.id.name", default=None)
     """human-readable name of the Golem node"""
 
-    subnet_tag: Optional[str] = prop("golem.node.debug.subnet", default=None)
+    subnet_tag: Optional[str] = prop("golem.node.debug.subnet", default=DEFAULT_SUBNET)
     _subnet_tag_constraint: Optional[str] = constraint(
         "golem.node.debug.subnet", default=None, init=False
     )
@@ -56,9 +65,38 @@ class ActivityInfo(Payload):
     """
 
     expiration: Optional[datetime] = prop("golem.srv.comp.expiration", default=None)
+    """The datetime until which any started activities will last."""
+
+    lifetime: Optional[timedelta] = field(default=None)
+    """Lifetime of the activities from the moment the demand is placed.
+
+    Convenience property, used only in case the actual `expiration` is not provided.
+    """
+
     multi_activity: Optional[bool] = prop("golem.srv.caps.multi-activity", default=None)
     """Whether client supports multi_activity (executing more than one activity per agreement).
     """
+
+    def __post_init__(self):
+        if self.expiration and self.lifetime:
+            raise ValueError(
+                "Ambiguous definition - either the expiration or the lifetime must be provided."
+            )
+
+        # in case the expiration itself is not provided, set the default lifetime instead
+        # so that the expiration can be dynamically constructed when needed
+        if not self.expiration and not self.lifetime:
+            self.lifetime = DEFAULT_LIFETIME
+
+    async def build_properties_and_constraints(self) -> Tuple[Properties, Constraints]:
+        # we don't want to freeze the expiration, so we're making a copy here
+        if not self.expiration:
+            activity_info = replace(self)
+            assert activity_info.lifetime
+            activity_info.expiration = datetime.now(timezone.utc) + activity_info.lifetime
+            return await activity_info.build_properties_and_constraints()
+
+        return await super().build_properties_and_constraints()
 
 
 @dataclass

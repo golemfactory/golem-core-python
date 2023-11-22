@@ -72,7 +72,7 @@ async def main():
     demand_manager = RefreshingDemandManager(
         golem,
         payment_manager.get_allocation,
-        payload,
+        [payload],
     )
     proposal_manager = DefaultProposalManager(
         golem,

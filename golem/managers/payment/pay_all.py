@@ -4,7 +4,8 @@ from decimal import Decimal
 from typing import List, Optional
 
 from golem.managers.base import PaymentManager
-from golem.node import PAYMENT_DRIVER, PAYMENT_NETWORK, GolemNode
+from golem.node import GolemNode
+from golem.payload.defaults import DEFAULT_PAYMENT_DRIVER, DEFAULT_PAYMENT_NETWORK
 from golem.resources import (
     AgreementClosed,
     Allocation,
@@ -24,8 +25,8 @@ class PayAllPaymentManager(PaymentManager):
         self,
         golem: GolemNode,
         budget: float,
-        network: str = PAYMENT_NETWORK,
-        driver: str = PAYMENT_DRIVER,
+        network: str = DEFAULT_PAYMENT_NETWORK,
+        driver: str = DEFAULT_PAYMENT_DRIVER,
     ):
         self._golem = golem
         self._budget = budget
