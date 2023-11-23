@@ -1,7 +1,7 @@
 from typing import List
 
-from .base import Constraints, Payload, Properties
-from .parser import PayloadSyntaxParser
+from golem.payload.base import Constraints, Payload, Properties
+from golem.payload.parser import PayloadSyntaxParser
 
 
 class GenericPayload(Payload):

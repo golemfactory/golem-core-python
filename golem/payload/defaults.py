@@ -92,7 +92,7 @@ class ActivityInfo(Payload):
         # we don't want to freeze the expiration, so we're making a copy here
         if not self.expiration:
             activity_info = replace(self)
-            assert activity_info.lifetime
+            assert activity_info.lifetime  # set in `__post_init__`
             activity_info.expiration = datetime.now(timezone.utc) + activity_info.lifetime
             return await activity_info.build_properties_and_constraints()
 
