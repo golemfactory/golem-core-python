@@ -51,7 +51,7 @@ async def main():
     golem = GolemNode()
 
     payment_manager = PayAllPaymentManager(golem, budget=1.0)
-    demand_manager = RefreshingDemandManager(golem, payment_manager.get_allocation, payload)
+    demand_manager = RefreshingDemandManager(golem, payment_manager.get_allocation, [payload])
     proposal_manager = DefaultProposalManager(
         golem,
         demand_manager.get_initial_proposal,

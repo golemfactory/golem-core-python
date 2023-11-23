@@ -11,7 +11,8 @@ from golem.cli.utils import (
     format_proposals,
     parse_timedelta_str,
 )
-from golem.node import PAYMENT_DRIVER, PAYMENT_NETWORK, SUBNET, GolemNode
+from golem.node import GolemNode
+from golem.payload.defaults import DEFAULT_PAYMENT_DRIVER, DEFAULT_PAYMENT_NETWORK, DEFAULT_SUBNET
 
 
 @click.group()
@@ -33,8 +34,8 @@ async def allocation_list(golem: GolemNode) -> None:
 
 @allocation.command("new")
 @click.argument("amount", type=float)
-@click.option("--network", type=str, default=PAYMENT_NETWORK)
-@click.option("--driver", type=str, default=PAYMENT_DRIVER)
+@click.option("--network", type=str, default=DEFAULT_PAYMENT_NETWORK)
+@click.option("--driver", type=str, default=DEFAULT_PAYMENT_DRIVER)
 @async_golem_wrapper
 async def allocation_new(
     golem: GolemNode,
@@ -76,7 +77,7 @@ async def status(golem: GolemNode) -> None:
 
 @cli.command()
 @click.option("--runtime", type=str, required=True)
-@click.option("--subnet", type=str, default=SUBNET)
+@click.option("--subnet", type=str, default=DEFAULT_SUBNET)
 @click.option("--timeout", "timeout_str", type=str, required=False)
 @async_golem_wrapper
 async def find_node(

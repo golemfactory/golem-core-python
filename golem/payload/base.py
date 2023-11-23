@@ -70,7 +70,7 @@ class Payload(abc.ABC):
         return self._build_properties(), self._build_constraints()
 
     def _build_properties(self) -> Properties:
-        """Return a collaction of properties declated in model."""
+        """Return a collection of properties declared in the model."""
         return Properties(
             {
                 field.metadata[PROP_KEY]: getattr(self, field.name)
@@ -125,7 +125,11 @@ class Payload(abc.ABC):
 
 
 def prop(
-    key: str, *, default: Any = dataclasses.MISSING, default_factory: Any = dataclasses.MISSING
+    key: str,
+    *,
+    default: Any = dataclasses.MISSING,
+    default_factory: Any = dataclasses.MISSING,
+    init: bool = True,
 ):
     """
     Return a property-type dataclass field for a Payload.
@@ -153,6 +157,7 @@ def prop(
         default=default,
         default_factory=default_factory,
         metadata={PROP_KEY: key, PROP_MODEL_FIELD_TYPE: PayloadFieldType.property},
+        init=init,
     )
 
 
@@ -162,6 +167,7 @@ def constraint(
     *,
     default: Any = dataclasses.MISSING,
     default_factory: Any = dataclasses.MISSING,
+    init: bool = True,
 ):
     """Return a constraint-type dataclass field for a Payload.
 
@@ -194,4 +200,5 @@ def constraint(
             PROP_OPERATOR: operator,
             PROP_MODEL_FIELD_TYPE: PayloadFieldType.constraint,
         },
+        init=init,
     )

@@ -1,12 +1,13 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Awaitable, Callable, List, Tuple
 
 from golem.managers.base import DemandManager
 from golem.managers.mixins import BackgroundLoopMixin
 from golem.node import GolemNode
 from golem.payload import Payload
+from golem.payload import defaults as payload_defaults
 from golem.resources import Allocation, Demand, Proposal
 from golem.resources.demand.demand_builder import DemandBuilder
 from golem.utils.asyncio import create_task_with_logging
@@ -20,15 +21,17 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         self,
         golem: GolemNode,
         get_allocation: Callable[[], Awaitable[Allocation]],
-        payload: Payload,
-        demand_expiration_timeout: timedelta = timedelta(minutes=30),
+        payloads: List[Payload],
+        demand_lifetime: timedelta = payload_defaults.DEFAULT_LIFETIME,
+        subnet_tag: str = payload_defaults.DEFAULT_SUBNET,
         *args,
         **kwargs,
     ) -> None:
         self._golem = golem
         self._get_allocation = get_allocation
-        self._payload = payload
-        self._demand_expiration_timeout = demand_expiration_timeout
+        self._payloads = payloads
+        self._demand_lifetime = demand_lifetime
+        self._subnet_tag = subnet_tag
 
         self._initial_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
 
@@ -112,12 +115,13 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         # FIXME: Code looks duplicated as GolemNode.create_demand does the same
         demand_builder = DemandBuilder()
 
-        await demand_builder.add_default_parameters(
-            allocations=[allocation],
-            expiration=datetime.now(timezone.utc) + self._demand_expiration_timeout,
-        )
-
-        await demand_builder.add(self._payload)
+        for demand_spec in [
+            payload_defaults.ActivityInfo(lifetime=self._demand_lifetime, multi_activity=True),
+            payload_defaults.NodeInfo(subnet_tag=self._subnet_tag),
+            payload_defaults.PaymentInfo(),
+            await allocation.get_demand_spec(),
+        ] + self._payloads:
+            await demand_builder.add(demand_spec)
 
         return demand_builder
 
