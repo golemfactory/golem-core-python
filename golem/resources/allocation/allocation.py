@@ -1,13 +1,11 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 from ya_payment import RequestorApi, models
 
-from golem.payload import PayloadSyntaxParser
-from golem.payload.constraints import Constraints
-from golem.payload.properties import Properties
+from golem.payload import GenericPayload, Payload
 from golem.resources.allocation.events import NewAllocation
 from golem.resources.allocation.exceptions import NoMatchingAccount
 from golem.resources.base import _NULL, Resource, api_call_wrapper
@@ -24,7 +22,6 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
     """
 
     def __init__(self, node: "GolemNode", id_: str, data: Optional[models.Allocation] = None):
-        self._demand_offer_parser = PayloadSyntaxParser.get_instance()
         super().__init__(node, id_, data)
         asyncio.create_task(node.event_bus.emit(NewAllocation(self)))
 
@@ -90,10 +87,6 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
         return cls(node, created.allocation_id, created)
 
     @api_call_wrapper()
-    async def get_properties_and_constraints_for_demand(self) -> Tuple[Properties, Constraints]:
+    async def get_demand_spec(self) -> Payload:
         data = await self.api.get_demand_decorations([self.id])
-        properties = Properties({prop.key: prop.value for prop in data.properties})
-        constraints = Constraints(
-            [self._demand_offer_parser.parse_constraints(c) for c in data.constraints]
-        )
-        return properties, constraints
+        return GenericPayload.from_raw_api_data(data.properties, data.constraints)

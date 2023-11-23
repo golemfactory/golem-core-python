@@ -70,7 +70,7 @@ class Payload(abc.ABC):
         return self._build_properties(), self._build_constraints()
 
     def _build_properties(self) -> Properties:
-        """Return a collaction of properties declated in model."""
+        """Return a collection of properties declared in the model."""
         return Properties(
             {
                 field.metadata[PROP_KEY]: getattr(self, field.name)

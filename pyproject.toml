@@ -136,6 +136,7 @@ warn_unused_ignores = true
 profile = "black"
 py_version = 38
 line_length = 100
+skip_gitignore = true
 
 [tool.autoflake]
 recursive = true

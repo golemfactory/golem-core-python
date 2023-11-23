@@ -1,12 +1,9 @@
 from copy import deepcopy
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from golem.payload import Payload
-from golem.payload import defaults as payload_defaults
 from golem.payload.constraints import Constraint, ConstraintGroup, Constraints
 from golem.payload.properties import Properties
-from golem.resources.allocation.allocation import Allocation
 from golem.resources.demand.demand import Demand
 
 if TYPE_CHECKING:
@@ -76,38 +73,6 @@ class DemandBuilder:
             self.constraints.items.extend(constraints.items)
         else:
             self.constraints.items.append(constraints)
-
-    async def add_default_parameters(
-        self,
-        subnet: Optional[str] = None,
-        expiration: Optional[datetime] = None,
-        allocations: Iterable[Allocation] = (),
-    ) -> None:
-        """Add default parameters for Demand.
-
-        :param payload: Details of the demand
-        :param subnet: Subnet tag
-        :param expiration: Timestamp when all agreements based on this demand will expire
-            TODO: is this correct?
-        :param allocations: Allocations that will be included in the description of this demand.
-        """
-        # FIXME: get rid of local import
-        from golem.node import DEFAULT_EXPIRATION_TIMEOUT, SUBNET
-
-        if subnet is None:
-            subnet = SUBNET
-
-        if expiration is None:
-            expiration = datetime.now(timezone.utc) + DEFAULT_EXPIRATION_TIMEOUT
-
-        await self.add(payload_defaults.ActivityInfo(expiration=expiration, multi_activity=True))
-        await self.add(payload_defaults.NodeInfo(subnet_tag=subnet))
-
-        for allocation in allocations:
-            properties, constraints = await allocation.get_properties_and_constraints_for_demand()
-
-            self.add_constraints(constraints)
-            self.add_properties(properties)
 
     async def create_demand(self, node: "GolemNode") -> "Demand":
         """Create demand and subscribe to its events."""

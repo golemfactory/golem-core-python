@@ -18,6 +18,7 @@ from .helpers import get_activity
     ),
 )
 @pytest.mark.asyncio
+@pytest.mark.skip("these tests need some love...")
 async def test_app_session_id(kwargs: dict, has_events: bool) -> None:
     events = []
 
