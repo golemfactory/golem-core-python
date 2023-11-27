@@ -24,8 +24,6 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         payloads: List[Payload],
         demand_lifetime: timedelta = payload_defaults.DEFAULT_LIFETIME,
         subnet_tag: str = payload_defaults.DEFAULT_SUBNET,
-        *args,
-        **kwargs,
     ) -> None:
         self._golem = golem
         self._get_allocation = get_allocation
@@ -36,7 +34,7 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         self._initial_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
 
         self._demands: List[Tuple[Demand, asyncio.Task]] = []
-        super().__init__(*args, **kwargs)
+        super().__init__()
 
     @trace_span("Starting RefreshingDemandManager", log_level=logging.INFO)
     async def start(self) -> None:
