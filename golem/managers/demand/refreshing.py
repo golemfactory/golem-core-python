@@ -75,6 +75,7 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
     async def _create_and_subscribe_demand(self):
         allocation = await self._get_allocation()
         demand_builder = await self._prepare_demand_builder(allocation)
+        logger.debug(f"Creating demand: {demand_builder=}")
         demand = await demand_builder.create_demand(self._golem)
         demand.start_collecting_events()
         await demand.get_data()
