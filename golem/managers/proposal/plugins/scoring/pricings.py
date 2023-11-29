@@ -43,7 +43,7 @@ class LinearPerCpuAverageCostPricing(LinearAverageCostPricing):
         coeffs = LinearCoeffs.from_proposal_data(proposal_data)
         cpu_count = proposal_data.properties.get(defaults.INF_CPU_THREADS)
 
-        if coeffs is None or cpu_count is None:
+        if coeffs is None or not cpu_count:
             return None
 
         coeffs.price_duration_sec /= cpu_count
