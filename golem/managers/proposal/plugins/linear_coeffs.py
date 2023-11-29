@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 
+from golem.payload import defaults
 from golem.resources import LinearCoeffs, ProposalData
 from golem.utils.logging import trace_span
 
