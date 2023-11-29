@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 from typing import Optional
 
+from golem.payload import defaults
 from golem.resources import LinearCoeffs, ProposalData
 
 logger = logging.getLogger(__name__)
@@ -35,3 +36,17 @@ class LinearAverageCostPricing:
         average_initial_price = coeffs.price_initial / average_duration_sec
 
         return average_duration_cost + average_cpu_cost + average_initial_price
+
+
+class LinearPerCpuAverageCostPricing(LinearAverageCostPricing):
+    def __call__(self, proposal_data: ProposalData) -> Optional[float]:
+        coeffs = LinearCoeffs.from_proposal_data(proposal_data)
+        cpu_count = proposal_data.properties.get(defaults.INF_CPU_THREADS)
+
+        if coeffs is None or cpu_count is None:
+            return None
+
+        coeffs.price_duration_sec /= cpu_count
+        coeffs.price_initial /= cpu_count
+
+        return self._calculate_cost(coeffs)

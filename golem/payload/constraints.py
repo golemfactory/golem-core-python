@@ -43,10 +43,10 @@ class Constraint(PayloadSyntaxElement):
     def _serialize(self) -> str:
         serialized_value = self._serialize_value(self.value)
 
-        if isinstance(self.value, (list, tuple)):
-            if not self.value:
-                return ""
+        if not self.value:
+            return ""
 
+        if isinstance(self.value, (list, tuple)):
             return ConstraintGroup(
                 [Constraint(self.property_name, self.operator, v) for v in serialized_value]
             ).serialize()

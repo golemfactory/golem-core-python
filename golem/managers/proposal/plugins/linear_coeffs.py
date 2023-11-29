@@ -22,3 +22,13 @@ class LinearCoeffsCost:
             return None
 
         return getattr(coeffs, self._coeff_name)
+
+
+class LinearPerCpuCoeffsCost(LinearCoeffsCost):
+    def __call__(self, proposal_data: ProposalData) -> Optional[float]:
+        cpu_count = proposal_data.properties.get(defaults.INF_CPU_THREADS)
+
+        if cpu_count is None:
+            return None
+
+        return super().__call__(proposal_data) / cpu_count

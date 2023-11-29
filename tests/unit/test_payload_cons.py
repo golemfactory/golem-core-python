@@ -27,6 +27,7 @@ def test_constraints_serialize():
                 ],
             ),
             Constraint("empty_list", "=", []),
+            Constraint("none_value", "=", None),
             ConstraintGroup([Constraint("some.other.field", "=", "works!")], "|"),
         ]
     )
