@@ -1,37 +1,20 @@
 import asyncio
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, AsyncIterator, Literal, Optional, Union
+from typing import TYPE_CHECKING, AsyncIterator, Optional, Union, cast
 
 from ya_market import RequestorApi
 from ya_market import models as models
 
-from golem.payload import Constraints, Properties
+from golem.payload import Constraints, NodeInfo, PayloadSyntaxParser, Properties
 from golem.resources.agreement import Agreement
 from golem.resources.base import Resource, api_call_wrapper
+from golem.resources.proposal.data import ProposalData
 from golem.resources.proposal.events import NewProposal
 from golem.resources.proposal.exceptions import ProposalRejected
 
 if TYPE_CHECKING:
     from golem.node import GolemNode
     from golem.resources.demand import Demand
-
-
-ProposalId = str
-
-# TODO: Use Enum
-ProposalState = Literal["Initial", "Draft", "Rejected", "Accepted", "Expired"]
-
-
-@dataclass
-class ProposalData:
-    properties: Properties
-    constraints: Constraints
-    proposal_id: Optional[ProposalId]
-    issuer_id: Optional[str]
-    state: ProposalState
-    timestamp: datetime
-    prev_proposal_id: Optional[str]
 
 
 class Proposal(
@@ -60,6 +43,8 @@ class Proposal(
     """
 
     _demand: Optional["Demand"] = None
+    _proposal_data: Optional[ProposalData] = None
+    _provider_node_name: Optional[str] = None
 
     def __init__(self, node: "GolemNode", id_: str, data: Optional[models.Proposal] = None):
         super().__init__(node, id_, data)
@@ -216,3 +201,32 @@ class Proposal(
         proposal = Proposal(node, data.proposal_id, data)
         proposal.add_event(event)
         return proposal
+
+    async def get_proposal_data(self) -> ProposalData:
+        if not self._proposal_data:
+            data = await self.get_data()
+            constraints = PayloadSyntaxParser.get_instance().parse_constraints(data.constraints)
+            self._proposal_data = ProposalData(
+                properties=Properties(data.properties),
+                constraints=constraints,
+                proposal_id=data.proposal_id,
+                issuer_id=data.issuer_id,
+                state=data.state,
+                timestamp=cast(datetime, data.timestamp),
+                prev_proposal_id=data.prev_proposal_id,
+            )
+
+        return self._proposal_data
+
+    async def get_provider_id(self):
+        """Get the node id of the provider which issued this Proposal."""
+        proposal_data = await self.get_data()
+        return proposal_data.issuer_id
+
+    async def get_provider_name(self):
+        """Get the node name of the provider which issued this Proposal."""
+        if not self._provider_node_name:
+            proposal_data = await self.get_data()
+            node_info = NodeInfo.from_properties(proposal_data.properties)
+            self._provider_node_name = node_info.name
+        return self._provider_node_name

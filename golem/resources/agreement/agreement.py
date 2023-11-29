@@ -154,3 +154,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
         if e.status != 410:
             return False
         return "from Approving" not in str(e) and "from Pending" not in str(e)
+
+    @property
+    def proposal(self) -> "Proposal":
+        return self.parent

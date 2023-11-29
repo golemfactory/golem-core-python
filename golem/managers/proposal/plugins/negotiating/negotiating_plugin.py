@@ -1,15 +1,13 @@
 import asyncio
 import logging
 from copy import deepcopy
-from datetime import datetime
-from typing import Optional, Sequence, cast
+from typing import Optional, Sequence
 
 from ya_market import ApiException
 
 from golem.managers import ProposalManagerPlugin, RejectProposal
 from golem.managers.base import ProposalNegotiator
-from golem.payload import PayloadSyntaxParser, Properties
-from golem.resources import DemandData, Proposal, ProposalData
+from golem.resources import DemandData, Proposal
 from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
@@ -22,7 +20,6 @@ class NegotiatingPlugin(ProposalManagerPlugin):
         *args,
         **kwargs,
     ) -> None:
-        self._demand_offer_parser = PayloadSyntaxParser.get_instance()
         self._proposal_negotiators: Sequence[ProposalNegotiator] = (
             list(proposal_negotiators) if proposal_negotiators is not None else []
         )
@@ -36,8 +33,7 @@ class NegotiatingPlugin(ProposalManagerPlugin):
     async def get_proposal(self) -> Proposal:
         while True:
             proposal = await self._get_proposal()
-
-            demand_data = await self._get_demand_data_from_proposal(proposal)
+            demand_data = await proposal.demand.get_demand_data()
 
             try:
                 negotiated_proposal = await self._negotiate_proposal(demand_data, proposal)
@@ -105,42 +101,11 @@ class NegotiatingPlugin(ProposalManagerPlugin):
     async def _reject_proposal(self, offer_proposal: Proposal) -> None:
         await offer_proposal.reject()
 
-    async def _get_demand_data_from_proposal(self, proposal: Proposal) -> DemandData:
-        # FIXME: Unnecessary serialisation from DemandBuilder to Demand,
-        #  and from Demand to ProposalData
-        data = await proposal.demand.get_data()
-
-        # TODO: Make constraints parsing lazy
-        constraints = self._demand_offer_parser.parse_constraints(data.constraints)
-
-        return DemandData(
-            properties=Properties(data.properties),
-            constraints=constraints,
-            demand_id=data.demand_id,
-            requestor_id=data.requestor_id,
-            timestamp=cast(datetime, data.timestamp),
-        )
-
-    async def _get_proposal_data_from_proposal(self, proposal: Proposal) -> ProposalData:
-        data = await proposal.get_data()
-
-        constraints = self._demand_offer_parser.parse_constraints(data.constraints)
-
-        return ProposalData(
-            properties=Properties(data.properties),
-            constraints=constraints,
-            proposal_id=data.proposal_id,
-            issuer_id=data.issuer_id,
-            state=data.state,
-            timestamp=cast(datetime, data.timestamp),
-            prev_proposal_id=data.prev_proposal_id,
-        )
-
     @trace_span()
     async def _run_negotiators(
         self, demand_data_after_negotiators: DemandData, offer_proposal: Proposal
     ):
-        proposal_data = await self._get_proposal_data_from_proposal(offer_proposal)
+        proposal_data = await offer_proposal.get_proposal_data()
 
         for negotiator in self._proposal_negotiators:
             negotiator_result = negotiator(demand_data_after_negotiators, proposal_data)

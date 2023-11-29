@@ -1,13 +1,13 @@
 import asyncio
-from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, AsyncIterator, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, AsyncIterator, Callable, Dict, List, Optional, Union, cast
 
 from ya_market import RequestorApi
 from ya_market import models as models
 
-from golem.payload import Constraints, Properties
+from golem.payload import Constraints, PayloadSyntaxParser, Properties
 from golem.resources.base import _NULL, Resource, ResourceNotFound, api_call_wrapper
+from golem.resources.demand.data import DemandData
 from golem.resources.demand.events import DemandClosed, NewDemand
 from golem.resources.proposal import Proposal
 from golem.utils.low import YagnaEventCollector
@@ -16,20 +16,13 @@ if TYPE_CHECKING:
     from golem.node import GolemNode
 
 
-@dataclass
-class DemandData:
-    properties: Properties
-    constraints: Constraints
-    demand_id: Optional[str]
-    requestor_id: Optional[str]
-    timestamp: datetime
-
-
 class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], YagnaEventCollector):
     """A single demand on the Golem Network.
 
     Created with one of the :class:`Demand`-returning methods of the :any:`GolemNode`.
     """
+
+    _demand_data: Optional[DemandData] = None
 
     def __init__(self, node: "GolemNode", id_: str, data: Optional[models.Demand] = None):
         super().__init__(node, id_, data)
@@ -129,3 +122,20 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], Yagn
             parent_proposal_id = proposal.data.prev_proposal_id
             parent = Proposal(self.node, parent_proposal_id)  # type: ignore
         return parent
+
+    async def get_demand_data(self) -> DemandData:
+        if not self._demand_data:
+            data = await self.get_data()
+
+            # TODO: Make constraints parsing lazy
+            constraints = PayloadSyntaxParser.get_instance().parse_constraints(data.constraints)
+
+            return DemandData(
+                properties=Properties(data.properties),
+                constraints=constraints,
+                demand_id=data.demand_id,
+                requestor_id=data.requestor_id,
+                timestamp=cast(datetime, data.timestamp),
+            )
+
+        return self._demand_data

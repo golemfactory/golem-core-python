@@ -161,3 +161,7 @@ class Activity(Resource[ActivityApi, _NULL, "Agreement", PoolingBatch, _NULL]):
     def debit_notes(self) -> List[DebitNote]:
         """List of all debit notes for this :any:`Activity`."""
         return [child for child in self.children if isinstance(child, DebitNote)]
+
+    @property
+    def agreement(self) -> "Agreement":
+        return self.parent

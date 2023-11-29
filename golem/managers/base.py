@@ -81,6 +81,18 @@ class WorkContext:
     async def create_batch(self) -> Batch:
         return Batch(self._activity)
 
+    @property
+    def activity(self) -> Activity:
+        return self._activity
+
+    async def get_provider_id(self):
+        """Get the node id of the provider running this context."""
+        return await self.activity.agreement.proposal.get_provider_id()
+
+    async def get_provider_name(self):
+        """Get the node name of the provider running this context."""
+        return await self.activity.agreement.proposal.get_provider_name()
+
 
 @dataclass
 class WorkResult:
