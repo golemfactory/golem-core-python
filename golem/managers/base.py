@@ -5,7 +5,6 @@ from datetime import timedelta
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 
 from golem.exceptions import GolemException
-from golem.payload.defaults import NodeInfo
 from golem.resources import (
     Activity,
     Agreement,
@@ -52,9 +51,6 @@ class Batch:
 
 
 class WorkContext:
-    _provider_id: Optional[str] = None
-    _provider_node_name: Optional[str] = None
-
     def __init__(self, activity: Activity):
         self._activity = activity
 
@@ -90,18 +86,12 @@ class WorkContext:
         return self._activity
 
     async def get_provider_id(self):
-        if not self._provider_id:
-            proposal = await self.activity.agreement.proposal.get_data()
-            self._provider_id = proposal.issuer_id
-
-        return self._provider_id
+        """Get the node id of the provider running this context."""
+        return await self.activity.agreement.proposal.get_provider_id()
 
     async def get_provider_name(self):
-        if not self._provider_node_name:
-            proposal = await self.activity.agreement.proposal.get_data()
-            node_info = NodeInfo.from_properties(proposal.properties)
-            self._provider_node_name = node_info.name
-        return self._provider_node_name
+        """Get the node name of the provider running this context."""
+        return await self.activity.agreement.proposal.get_provider_name()
 
 
 @dataclass

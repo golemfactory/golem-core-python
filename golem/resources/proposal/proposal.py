@@ -6,6 +6,7 @@ from ya_market import RequestorApi
 from ya_market import models as models
 
 from golem.payload import Constraints, PayloadSyntaxParser, Properties
+from golem.payload.defaults import NodeInfo
 from golem.resources.agreement import Agreement
 from golem.resources.base import Resource, api_call_wrapper
 from golem.resources.proposal.data import ProposalData
@@ -44,6 +45,7 @@ class Proposal(
 
     _demand: Optional["Demand"] = None
     _proposal_data: Optional[ProposalData] = None
+    _provider_node_name: Optional[str] = None
 
     def __init__(self, node: "GolemNode", id_: str, data: Optional[models.Proposal] = None):
         super().__init__(node, id_, data)
@@ -216,3 +218,16 @@ class Proposal(
             )
 
         return self._proposal_data
+
+    async def get_provider_id(self):
+        """Get the node id of the provider which issued this Proposal."""
+        proposal_data = await self.get_data()
+        return proposal_data.issuer_id
+
+    async def get_provider_name(self):
+        """Get the node name of the provider which issued this Proposal."""
+        if not self._provider_node_name:
+            proposal_data = await self.get_data()
+            node_info = NodeInfo.from_properties(proposal_data.properties)
+            self._provider_node_name = node_info.name
+        return self._provider_node_name
