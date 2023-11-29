@@ -5,8 +5,7 @@ from typing import TYPE_CHECKING, AsyncIterator, Optional, Union, cast
 from ya_market import RequestorApi
 from ya_market import models as models
 
-from golem.payload import Constraints, PayloadSyntaxParser, Properties
-from golem.payload.defaults import NodeInfo
+from golem.payload import Constraints, NodeInfo, PayloadSyntaxParser, Properties
 from golem.resources.agreement import Agreement
 from golem.resources.base import Resource, api_call_wrapper
 from golem.resources.proposal.data import ProposalData

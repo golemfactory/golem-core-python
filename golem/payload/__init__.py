@@ -8,6 +8,7 @@ from golem.payload.constraints import (
     PropertyName,
     PropertyValue,
 )
+from golem.payload.defaults import ActivityInfo, NodeInfo, PaymentInfo
 from golem.payload.exceptions import InvalidProperties, PayloadException
 from golem.payload.generic import GenericPayload
 from golem.payload.parser import PayloadSyntaxParser, SyntaxException
@@ -35,4 +36,7 @@ __all__ = (
     "PropertyName",
     "PropertyValue",
     "defaults",
+    "ActivityInfo",
+    "NodeInfo",
+    "PaymentInfo",
 )
