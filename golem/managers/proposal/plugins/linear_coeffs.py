@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 
+from golem.payload import defaults
 from golem.resources import LinearCoeffs, ProposalData
 from golem.utils.logging import trace_span
 
@@ -22,3 +23,13 @@ class LinearCoeffsCost:
             return None
 
         return getattr(coeffs, self._coeff_name)
+
+
+class LinearPerCpuCoeffsCost(LinearCoeffsCost):
+    def __call__(self, proposal_data: ProposalData) -> Optional[float]:
+        cpu_count = proposal_data.properties.get(defaults.INF_CPU_THREADS)
+
+        if not cpu_count:
+            return None
+
+        return super().__call__(proposal_data) / cpu_count
