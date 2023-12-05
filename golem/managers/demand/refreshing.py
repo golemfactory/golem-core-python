@@ -32,6 +32,7 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         self._subnet_tag = subnet_tag
 
         self._initial_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
+        self._proposals_count = 0
 
         self._demands: List[Tuple[Demand, asyncio.Task]] = []
         super().__init__()
@@ -94,6 +95,7 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         try:
             initial_proposals_gen = demand.initial_proposals()
             first_initial_proposal = await initial_proposals_gen.__anext__()
+            self._proposals_count += 1
             logger.info("Received first initial proposal")
 
             logger.debug(f"New initial proposal {first_initial_proposal}")
@@ -101,6 +103,7 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
 
             async for initial in initial_proposals_gen:
                 logger.debug(f"New initial proposal {initial}")
+                self._proposals_count += 1
                 self._initial_proposals.put_nowait(initial)
         except asyncio.CancelledError:
             pass
