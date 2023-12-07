@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Awaitable, Callable, List, Tuple
+from typing import Awaitable, Callable, Optional, List, Tuple
 
 from golem.managers.base import DemandManager
 from golem.managers.mixins import BackgroundLoopMixin
@@ -32,6 +32,8 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         self._subnet_tag = subnet_tag
 
         self._initial_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
+        self._initial_proposal_task: Optional[asyncio.Task] = None
+        self._initial_proposal_exception: Optional[Exception] = None
 
         self._demands: List[Tuple[Demand, asyncio.Task]] = []
         super().__init__()
@@ -44,20 +46,32 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
     async def stop(self) -> None:
         return await super().stop()
 
-    @trace_span("Getting initial proposal", show_results=True)
-    async def get_initial_proposal(self) -> Proposal:
+    async def _get_initial_proposal(self):
         proposal = await self._initial_proposals.get()
         self._initial_proposals.task_done()
         return proposal
 
+    @trace_span("Getting initial proposal", show_results=True)
+    async def get_initial_proposal(self) -> Proposal:
+        self._initial_proposal_task = asyncio.create_task(self._get_initial_proposal())
+        try:
+            await self._initial_proposal_task
+            return self._initial_proposal_task.result()
+        except asyncio.CancelledError:
+            if self._initial_proposal_exception:
+                raise self._initial_proposal_exception
+            raise
+
     @trace_span()
     async def _background_loop(self) -> None:
-        await self._create_and_subscribe_demand()
         try:
             while True:
+                await self._create_and_subscribe_demand()
                 await self._wait_for_demand_to_expire()
                 self._stop_consuming_initial_proposals()
-                await self._create_and_subscribe_demand()
+        except Exception as e:
+            self._initial_proposal_exception = e
+            self._initial_proposal_task.cancel()
         finally:
             self._stop_consuming_initial_proposals()
             await self._unsubscribe_demands()

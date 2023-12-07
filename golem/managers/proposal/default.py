@@ -7,6 +7,8 @@ from golem.node.node import GolemNode
 from golem.resources import Proposal
 from golem.utils.logging import trace_span
 
+logger = logging.getLogger(__name__)
+
 
 class DefaultProposalManager(ProposalManager):
     def __init__(

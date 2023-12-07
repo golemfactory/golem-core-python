@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from asyncio import Queue
-from typing import List
+from typing import List, Optional
 
 from golem.managers import ProposalManagerPlugin
 from golem.resources import Proposal
@@ -33,13 +33,27 @@ class Buffer(ProposalManagerPlugin):
         self._buffered_condition = asyncio.Condition()
         self._is_started = False
 
-    @trace_span(show_results=True)
-    async def get_proposal(self) -> Proposal:
+        self._get_proposal_task: Optional[asyncio.Task] = None
+        self._get_proposal_exception: Optional[Exception] = None
+
+    async def _get_proposal(self) -> Proposal:
         if not self.is_started():
             raise RuntimeError("Not started!")
 
         async with self._get_proposal_lock:
             return await self._get_item()
+
+    @trace_span(show_results=True)
+    async def get_proposal(self) -> Proposal:
+        self._get_proposal_task = asyncio.create_task(self._get_proposal())
+
+        try:
+            await self._get_proposal_task
+            return self._get_proposal_task.result()
+        except asyncio.CancelledError:
+            if self._get_proposal_exception:
+                raise self._get_proposal_exception
+            raise
 
     @trace_span()
     async def start(self) -> None:
@@ -81,18 +95,22 @@ class Buffer(ProposalManagerPlugin):
         return self._is_started
 
     async def _worker_loop(self):
-        while True:
-            await self._wait_for_any_item_requests()
+        try:
+            while True:
+                await self._wait_for_any_item_requests()
 
-            item = await self._get_proposal()
+                item = await self._get_proposal()
 
-            async with self._buffered_condition:
-                self._buffered.append(item)
+                async with self._buffered_condition:
+                    self._buffered.append(item)
 
-                self._buffered_condition.notify_all()
+                    self._buffered_condition.notify_all()
 
-            self._requests_queue.task_done()
-            self._requests_pending_count -= 1
+                self._requests_queue.task_done()
+                self._requests_pending_count -= 1
+        except Exception as e:
+            self._get_proposal_exception = e
+            self._get_proposal_task.cancel()
 
     @trace_span()
     async def _wait_for_any_item_requests(self) -> None:
