@@ -3,7 +3,10 @@ import logging
 from decimal import Decimal
 from typing import List, Optional
 
+from ya_payment.exceptions import ApiException
+
 from golem.managers.base import PaymentManager
+from golem.managers.payment.errors import AllocationError
 from golem.node import GolemNode
 from golem.payload.defaults import DEFAULT_PAYMENT_DRIVER, DEFAULT_PAYMENT_NETWORK
 from golem.resources import (
@@ -65,9 +68,15 @@ class PayAllPaymentManager(PaymentManager):
 
     @trace_span()
     async def _create_allocation(self) -> None:
-        self._allocation = await Allocation.create_any_account(
-            self._golem, Decimal(self._budget), self._network, self._driver
-        )
+        try:
+            self._allocation = await Allocation.create_any_account(
+                self._golem, Decimal(self._budget), self._network, self._driver
+            )
+        except ApiException as e:
+            allocation_exception = AllocationError(e.status, e.reason)
+            allocation_exception.body = e.body
+            allocation_exception.headers = e.headers
+            raise allocation_exception from e
 
         # TODO: We should not rely on golem node with cleanups, manager should do it by itself
         self._golem.add_autoclose_resource(self._allocation)
