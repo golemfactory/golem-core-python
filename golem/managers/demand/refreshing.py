@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Awaitable, Callable, Optional, List, Tuple
+from typing import Awaitable, Callable, List, Optional, Tuple
 
 from golem.managers.base import DemandManager
 from golem.managers.mixins import BackgroundLoopMixin
