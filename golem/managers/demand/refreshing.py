@@ -46,7 +46,7 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         return await super().stop()
 
     @trace_span("Getting initial proposal", show_results=True)
-    async def get_initial_proposal(self):
+    async def get_initial_proposal(self) -> Proposal:
         proposal = await self._initial_proposals.get()
         self._initial_proposals.task_done()
         return proposal

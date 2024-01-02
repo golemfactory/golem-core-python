@@ -21,7 +21,7 @@ async def feed(q: ErrorReportingQueue, max_n: int, delay=0.01, raise_on_exit=Tru
 
 
 async def test_get():
-    q = ErrorReportingQueue()
+    q: ErrorReportingQueue = ErrorReportingQueue()
     retrieved = list()
     feed_task = asyncio.create_task(feed(q, 3, delay=0.01))
     for _ in range(3):
@@ -36,7 +36,7 @@ async def test_get():
 
 
 async def test_get_nowait():
-    q = ErrorReportingQueue()
+    q: ErrorReportingQueue = ErrorReportingQueue()
     retrieved = list()
     feed_task = asyncio.create_task(feed(q, 5, delay=0.01))
 
