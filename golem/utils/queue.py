@@ -27,7 +27,8 @@ class ErrorReportingQueue(asyncio.Queue, Generic[QueueItem]):
     async def get(self) -> QueueItem:
         """Perform a regular, waiting `get` but raise an exception if happens while waiting.
 
-        If there had been items in the queue, they will first be returned before an exception is raised.
+        If there had been items in the queue,
+        they will first be returned before an exception is raised.
         """
 
         error_task = asyncio.create_task(self._error_event.wait())
@@ -41,6 +42,7 @@ class ErrorReportingQueue(asyncio.Queue, Generic[QueueItem]):
         if get_task in done:
             return await get_task
 
+        assert self._error
         raise self._error
 
     async def put(self, item: QueueItem):
