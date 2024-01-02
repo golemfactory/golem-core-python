@@ -12,6 +12,7 @@ from golem.resources import Allocation, Demand, Proposal
 from golem.resources.demand.demand_builder import DemandBuilder
 from golem.utils.asyncio import create_task_with_logging
 from golem.utils.logging import get_trace_id_name, trace_span
+from golem.utils.queue import ErrorReportingQueue
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         self._demand_lifetime = demand_lifetime
         self._subnet_tag = subnet_tag
 
-        self._initial_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
+        self._initial_proposals: ErrorReportingQueue[Proposal] = ErrorReportingQueue()
 
         self._demands: List[Tuple[Demand, asyncio.Task]] = []
         super().__init__()
@@ -45,24 +46,28 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         return await super().stop()
 
     @trace_span("Getting initial proposal", show_results=True)
-    async def get_initial_proposal(self) -> Proposal:
+    async def get_initial_proposal(self):
         proposal = await self._initial_proposals.get()
         self._initial_proposals.task_done()
         return proposal
 
     @trace_span()
     async def _background_loop(self) -> None:
-        await self._create_and_subscribe_demand()
         try:
             while True:
                 await self._wait_for_demand_to_expire()
                 self._stop_consuming_initial_proposals()
                 await self._create_and_subscribe_demand()
+        except Exception as e:
+            self._initial_proposals.set_exception(e)
         finally:
             self._stop_consuming_initial_proposals()
             await self._unsubscribe_demands()
 
     async def _wait_for_demand_to_expire(self):
+        if not self._demands:
+            return
+
         remaining: timedelta = (
             datetime.utcfromtimestamp(
                 self._demands[-1][0].data.properties["golem.srv.comp.expiration"] / 1000
