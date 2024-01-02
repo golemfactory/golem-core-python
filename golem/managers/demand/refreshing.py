@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Awaitable, Callable, List, Optional, Tuple
+from typing import Awaitable, Callable, List, Tuple
 
 from golem.managers.base import DemandManager
 from golem.managers.mixins import BackgroundLoopMixin
@@ -12,6 +12,7 @@ from golem.resources import Allocation, Demand, Proposal
 from golem.resources.demand.demand_builder import DemandBuilder
 from golem.utils.asyncio import create_task_with_logging
 from golem.utils.logging import get_trace_id_name, trace_span
+from golem.utils.queue import ErrorReportingQueue
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +32,7 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         self._demand_lifetime = demand_lifetime
         self._subnet_tag = subnet_tag
 
-        self._initial_proposals: asyncio.Queue[Proposal] = asyncio.Queue()
-        self._initial_proposal_task: Optional[asyncio.Task] = None
-        self._initial_proposal_exception: Optional[Exception] = None
+        self._initial_proposals: ErrorReportingQueue[Proposal] = ErrorReportingQueue()
 
         self._demands: List[Tuple[Demand, asyncio.Task]] = []
         super().__init__()
@@ -46,21 +45,11 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
     async def stop(self) -> None:
         return await super().stop()
 
-    async def _get_initial_proposal(self):
+    @trace_span("Getting initial proposal", show_results=True)
+    async def get_initial_proposal(self):
         proposal = await self._initial_proposals.get()
         self._initial_proposals.task_done()
         return proposal
-
-    @trace_span("Getting initial proposal", show_results=True)
-    async def get_initial_proposal(self) -> Proposal:
-        self._initial_proposal_task = asyncio.create_task(self._get_initial_proposal())
-        try:
-            await self._initial_proposal_task
-            return self._initial_proposal_task.result()
-        except asyncio.CancelledError:
-            if self._initial_proposal_exception:
-                raise self._initial_proposal_exception
-            raise
 
     @trace_span()
     async def _background_loop(self) -> None:
@@ -70,8 +59,7 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
                 await self._wait_for_demand_to_expire()
                 self._stop_consuming_initial_proposals()
         except Exception as e:
-            self._initial_proposal_exception = e
-            self._initial_proposal_task.cancel()
+            self._initial_proposals.set_exception(e)
         finally:
             self._stop_consuming_initial_proposals()
             await self._unsubscribe_demands()
