@@ -38,7 +38,7 @@ class RejectIfCostsExceeds(ProposalManagerPlugin):
 
                 continue
 
-            if cost is not None and self._cost <= cost:
+            if cost is not None and self._cost < cost:
                 if not proposal.initial:
                     await proposal.reject(
                         f"Exceeds costs `{self._pricing_callable}` limit of `{self._cost}`!"

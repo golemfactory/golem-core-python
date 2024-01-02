@@ -31,11 +31,11 @@ class LinearAverageCostPricing:
     def _calculate_cost(self, coeffs: LinearCoeffs) -> float:
         average_duration_sec = self._average_duration.total_seconds()
 
+        average_initial_price = coeffs.price_initial
         average_duration_cost = coeffs.price_duration_sec * average_duration_sec
         average_cpu_cost = coeffs.price_cpu_sec * self._average_cpu_load * average_duration_sec
-        average_initial_price = coeffs.price_initial / average_duration_sec
 
-        return average_duration_cost + average_cpu_cost + average_initial_price
+        return average_initial_price + average_duration_cost + average_cpu_cost
 
 
 class LinearPerCpuAverageCostPricing(LinearAverageCostPricing):
@@ -46,7 +46,7 @@ class LinearPerCpuAverageCostPricing(LinearAverageCostPricing):
         if coeffs is None or not cpu_count:
             return None
 
-        coeffs.price_duration_sec /= cpu_count
         coeffs.price_initial /= cpu_count
+        coeffs.price_duration_sec /= cpu_count
 
         return self._calculate_cost(coeffs)
