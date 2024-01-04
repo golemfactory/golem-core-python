@@ -1,7 +1,7 @@
 import asyncio
 import contextvars
 import logging
-from typing import Optional
+from typing import Optional, Sequence
 
 from golem.utils.logging import trace_id_var
 
@@ -38,3 +38,16 @@ def _handle_task_logging(task: asyncio.Task):
         pass
     except Exception:
         logger.exception("Background async task encountered unhandled exception!")
+
+
+async def cancel_and_await(task: asyncio.Task) -> None:
+    task.cancel()
+
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+
+async def cancel_and_await_many(tasks: Sequence[asyncio.Task]) -> None:
+    await asyncio.gather(*[cancel_and_await(task) for task in tasks])

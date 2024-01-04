@@ -7,12 +7,10 @@ QueueItem = TypeVar("QueueItem")
 class ErrorReportingQueue(asyncio.Queue, Generic[QueueItem]):
     """Asyncio Queue that enables exceptions to be passed to consumers from the feeding code."""
 
-    _error: Optional[BaseException]
-    _error_event: asyncio.Event
-
     def __init__(self, *args, **kwargs):
-        self._error = None
-        self._error_event = asyncio.Event()
+        self._error: Optional[BaseException] = None
+        self._error_event: asyncio.Event = asyncio.Event()
+
         super().__init__(*args, **kwargs)
 
     def get_nowait(self) -> QueueItem:
