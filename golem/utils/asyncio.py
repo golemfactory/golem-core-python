@@ -41,6 +41,9 @@ def _handle_task_logging(task: asyncio.Task):
 
 
 async def cancel_and_await(task: asyncio.Task) -> None:
+    if task.done():
+        return
+
     task.cancel()
 
     try:
