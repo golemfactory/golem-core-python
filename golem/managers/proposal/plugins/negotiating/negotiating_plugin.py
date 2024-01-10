@@ -81,8 +81,8 @@ class NegotiatingPlugin(ProposalManagerPlugin):
     @trace_span()
     async def _wait_for_proposal_response(self, demand_proposal: Proposal) -> Proposal:
         try:
-            return await demand_proposal.responses().__anext__()
-        except StopAsyncIteration as e:
+            return await asyncio.wait_for(demand_proposal.responses().__anext__(), timeout=15)
+        except (StopAsyncIteration, asyncio.TimeoutError) as e:
             raise RuntimeError("Failed to receive proposal response!") from e
 
     @trace_span()

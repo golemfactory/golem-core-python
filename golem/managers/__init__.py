@@ -23,6 +23,7 @@ from golem.managers.network import SingleNetworkManager
 from golem.managers.payment import PayAllPaymentManager
 from golem.managers.proposal import (
     AddChosenPaymentPlatform,
+    AddMidAgreementPayments,
     BlacklistProviderIdPlugin,
     Buffer,
     DefaultProposalManager,
@@ -74,6 +75,7 @@ __all__ = (
     "BlacklistProviderIdPlugin",
     "Buffer",
     "AddChosenPaymentPlatform",
+    "AddMidAgreementPayments",
     "NegotiatingPlugin",
     "RejectIfCostsExceeds",
     "MapScore",
