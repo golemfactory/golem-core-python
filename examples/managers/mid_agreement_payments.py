@@ -38,7 +38,7 @@ async def print_yagna_payment_status(yagna_path="yagna", network="goerli"):
 
     if process.returncode != 0:
         raise Exception(
-            f"Process exited with code `{process.returncode}`!\nstdout:\n{stdout}\nstderr:\n{stderr}"
+            f"Exited with code `{process.returncode!r}`!\nstdout:\n{stdout!r}\nstderr:\n{stderr!r}"
         )
 
     print(stdout.decode(), flush=True)
