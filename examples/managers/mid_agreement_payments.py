@@ -3,13 +3,13 @@ import logging.config
 from datetime import datetime, timedelta
 
 from golem.managers import (
-    AddChosenPaymentPlatform,
-    AddMidAgreementPayments,
     Buffer,
     DefaultAgreementManager,
     DefaultProposalManager,
+    MidAgreementPaymentsNegotiator,
     NegotiatingPlugin,
     PayAllPaymentManager,
+    PaymentPlatformNegotiator,
     RefreshingDemandManager,
     SequentialWorkManager,
     SingleUseActivityManager,
@@ -80,10 +80,10 @@ async def main():
         plugins=[
             NegotiatingPlugin(
                 proposal_negotiators=[
-                    AddChosenPaymentPlatform(),
-                    AddMidAgreementPayments(
-                        max_demand_debit_note_interval=timedelta(minutes=3),
-                        max_demand_payment_timeout=timedelta(minutes=30),
+                    PaymentPlatformNegotiator(),
+                    MidAgreementPaymentsNegotiator(
+                        requested_debit_note_interval=timedelta(minutes=3),
+                        requested_payment_timeout=timedelta(minutes=30),
                     ),
                 ]
             ),

@@ -5,11 +5,11 @@ import string
 from uuid import uuid4
 
 from golem.managers import (
-    AddChosenPaymentPlatform,
     DefaultAgreementManager,
     DefaultProposalManager,
     NegotiatingPlugin,
     PayAllPaymentManager,
+    PaymentPlatformNegotiator,
     RefreshingDemandManager,
     SequentialWorkManager,
     SingleNetworkManager,
@@ -90,7 +90,7 @@ async def main():
         golem,
         demand_manager.get_initial_proposal,
         plugins=[
-            NegotiatingPlugin(proposal_negotiators=[AddChosenPaymentPlatform()]),
+            NegotiatingPlugin(proposal_negotiators=[PaymentPlatformNegotiator()]),
         ],
     )
     agreement_manager = DefaultAgreementManager(

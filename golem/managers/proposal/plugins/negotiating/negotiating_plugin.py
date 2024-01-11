@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from copy import deepcopy
+from datetime import timedelta
 from typing import Optional, Sequence
 
 from ya_market import ApiException
@@ -12,17 +13,21 @@ from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_PROPOSAL_RESPONSE_TIMEOUT = timedelta(seconds=5)
+
 
 class NegotiatingPlugin(ProposalManagerPlugin):
     def __init__(
         self,
         proposal_negotiators: Optional[Sequence[ProposalNegotiator]] = None,
+        proposal_response_timeout: timedelta = DEFAULT_PROPOSAL_RESPONSE_TIMEOUT,
         *args,
         **kwargs,
     ) -> None:
         self._proposal_negotiators: Sequence[ProposalNegotiator] = (
             list(proposal_negotiators) if proposal_negotiators is not None else []
         )
+        self._proposal_response_timeout = proposal_response_timeout.total_seconds()
 
         self._success_count = 0
         self._fail_count = 0
@@ -81,7 +86,10 @@ class NegotiatingPlugin(ProposalManagerPlugin):
     @trace_span()
     async def _wait_for_proposal_response(self, demand_proposal: Proposal) -> Proposal:
         try:
-            return await asyncio.wait_for(demand_proposal.responses().__anext__(), timeout=15)
+            return await asyncio.wait_for(
+                demand_proposal.responses().__anext__(),
+                timeout=self._proposal_response_timeout,
+            )
         except (StopAsyncIteration, asyncio.TimeoutError) as e:
             raise RuntimeError("Failed to receive proposal response!") from e
 

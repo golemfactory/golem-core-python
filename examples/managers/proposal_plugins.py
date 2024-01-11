@@ -4,7 +4,6 @@ from datetime import timedelta
 from random import randint, random
 
 from golem.managers import (
-    AddChosenPaymentPlatform,
     BlacklistProviderIdPlugin,
     Buffer,
     DefaultAgreementManager,
@@ -13,6 +12,7 @@ from golem.managers import (
     MapScore,
     NegotiatingPlugin,
     PayAllPaymentManager,
+    PaymentPlatformNegotiator,
     PoolActivityManager,
     PropertyValueLerpScore,
     RandomScore,
@@ -88,7 +88,7 @@ async def main():
             NegotiatingPlugin(
                 # FIXME ProposalNegotiator so it recognize lambdas and functions
                 proposal_negotiators=(  # type: ignore[arg-type]
-                    AddChosenPaymentPlatform(),
+                    PaymentPlatformNegotiator(),
                     # func plugin
                     blacklist_func,
                     # lambda plugin

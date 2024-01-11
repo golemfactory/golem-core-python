@@ -22,8 +22,6 @@ from golem.managers.mixins import BackgroundLoopMixin
 from golem.managers.network import SingleNetworkManager
 from golem.managers.payment import PayAllPaymentManager
 from golem.managers.proposal import (
-    AddChosenPaymentPlatform,
-    AddMidAgreementPayments,
     BlacklistProviderIdPlugin,
     Buffer,
     DefaultProposalManager,
@@ -32,7 +30,9 @@ from golem.managers.proposal import (
     LinearPerCpuAverageCostPricing,
     LinearPerCpuCoeffsCost,
     MapScore,
+    MidAgreementPaymentsNegotiator,
     NegotiatingPlugin,
+    PaymentPlatformNegotiator,
     PropertyValueLerpScore,
     ProposalScoringMixin,
     RandomScore,
@@ -74,8 +74,8 @@ __all__ = (
     "DefaultProposalManager",
     "BlacklistProviderIdPlugin",
     "Buffer",
-    "AddChosenPaymentPlatform",
-    "AddMidAgreementPayments",
+    "PaymentPlatformNegotiator",
+    "MidAgreementPaymentsNegotiator",
     "NegotiatingPlugin",
     "RejectIfCostsExceeds",
     "MapScore",

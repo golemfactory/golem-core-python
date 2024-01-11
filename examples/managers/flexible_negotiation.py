@@ -2,13 +2,13 @@ import asyncio
 import logging.config
 
 from golem.managers import (
-    AddChosenPaymentPlatform,
     BlacklistProviderIdPlugin,
     Buffer,
     DefaultAgreementManager,
     DefaultProposalManager,
     NegotiatingPlugin,
     PayAllPaymentManager,
+    PaymentPlatformNegotiator,
     PoolActivityManager,
     RefreshingDemandManager,
     SequentialWorkManager,
@@ -54,7 +54,7 @@ async def main():
                 fill_concurrency_size=5,
             ),
             BlacklistProviderIdPlugin(BLACKLISTED_PROVIDERS),
-            NegotiatingPlugin(proposal_negotiators=[AddChosenPaymentPlatform()]),
+            NegotiatingPlugin(proposal_negotiators=[PaymentPlatformNegotiator()]),
             Buffer(
                 min_size=3,
                 max_size=5,
