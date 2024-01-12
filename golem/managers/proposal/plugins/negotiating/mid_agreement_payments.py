@@ -54,7 +54,7 @@ class MidAgreementPaymentsNegotiator(ProposalNegotiator):
         ):
             logger.debug(
                 "Mid agreement properties negotiation done with debit note interval: "
-                f"{offer_debit_note_interval} and  payment timeout: {offer_payment_timeout}"
+                f"{offer_debit_note_interval} and payment timeout: {offer_payment_timeout}"
             )
             return
 
