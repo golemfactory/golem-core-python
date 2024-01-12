@@ -1,4 +1,5 @@
 import logging
+import math
 from datetime import timedelta
 from typing import Optional
 
@@ -13,7 +14,7 @@ DEFAULT_MIN_PAYMENT_TIMEOUT = timedelta(minutes=2)
 DEFAULT_REQUESTED_PAYMENT_TIMEOUT = timedelta(hours=24)
 
 DEFAULT_MIN_ADJUSTMENT = 1
-DEFAULT_ADJUSTMENT_FACTOR = 3
+DEFAULT_ADJUSTMENT_FACTOR = 0.33
 
 DEBIT_NOTE_INTERVAL = "golem.com.scheme.payu.debit-note.interval-sec?"
 PAYMENT_TIMEOUT = "golem.com.scheme.payu.payment-timeout-sec?"
@@ -27,7 +28,7 @@ class MidAgreementPaymentsNegotiator(ProposalNegotiator):
         min_payment_timeout: timedelta = DEFAULT_MIN_PAYMENT_TIMEOUT,
         requested_payment_timeout: timedelta = DEFAULT_REQUESTED_PAYMENT_TIMEOUT,
         min_adjustment: int = DEFAULT_MIN_ADJUSTMENT,
-        adjustment_factor: int = DEFAULT_ADJUSTMENT_FACTOR,
+        adjustment_factor: float = DEFAULT_ADJUSTMENT_FACTOR,
     ) -> None:
         self._min_debit_note_interval: int = int(min_debit_note_interval.total_seconds())
         self._requested_debit_note_interval: int = int(
@@ -91,6 +92,6 @@ class MidAgreementPaymentsNegotiator(ProposalNegotiator):
         # In case of no consent we lower propose value closer to offered value
         else:
             new = previous - max(
-                self._min_adjustment, (previous - offered) // self._adjustment_factor
+                self._min_adjustment, math.ceil((previous - offered) * self._adjustment_factor)
             )
             return max(new, minimal, offered)

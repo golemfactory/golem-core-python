@@ -21,13 +21,13 @@ from golem.resources import DemandData, ProposalData
         # First values match requested values
         (120, None, 60, 180, 180, 120, None, 120, 1800, 1800),
         # New values are using at adjustment_factor to generate new values
-        (120, 180, 60, 180, 160, 120, 1800, 120, 1800, 1240),
+        (120, 180, 60, 180, 160, 120, 1800, 120, 1800, 1245),
         # New values are at least lower by min_adjustment[1]
         (120, 121, 60, 180, 120, 1200, 1100, 120, 1800, 1200),
         # New values are not lower then minimal
         (120, 120, 60, 180, 120, 1200, 1100, 120, 1800, 1200),
         # Offered properties are longer then Requested
-        (1200, 180, 60, 600, 1200, 120, 1800, 120, 1800, 1240),
+        (1200, 180, 60, 600, 1200, 120, 1800, 120, 1800, 1245),
         (120, 180, 60, 600, 160, 12000, 1800, 120, 1800, 12000),
     ),
 )
