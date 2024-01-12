@@ -80,13 +80,15 @@ class MidAgreementPaymentsNegotiator(ProposalNegotiator):
     def _calculate_new_value_proposition(
         self, offered: int, previous: Optional[int], minimal: int, requested: int
     ):
-        # If this is the first proposal, we request the maximum value, unless the offer is already higher.
+        # If this is the first proposal,
+        # we request the maximum value, unless the offer is already higher.
         if previous is None:
             return max(offered, requested)
         # If we are offered a higher value, we accept it.
         elif offered >= previous:
             return offered
-        # If our proposal was of our minimal value and there is still no consent, we reject the offer.
+        # If our proposal was of our minimal value and there is still no consent,
+        # we reject the offer.
         elif previous == minimal:
             raise RejectProposal("Offered mid agreement properties are too short")
         # In case of no consent, we adjust the proposed value closer to the offered one.
