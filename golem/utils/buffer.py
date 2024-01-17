@@ -1,16 +1,26 @@
 import asyncio
 import logging
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import timedelta
-from typing import TypeVar, Generic, Optional, Sequence, Iterable, Callable, List, Dict, Awaitable, MutableSequence
+from typing import (
+    Awaitable,
+    Callable,
+    Dict,
+    Generic,
+    Iterable,
+    List,
+    MutableSequence,
+    Optional,
+    Sequence,
+    TypeVar,
+)
 
-from golem.utils.asyncio import create_task_with_logging, cancel_and_await_many, cancel_and_await
-from golem.utils.logging import trace_span, get_trace_id_name
+from golem.utils.asyncio import cancel_and_await_many, create_task_with_logging
+from golem.utils.logging import get_trace_id_name, trace_span
 from golem.utils.semaphore import SingleUseSemaphore
 
 TItem = TypeVar("TItem")
-TBuffer = TypeVar("TBuffer")
 
 logger = logging.getLogger(__name__)
 
@@ -18,35 +28,50 @@ logger = logging.getLogger(__name__)
 class Buffer(ABC, Generic[TItem]):
     @abstractmethod
     def size(self) -> int:
+        """Return number of items stored in buffer."""
         ...
 
     @abstractmethod
     async def wait_for_any_items(self) -> None:
+        """Wait until any items are stored in buffer."""
         ...
 
     @abstractmethod
     async def get(self) -> TItem:
+        """Await, remove and return left-most item stored in buffer."""
         ...
 
     @abstractmethod
     async def get_all(self) -> MutableSequence[TItem]:
+        """Remove and return all items stored in buffer."""
         ...
 
     @abstractmethod
     async def put(self, item: TItem) -> None:
+        """Add item to right-most position to buffer.
+
+        Duplicates are supported.
+        """
         ...
 
     @abstractmethod
     async def put_all(self, items: Sequence[TItem]) -> None:
+        """Replace all items stored in buffer.
+
+        Duplicates are supported.
+        """
         ...
 
     @abstractmethod
     async def remove(self, item: TItem) -> None:
+        """Remove first occurrence of item from buffer or raise `ValueError` if not found."""
         ...
 
 
-class ComposableBuffer(Generic[TBuffer, TItem], Buffer[TItem]):
-    def __init__(self, buffer: TBuffer):
+class ComposableBuffer(Buffer[TItem]):
+    """Utility class for composable/stackable buffer implementations to help with calling underlying buffer."""
+
+    def __init__(self, buffer: Buffer[TItem]):
         self._buffer = buffer
 
     def size(self) -> int:
@@ -72,10 +97,14 @@ class ComposableBuffer(Generic[TBuffer, TItem], Buffer[TItem]):
 
 
 class SimpleBuffer(Buffer[TItem]):
+    """Most basic implementation of Buffer interface."""
+
     def __init__(self, items: Optional[Sequence[TItem]] = None):
         self._items = list(items) if items is not None else []
 
-        self._have_items = asyncio.Event()  # TODO: collections of future-object waiters instead of event?
+        self._have_items = (
+            asyncio.Event()
+        )  # TODO: collections of future-object waiters instead of event
 
         if self.size():
             self._have_items.set()
@@ -123,16 +152,29 @@ class SimpleBuffer(Buffer[TItem]):
             self._have_items.clear()
 
 
-class ExpirableBuffer(ComposableBuffer[Buffer, TItem]):
-    # Optimisation options: Use single expiration task that wakes up to expire the earliest item,
-    # then check next earliest item and sleep to it and repeat
-    def __init__(self, buffer: Buffer, get_expiration_func: Callable[[TItem], Optional[timedelta]]):
+class ExpirableBuffer(ComposableBuffer[TItem]):
+    """Composable that adds option to expire item after some time.
+
+    Items that are already in provided buffer will not expire.
+    """
+
+    # TODO: Optimisation options: Use single expiration task that wakes up to expire the earliest item,
+    #  then check next earliest item and sleep to it and repeat
+
+    def __init__(
+        self,
+        buffer: Buffer[TItem],
+        get_expiration_func: Callable[[TItem], Optional[timedelta]],
+        on_expiration_func: Optional[Callable[[TItem], Awaitable[None]]] = None,
+    ):
         super().__init__(buffer)
 
         self._get_expiration_func = get_expiration_func
+        self._on_expiration_func = on_expiration_func
 
+        # Lock is used to keep items in buffer and expiration tasks in sync
         self._lock = asyncio.Lock()
-        self._expiration_tasks: Dict[int, List[asyncio.Task]] = defaultdict(list)
+        self._expiration_handlers: Dict[int, List[asyncio.TimerHandle]] = defaultdict(list)
 
     def _add_expiration_task_for_item(self, item: TItem) -> None:
         expiration = self._get_expiration_func(item)
@@ -140,36 +182,42 @@ class ExpirableBuffer(ComposableBuffer[Buffer, TItem]):
         if expiration is None:
             return
 
-        self._expiration_tasks[id(item)].append(asyncio.create_task(self._expire_item(expiration, item)))
+        loop = asyncio.get_event_loop()
 
-    async def _remove_expiration_task_for_item(self, item: TItem) -> None:
+        self._expiration_handlers[id(item)].append(
+            loop.call_later(expiration.total_seconds(), lambda: asyncio.create_task(self._expire_item(item)))
+        )
+
+    async def _remove_expiration_handler_for_item(self, item: TItem) -> None:
         item_id = id(item)
 
-        if item_id not in self._expiration_tasks or not len(self._expiration_tasks[item_id]):
+        if item_id not in self._expiration_handlers or not len(self._expiration_handlers[item_id]):
             return
 
-        expiration_task = self._expiration_tasks[item_id].pop(0)
+        expiration_handle = self._expiration_handlers[item_id].pop(0)
+        expiration_handle.cancel()
 
-        await cancel_and_await(expiration_task)
+        if not self._expiration_handlers[item_id]:
+            del self._expiration_handlers[item_id]
 
-        if not self._expiration_tasks[item_id]:
-            del self._expiration_tasks[item_id]
+    async def _remove_all_expiration_handlers(self) -> None:
+        for handlers in self._expiration_handlers.values():
+            for handler in handlers:
+                handler.cancel()
 
-    async def _remove_all_expiration_tasks(self) -> None:
-        await cancel_and_await_many(self._expiration_tasks)
-        self._expiration_tasks.clear()
+        self._expiration_handlers.clear()
 
     async def get(self) -> Iterable[TItem]:
         async with self._lock:
             item = await super().get()
-            await self._remove_expiration_task_for_item(item)
+            await self._remove_expiration_handler_for_item(item)
 
             return item
 
     async def get_all(self) -> MutableSequence[TItem]:
         async with self._lock:
             items = await super().get_all()
-            await self._remove_all_expiration_tasks()
+            await self._remove_all_expiration_handlers()
             return items
 
     async def put(self, item: TItem) -> None:
@@ -180,7 +228,7 @@ class ExpirableBuffer(ComposableBuffer[Buffer, TItem]):
     async def put_all(self, items: Sequence[TItem]) -> None:
         async with self._lock:
             await super().put_all(items)
-            await self._remove_all_expiration_tasks()
+            await self._remove_all_expiration_handlers()
 
             for item in items:
                 self._add_expiration_task_for_item(item)
@@ -188,18 +236,25 @@ class ExpirableBuffer(ComposableBuffer[Buffer, TItem]):
     async def remove(self, item: TItem) -> None:
         async with self._lock:
             await super().remove(item)
-            await self._remove_expiration_task_for_item(item)
+            await self._remove_expiration_handler_for_item(item)
 
-    async def _expire_item(self, expiration: timedelta, item: TItem) -> None:
-        await asyncio.sleep(expiration.total_seconds())
-
+    async def _expire_item(self, item: TItem) -> None:
         await self.remove(item)
 
+        if self._on_expiration_func:
+            await self._on_expiration_func(item)
 
-class BackgroundFeedBuffer(ComposableBuffer[Buffer, TItem]):
+
+class BackgroundFeedBuffer(ComposableBuffer[TItem]):
+    """Composable that adds option to feed buffer in background task.
+
+    Background feed will happen only if background tasks are started by calling `.start()`
+    and items were requested by `.request()`.
+    """
+
     def __init__(
         self,
-        buffer: Buffer,
+        buffer: Buffer[TItem],
         feed_func: Callable[[], Awaitable[TItem]],
         feed_concurrency_size=1,
     ):
@@ -248,28 +303,20 @@ class BackgroundFeedBuffer(ComposableBuffer[Buffer, TItem]):
                 await self.put(item)
 
     async def request(self, count: int) -> None:
+        """Request given number of items to be filled in background."""
         await self._workers_semaphore.increase(count)
 
-    @property
-    def finished(self):
-        return self._workers_semaphore.finished
+    def size_with_requested(self) -> int:
+        """Return sum of items stored in buffer and requested to be filled."""
+        return self.size() + self._workers_semaphore.get_count_with_pending()
 
+    async def get_all_requested(self, deadline: timedelta) -> MutableSequence[TItem]:
+        """Await for all requested items with given deadline, then remove and return all items stored in buffer."""
+        try:
+            await asyncio.wait_for(
+                self._workers_semaphore.finished.wait(), deadline.total_seconds()
+            )
+        except asyncio.TimeoutError:
+            pass
 
-class BatchedGetAllBuffer(ComposableBuffer[BackgroundFeedBuffer, TItem]):
-    def __init__(self, buffer: BackgroundFeedBuffer, batch_deadline: timedelta):
-        super().__init__(buffer)
-
-        self._batch_deadline = batch_deadline
-
-        self._lock = asyncio.Lock()
-
-    async def get_all(self) -> Sequence[TItem]:
-        async with self._lock:
-            await self.wait_for_any_items()
-
-            try:
-                await asyncio.wait_for(self._buffer.finished.wait(), self._batch_deadline.total_seconds())
-            except TimeoutError:
-                pass
-
-            return await super().get_all()
+        return await self.get_all()
