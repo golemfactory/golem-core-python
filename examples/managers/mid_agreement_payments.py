@@ -17,7 +17,7 @@ from golem.managers import (
     WorkResult,
 )
 from golem.node import GolemNode
-from golem.payload import RepositoryVmPayload
+from golem.payload import PaymentInfo, RepositoryVmPayload
 from golem.utils.logging import DEFAULT_LOGGING
 
 WORK_RUN_TIME = timedelta(minutes=60)
@@ -61,19 +61,22 @@ async def idle_work(context: WorkContext) -> str:
 
 async def main():
     logging.config.dictConfig(DEFAULT_LOGGING)
-    payload = RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae")
+    debit_notes_interval = timedelta(minutes=3)
+    payment_timeout = timedelta(minutes=30)
+    payloads = [
+        RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"),
+        PaymentInfo(
+            debit_notes_accept_timeout=180,
+            debit_notes_interval=int(debit_notes_interval.total_seconds()),
+            payment_timeout=int(payment_timeout.total_seconds()),
+        ),
+    ]
     await print_yagna_payment_status()
 
     golem = GolemNode()
 
     payment_manager = PayAllPaymentManager(golem, budget=10.0)
-    demand_manager = RefreshingDemandManager(
-        golem,
-        payment_manager.get_allocation,
-        [
-            payload,
-        ],
-    )
+    demand_manager = RefreshingDemandManager(golem, payment_manager.get_allocation, payloads)
     proposal_manager = DefaultProposalManager(
         golem,
         demand_manager.get_initial_proposal,
@@ -82,8 +85,8 @@ async def main():
                 proposal_negotiators=[
                     PaymentPlatformNegotiator(),
                     MidAgreementPaymentsNegotiator(
-                        requested_debit_note_interval=timedelta(minutes=3),
-                        requested_payment_timeout=timedelta(minutes=30),
+                        requested_debit_note_interval=debit_notes_interval,
+                        requested_payment_timeout=payment_timeout,
                     ),
                 ]
             ),

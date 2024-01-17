@@ -10,28 +10,32 @@ from golem.managers.proposal.plugins.negotiating.mid_agreement_payments import (
 )
 from golem.payload import Constraints, Properties
 from golem.resources import DemandData, ProposalData
+from golem.resources.proposal.data import ProposalState
 
 
 @pytest.mark.parametrize(
-    "offered_note_interval, demand_debit_note_interval, min_demand_debit_note_interval,"
-    "requested_debit_note_interval, expected_debit_note_interval,"
+    "proposal_state, offered_note_interval, demand_debit_note_interval,"
+    "min_demand_debit_note_interval, requested_debit_note_interval, expected_debit_note_interval,"
     "offer_payment_timeout, demand_payment_timeout, min_demand_payment_timeout,"
     "requested_payment_timeout, expected_payment_timeout",
     (
         # First values match requested values
-        (120, None, 60, 180, 180, 120, None, 120, 1800, 1800),
+        ("Initial", 120, None, 60, 180, 180, 120, None, 120, 1800, 1800),
+        ("Initial", 120, 180, 60, 180, 180, 120, 1800, 120, 1800, 1800),
+        ("Draft", 120, None, 60, 180, 180, 120, None, 120, 1800, 1800),
         # New values are using at adjustment_factor to generate new values
-        (120, 180, 60, 180, 160, 120, 1800, 120, 1800, 1245),
+        ("Draft", 120, 180, 60, 180, 160, 120, 1800, 120, 1800, 1245),
         # New values are at least lower by min_adjustment[1]
-        (120, 121, 60, 180, 120, 1200, 1100, 120, 1800, 1200),
+        ("Draft", 120, 121, 60, 180, 120, 1200, 1100, 120, 1800, 1200),
         # New values are not lower then minimal
-        (120, 120, 60, 180, 120, 1200, 1100, 120, 1800, 1200),
+        ("Draft", 120, 120, 60, 180, 120, 1200, 1100, 120, 1800, 1200),
         # Offered properties are longer then Requested
-        (1200, 180, 60, 600, 1200, 120, 1800, 120, 1800, 1245),
-        (120, 180, 60, 600, 160, 12000, 1800, 120, 1800, 12000),
+        ("Draft", 1200, 180, 60, 600, 1200, 120, 1800, 120, 1800, 1245),
+        ("Draft", 120, 180, 60, 600, 160, 12000, 1800, 120, 1800, 12000),
     ),
 )
 async def test_add_mid_agreement_payments_plugin_ok(
+    proposal_state: ProposalState,
     offered_note_interval: int,
     demand_debit_note_interval: Optional[int],
     min_demand_debit_note_interval: int,
@@ -57,7 +61,7 @@ async def test_add_mid_agreement_payments_plugin_ok(
             }
         ),
         constraints=Constraints(),
-        state="Draft",
+        state=proposal_state,
         timestamp=datetime.utcnow(),
         proposal_id=None,
         issuer_id=None,

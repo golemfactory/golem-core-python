@@ -107,3 +107,10 @@ class PaymentInfo(Payload):
     debit_notes_accept_timeout: int = prop(
         "golem.com.payment.debit-notes.accept-timeout?", default=120
     )
+
+    debit_notes_interval: Optional[int] = prop(
+        "golem.com.scheme.payu.debit-note.interval-sec?", default=None
+    )
+    payment_timeout: Optional[int] = prop(
+        "golem.com.scheme.payu.payment-timeout-sec?", default=None
+    )

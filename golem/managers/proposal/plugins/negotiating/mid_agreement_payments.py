@@ -63,12 +63,14 @@ class MidAgreementPaymentsNegotiator(ProposalNegotiator):
             demand_debit_note_interval,
             self._min_debit_note_interval,
             self._requested_debit_note_interval,
+            proposal_data.state == "Initial",
         )
         demand_data.properties[PAYMENT_TIMEOUT] = self._calculate_new_value_proposition(
             offer_payment_timeout,
             demand_payment_timeout,
             self._min_payment_timeout,
             self._requested_payment_timeout,
+            proposal_data.state == "Initial",
         )
         logger.debug(
             "Ongoing mid agreement properties negotiation with"
@@ -78,12 +80,20 @@ class MidAgreementPaymentsNegotiator(ProposalNegotiator):
         return
 
     def _calculate_new_value_proposition(
-        self, offered: int, previous: Optional[int], minimal: int, requested: int
+        self,
+        offered: int,
+        previous: Optional[int],
+        minimal: int,
+        requested: int,
+        offer_is_initial: bool,
     ):
         # If this is the first proposal,
         # we request the maximum value, unless the offer is already higher.
-        if previous is None:
-            return max(offered, requested)
+        if previous is None or offer_is_initial:
+            values = [offered, requested]
+            if previous is not None:
+                values.append(previous)
+            return max(values)
         # If we are offered a higher value, we accept it.
         elif offered >= previous:
             return offered
