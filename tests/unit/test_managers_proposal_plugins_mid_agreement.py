@@ -15,11 +15,11 @@ from golem.resources.proposal.data import ProposalState
 
 @pytest.mark.parametrize(
     "proposal_state, offered_note_interval, demand_debit_note_interval,"
-    "min_demand_debit_note_interval, requested_debit_note_interval, expected_debit_note_interval,"
+    "min_demand_debit_note_interval, optimal_debit_note_interval, expected_debit_note_interval,"
     "offer_payment_timeout, demand_payment_timeout, min_demand_payment_timeout,"
-    "requested_payment_timeout, expected_payment_timeout",
+    "optimal_payment_timeout, expected_payment_timeout",
     (
-        # First values match requested values
+        # First values match optimal values
         ("Initial", 120, None, 60, 180, 180, 120, None, 120, 1800, 1800),
         ("Initial", 120, 180, 60, 180, 180, 120, 1800, 120, 1800, 1800),
         ("Draft", 120, None, 60, 180, 180, 120, None, 120, 1800, 1800),
@@ -29,7 +29,7 @@ from golem.resources.proposal.data import ProposalState
         ("Draft", 120, 121, 60, 180, 120, 1200, 1100, 120, 1800, 1200),
         # New values are not lower then minimal
         ("Draft", 120, 120, 60, 180, 120, 1200, 1100, 120, 1800, 1200),
-        # Offered properties are longer then Requested
+        # Offered properties are longer then Optimal
         ("Draft", 1200, 180, 60, 600, 1200, 120, 1800, 120, 1800, 1245),
         ("Draft", 120, 180, 60, 600, 160, 12000, 1800, 120, 1800, 12000),
     ),
@@ -39,19 +39,19 @@ async def test_add_mid_agreement_payments_plugin_ok(
     offered_note_interval: int,
     demand_debit_note_interval: Optional[int],
     min_demand_debit_note_interval: int,
-    requested_debit_note_interval: int,
+    optimal_debit_note_interval: int,
     expected_debit_note_interval: int,
     offer_payment_timeout: int,
     demand_payment_timeout: Optional[int],
     min_demand_payment_timeout: int,
-    requested_payment_timeout: int,
+    optimal_payment_timeout: int,
     expected_payment_timeout: int,
 ):
     plugin = MidAgreementPaymentsNegotiator(
         min_debit_note_interval=timedelta(seconds=min_demand_debit_note_interval),
-        requested_debit_note_interval=timedelta(seconds=requested_debit_note_interval),
+        optimal_debit_note_interval=timedelta(seconds=optimal_debit_note_interval),
         min_payment_timeout=timedelta(seconds=min_demand_payment_timeout),
-        requested_payment_timeout=timedelta(seconds=requested_payment_timeout),
+        optimal_payment_timeout=timedelta(seconds=optimal_payment_timeout),
     )
     given_proposal_data = ProposalData(
         properties=Properties(
@@ -88,9 +88,9 @@ async def test_add_mid_agreement_payments_plugin_ok(
 
 @pytest.mark.parametrize(
     "offered_note_interval, demand_debit_note_interval, min_demand_debit_note_interval,"
-    "requested_debit_note_interval,"
+    "optimal_debit_note_interval,"
     "offer_payment_timeout, demand_payment_timeout, min_demand_payment_timeout,"
-    "requested_payment_timeout",
+    "optimal_payment_timeout",
     (
         # Offer doesn't support mid agreement payments
         (None, None, 60, 600, None, None, 600, 86400),
@@ -105,17 +105,17 @@ async def test_add_mid_agreement_payments_plugin_reject(
     offered_note_interval: Optional[int],
     demand_debit_note_interval: Optional[int],
     min_demand_debit_note_interval: int,
-    requested_debit_note_interval: int,
+    optimal_debit_note_interval: int,
     offer_payment_timeout: Optional[int],
     demand_payment_timeout: Optional[int],
     min_demand_payment_timeout: int,
-    requested_payment_timeout: int,
+    optimal_payment_timeout: int,
 ):
     plugin = MidAgreementPaymentsNegotiator(
         min_debit_note_interval=timedelta(seconds=min_demand_debit_note_interval),
-        requested_debit_note_interval=timedelta(seconds=requested_debit_note_interval),
+        optimal_debit_note_interval=timedelta(seconds=optimal_debit_note_interval),
         min_payment_timeout=timedelta(seconds=min_demand_payment_timeout),
-        requested_payment_timeout=timedelta(seconds=requested_payment_timeout),
+        optimal_payment_timeout=timedelta(seconds=optimal_payment_timeout),
     )
     given_proposal_data = ProposalData(
         properties=Properties(

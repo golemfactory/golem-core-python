@@ -64,7 +64,8 @@ async def main():
     debit_notes_interval = timedelta(minutes=3)
     payment_timeout = timedelta(minutes=30)
     payloads = [
-        RepositoryVmPayload("9a3b5d67b0b27746283cb5f287c13eab1beaa12d92a9f536b747c7ae"),
+        # golem/alpine:3.18.2
+        RepositoryVmPayload("1a0f2d0b1512018445a028c8f46151969ef8ddaaf3435ae118d3071d"),
         PaymentInfo(
             debit_notes_accept_timeout=180,
             debit_notes_interval=int(debit_notes_interval.total_seconds()),
@@ -85,8 +86,8 @@ async def main():
                 proposal_negotiators=[
                     PaymentPlatformNegotiator(),
                     MidAgreementPaymentsNegotiator(
-                        requested_debit_note_interval=debit_notes_interval,
-                        requested_payment_timeout=payment_timeout,
+                        optimal_debit_note_interval=debit_notes_interval,
+                        optimal_payment_timeout=payment_timeout,
                     ),
                 ]
             ),

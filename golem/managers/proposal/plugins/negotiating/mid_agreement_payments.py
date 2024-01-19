@@ -9,9 +9,9 @@ from golem.resources import DemandData, ProposalData
 logger = logging.getLogger(__name__)
 
 DEFAULT_MIN_DEBIT_NOTE_INTERVAL = timedelta(minutes=1)
-DEFAULT_REQUESTED_DEBIT_NOTE_INTERVAL = timedelta(minutes=10)
+DEFAULT_OPTIMAL_DEBIT_NOTE_INTERVAL = timedelta(minutes=10)
 DEFAULT_MIN_PAYMENT_TIMEOUT = timedelta(minutes=2)
-DEFAULT_REQUESTED_PAYMENT_TIMEOUT = timedelta(hours=24)
+DEFAULT_OPTIMAL_PAYMENT_TIMEOUT = timedelta(hours=24)
 
 DEFAULT_MIN_ADJUSTMENT = 1
 DEFAULT_ADJUSTMENT_FACTOR = 0.33
@@ -24,18 +24,16 @@ class MidAgreementPaymentsNegotiator(ProposalNegotiator):
     def __init__(
         self,
         min_debit_note_interval: timedelta = DEFAULT_MIN_DEBIT_NOTE_INTERVAL,
-        requested_debit_note_interval: timedelta = DEFAULT_REQUESTED_DEBIT_NOTE_INTERVAL,
+        optimal_debit_note_interval: timedelta = DEFAULT_OPTIMAL_DEBIT_NOTE_INTERVAL,
         min_payment_timeout: timedelta = DEFAULT_MIN_PAYMENT_TIMEOUT,
-        requested_payment_timeout: timedelta = DEFAULT_REQUESTED_PAYMENT_TIMEOUT,
+        optimal_payment_timeout: timedelta = DEFAULT_OPTIMAL_PAYMENT_TIMEOUT,
         min_adjustment: int = DEFAULT_MIN_ADJUSTMENT,
         adjustment_factor: float = DEFAULT_ADJUSTMENT_FACTOR,
     ) -> None:
         self._min_debit_note_interval: int = int(min_debit_note_interval.total_seconds())
-        self._requested_debit_note_interval: int = int(
-            requested_debit_note_interval.total_seconds()
-        )
+        self._optimal_debit_note_interval: int = int(optimal_debit_note_interval.total_seconds())
         self._min_payment_timeout: int = int(min_payment_timeout.total_seconds())
-        self._requested_payment_timeout: int = int(requested_payment_timeout.total_seconds())
+        self._optimal_payment_timeout: int = int(optimal_payment_timeout.total_seconds())
         self._min_adjustment = min_adjustment
         self._adjustment_factor = adjustment_factor
 
@@ -62,14 +60,14 @@ class MidAgreementPaymentsNegotiator(ProposalNegotiator):
             offer_debit_note_interval,
             demand_debit_note_interval,
             self._min_debit_note_interval,
-            self._requested_debit_note_interval,
+            self._optimal_debit_note_interval,
             proposal_data.state == "Initial",
         )
         demand_data.properties[PAYMENT_TIMEOUT] = self._calculate_new_value_proposition(
             offer_payment_timeout,
             demand_payment_timeout,
             self._min_payment_timeout,
-            self._requested_payment_timeout,
+            self._optimal_payment_timeout,
             proposal_data.state == "Initial",
         )
         logger.debug(
@@ -84,13 +82,13 @@ class MidAgreementPaymentsNegotiator(ProposalNegotiator):
         offered: int,
         previous: Optional[int],
         minimal: int,
-        requested: int,
+        optimal: int,
         offer_is_initial: bool,
     ):
         # If this is the first proposal,
         # we request the maximum value, unless the offer is already higher.
         if previous is None or offer_is_initial:
-            values = [offered, requested]
+            values = [offered, optimal]
             if previous is not None:
                 values.append(previous)
             return max(values)
