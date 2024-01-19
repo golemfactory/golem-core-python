@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import List
 
 from golem.managers import (
-    AddChosenPaymentPlatform,
     ConcurrentWorkManager,
     DefaultAgreementManager,
     DefaultProposalManager,
@@ -14,6 +13,7 @@ from golem.managers import (
     MapScore,
     NegotiatingPlugin,
     PayAllPaymentManager,
+    PaymentPlatformNegotiator,
     PoolActivityManager,
     RefreshingDemandManager,
     ScoringBuffer,
@@ -42,7 +42,7 @@ async def run_on_golem(
 ):
     if negotiators is None:
         negotiators = [
-            AddChosenPaymentPlatform(),
+            PaymentPlatformNegotiator(),
         ]
 
     golem = GolemNode()

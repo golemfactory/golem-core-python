@@ -1,9 +1,11 @@
-from golem.managers.proposal.plugins.negotiating.add_payment_platform import (
-    AddChosenPaymentPlatform,
+from golem.managers.proposal.plugins.negotiating.mid_agreement_payments import (
+    MidAgreementPaymentsNegotiator,
 )
 from golem.managers.proposal.plugins.negotiating.negotiating_plugin import NegotiatingPlugin
+from golem.managers.proposal.plugins.negotiating.payment_platform import PaymentPlatformNegotiator
 
 __all__ = (
-    "AddChosenPaymentPlatform",
+    "PaymentPlatformNegotiator",
+    "MidAgreementPaymentsNegotiator",
     "NegotiatingPlugin",
 )

@@ -3,11 +3,11 @@ import logging.config
 from typing import List
 
 from golem.managers import (
-    AddChosenPaymentPlatform,
     DefaultAgreementManager,
     DefaultProposalManager,
     NegotiatingPlugin,
     PayAllPaymentManager,
+    PaymentPlatformNegotiator,
     RefreshingDemandManager,
     SequentialWorkManager,
     SingleUseActivityManager,
@@ -56,7 +56,7 @@ async def main():
         golem,
         demand_manager.get_initial_proposal,
         plugins=[
-            NegotiatingPlugin(proposal_negotiators=[AddChosenPaymentPlatform()]),
+            NegotiatingPlugin(proposal_negotiators=[PaymentPlatformNegotiator()]),
         ],
     )
     agreement_manager = DefaultAgreementManager(golem, proposal_manager.get_draft_proposal)

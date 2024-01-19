@@ -8,7 +8,7 @@ from golem.resources import DemandData, ProposalData
 logger = logging.getLogger(__name__)
 
 
-class AddChosenPaymentPlatform(ProposalNegotiator):
+class PaymentPlatformNegotiator(ProposalNegotiator):
     async def __call__(self, demand_data: DemandData, proposal_data: ProposalData) -> None:
         logger.debug("Calling chosen payment platform plugin...")
 
