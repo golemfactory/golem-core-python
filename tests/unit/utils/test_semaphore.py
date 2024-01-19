@@ -2,10 +2,10 @@ import asyncio
 
 import pytest
 
-from golem.utils.semaphore import SingleUseSemaphore
+from golem.utils.asyncio.semaphore import SingleUseSemaphore
 
 
-def test_creation():
+async def test_creation():
     sem = SingleUseSemaphore()
 
     assert sem.get_count() == 0

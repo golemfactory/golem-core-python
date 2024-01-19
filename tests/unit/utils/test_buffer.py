@@ -1,11 +1,9 @@
-from datetime import timedelta
-
 import asyncio
+from datetime import timedelta
 
 import pytest
 
-from golem.utils.buffer import SimpleBuffer, Buffer, ExpirableBuffer, BackgroundFeedBuffer
-
+from golem.utils.asyncio.buffer import BackgroundFeedBuffer, Buffer, ExpirableBuffer, SimpleBuffer
 
 
 @pytest.fixture
@@ -65,9 +63,10 @@ async def test_simple_buffer_get_waits_for_items():
     assert buffer.size() == 0
 
     _, pending = await asyncio.wait([buffer.get()], timeout=0.1)
-    get_task = pending.pop()
-    if not get_task:
+    if not pending:
         pytest.fail("Getting empty buffer somehow finished instead of blocking!")
+
+    get_task = pending.pop()
 
     item_put = object()
     await buffer.put(item_put)
@@ -75,6 +74,24 @@ async def test_simple_buffer_get_waits_for_items():
     item_get = await asyncio.wait_for(get_task, timeout=0.1)
 
     assert item_get == item_put
+
+    # concurrent wait
+    get_task1 = asyncio.create_task(buffer.get())
+    get_task2 = asyncio.create_task(buffer.get())
+
+    await asyncio.sleep(0.1)
+
+    await buffer.put(item_put)
+
+    done, pending = await asyncio.wait([get_task1, get_task2], timeout=0.1)
+    if len(done) != len(pending):
+        pytest.fail(f"One of the tasks should not block at this point!")
+
+    await buffer.put(item_put)
+
+    await asyncio.sleep(0.1)
+
+    await asyncio.wait_for(pending.pop(), timeout=0.1)
 
 
 async def test_simple_buffer_keeps_item_order():
@@ -108,6 +125,107 @@ async def test_simple_buffer_keeps_shallow_copy_of_items():
     assert buffer.size() == 3
 
 
+async def test_simple_buffer_exceptions():
+    buffer = SimpleBuffer()
+    assert buffer.size() == 0
+
+    exc = ZeroDivisionError()
+
+    buffer.set_exception(exc)
+
+    # should raise when exception set and no items
+    with pytest.raises(ZeroDivisionError):
+        await buffer.get()
+
+    with pytest.raises(ZeroDivisionError):
+        await buffer.get_all()
+
+    await buffer.put("a")
+
+    # should not raise when exception set and with items
+    assert await buffer.get_all() == ["a"]
+
+    # should raise when exception set and items were cleared
+    with pytest.raises(ZeroDivisionError):
+        await buffer.get_all()
+
+    buffer.reset_exception()
+
+    assert await buffer.get_all() == []
+
+    try:
+        await asyncio.wait_for(buffer.get(), timeout=0.1)
+    except asyncio.TimeoutError:
+        pass
+    else:
+        pytest.fail("Getting empty buffer somehow finished instead of blocking!")
+
+    get_task = asyncio.create_task(buffer.get())
+
+    await asyncio.sleep(0.1)
+
+    buffer.set_exception(exc)
+
+    await asyncio.sleep(0.1)
+
+    with pytest.raises(ZeroDivisionError):
+        get_task.result()
+
+
+async def test_simple_buffer_wait_for_any_items():
+    buffer = SimpleBuffer()
+    assert buffer.size() == 0
+
+    # should block on empty
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(buffer.wait_for_any_items(), timeout=0.1)
+
+    # should unblock on item
+    wait_task = asyncio.create_task(buffer.wait_for_any_items())
+
+    await asyncio.sleep(0.1)
+
+    assert not wait_task.done()
+
+    await buffer.put("a")
+
+    await asyncio.sleep(0.1)
+
+    assert wait_task.done()
+
+    # should not block a long time on item
+    await asyncio.wait_for(buffer.wait_for_any_items(), timeout=0.1)
+
+    buffer.set_exception(ZeroDivisionError())
+
+    # should not block a long time on item with exception
+    await asyncio.wait_for(buffer.wait_for_any_items(), timeout=0.1)
+
+    await buffer.get()
+
+    # should not block a long time with exception and no items
+    await asyncio.wait_for(buffer.wait_for_any_items(), timeout=0.1)
+
+    buffer.reset_exception()
+
+    # should block on after exception reset and no items
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(buffer.wait_for_any_items(), timeout=0.1)
+
+    # should unblock on item
+    wait_task = asyncio.create_task(buffer.wait_for_any_items())
+
+    await asyncio.sleep(0.1)
+
+    assert not wait_task.done()
+
+    buffer.set_exception(ZeroDivisionError())
+
+    await asyncio.sleep(0.1)
+
+    assert wait_task.done()
+
+
 async def test_expirable_buffer_is_not_expiring_initial_items(mocked_buffer, mocker):
     expire_after = timedelta(seconds=0.1)
     ExpirableBuffer(
@@ -119,29 +237,28 @@ async def test_expirable_buffer_is_not_expiring_initial_items(mocked_buffer, moc
 
     mocked_buffer.remove.assert_not_called()
 
+
 async def test_expirable_buffer_is_not_expiring_items_with_none_expiration(mocked_buffer, mocker):
-    expiration_func = mocker.Mock(side_effect=[
-        timedelta(seconds=0.1),
-        None,
-        timedelta(seconds=0.1)
-    ])
+    expiration_func = mocker.Mock(
+        side_effect=[timedelta(seconds=0.1), None, timedelta(seconds=0.1)]
+    )
     buffer = ExpirableBuffer(
         mocked_buffer,
         expiration_func,
     )
 
-    await buffer.put('a')
-    await buffer.put('b')
-    await buffer.put('c')
+    await buffer.put("a")
+    await buffer.put("b")
+    await buffer.put("c")
 
     await asyncio.sleep(0.2)
 
-    assert mocker.call('a') in mocked_buffer.remove.mock_calls
-    assert mocker.call('c') in mocked_buffer.remove.mock_calls
+    assert mocker.call("a") in mocked_buffer.remove.mock_calls
+    assert mocker.call("c") in mocked_buffer.remove.mock_calls
 
-    mocked_buffer.get.return_value = 'b'
+    mocked_buffer.get.return_value = "b"
 
-    assert await buffer.get() == 'b'
+    assert await buffer.get() == "b"
 
 
 async def test_expirable_buffer_can_expire_items_with_put_get(mocked_buffer, mocker):
@@ -188,7 +305,7 @@ async def test_expirable_buffer_can_expire_items_with_put_all_get_all(mocked_buf
         lambda i: expire_after,
         on_expire,
     )
-    items_put_all = ['a', 'b' , 'c']
+    items_put_all = ["a", "b", "c"]
 
     await buffer.put_all(items_put_all)
     mocked_buffer.put_all.assert_called_with(items_put_all)
@@ -282,6 +399,7 @@ async def test_background_feed_buffer_request(mocked_buffer, mocker):
 
     await buffer.stop()
 
+
 async def test_background_feed_buffer_get_all_requested(mocked_buffer, mocker, event_loop):
     timeout = timedelta(seconds=0.1)
     item = object()
@@ -301,7 +419,9 @@ async def test_background_feed_buffer_get_all_requested(mocked_buffer, mocker, e
     assert await buffer.get_all_requested(timeout) == []
     time_after_wait = event_loop.time()
 
-    assert time_after_wait - time_before_wait < timeout.total_seconds(), 'get_all_requested seems to wait for the deadline instead of retuning fast'
+    assert (
+        time_after_wait - time_before_wait < timeout.total_seconds()
+    ), "get_all_requested seems to wait for the deadline instead of retuning fast"
     #
 
     await buffer.request(1)
@@ -321,7 +441,9 @@ async def test_background_feed_buffer_get_all_requested(mocked_buffer, mocker, e
     assert await buffer.get_all_requested(timeout) == []
     time_after_wait = event_loop.time()
 
-    assert timeout.total_seconds() <= time_after_wait - time_before_wait, 'get_all_requested seems to not wait to the deadline'
+    assert (
+        timeout.total_seconds() <= time_after_wait - time_before_wait
+    ), "get_all_requested seems to not wait to the deadline"
     #
 
     await feed_queue.put(item)
@@ -341,7 +463,9 @@ async def test_background_feed_buffer_get_all_requested(mocked_buffer, mocker, e
     assert await buffer.get_all_requested(timeout) == [item]
     time_after_wait = event_loop.time()
 
-    assert time_after_wait - time_before_wait < timeout.total_seconds(), 'get_all_requested seems to wait for the deadline instead of retuning fast'
+    assert (
+        time_after_wait - time_before_wait < timeout.total_seconds()
+    ), "get_all_requested seems to wait for the deadline instead of retuning fast"
     #
 
     await buffer.stop()

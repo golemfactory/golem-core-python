@@ -16,9 +16,10 @@ from typing import (
     TypeVar,
 )
 
-from golem.utils.asyncio import cancel_and_await_many, create_task_with_logging
+from golem.utils.asyncio.semaphore import SingleUseSemaphore
+from golem.utils.asyncio.tasks import cancel_and_await_many, create_task_with_logging
+from golem.utils.asyncio.waiter import Waiter
 from golem.utils.logging import get_trace_id_name, trace_span
-from golem.utils.semaphore import SingleUseSemaphore
 
 TItem = TypeVar("TItem")
 
@@ -26,25 +27,31 @@ logger = logging.getLogger(__name__)
 
 
 class Buffer(ABC, Generic[TItem]):
+    """Interface class for object similar to `asyncio.Queue` but with more control over its items."""
+
     @abstractmethod
     def size(self) -> int:
         """Return number of items stored in buffer."""
-        ...
 
     @abstractmethod
     async def wait_for_any_items(self) -> None:
         """Wait until any items are stored in buffer."""
-        ...
 
     @abstractmethod
     async def get(self) -> TItem:
-        """Await, remove and return left-most item stored in buffer."""
-        ...
+        """Await, remove and return left-most item stored in buffer.
+
+        If `.set_exception()` was previously called, exception will be raised only if buffer is empty.
+        """
 
     @abstractmethod
     async def get_all(self) -> MutableSequence[TItem]:
-        """Remove and return all items stored in buffer."""
-        ...
+        """Remove and return all items stored in buffer.
+
+        Note that this method will not await for any items if buffer is empty.
+
+        If `.set_exception()` was previously called, exception will be raised only if buffer is empty.
+        """
 
     @abstractmethod
     async def put(self, item: TItem) -> None:
@@ -52,7 +59,6 @@ class Buffer(ABC, Generic[TItem]):
 
         Duplicates are supported.
         """
-        ...
 
     @abstractmethod
     async def put_all(self, items: Sequence[TItem]) -> None:
@@ -60,12 +66,17 @@ class Buffer(ABC, Generic[TItem]):
 
         Duplicates are supported.
         """
-        ...
 
     @abstractmethod
     async def remove(self, item: TItem) -> None:
         """Remove first occurrence of item from buffer or raise `ValueError` if not found."""
-        ...
+
+    @abstractmethod
+    def set_exception(self, exc: BaseException) -> None:
+        """Set exception that will be raised while trying to `.get()`/`.get_all()` item from empty buffer."""
+
+    def reset_exception(self) -> None:
+        """Reset exception that was previously set by calling `.set_exception()`."""
 
 
 class ComposableBuffer(Buffer[TItem]):
@@ -95,65 +106,76 @@ class ComposableBuffer(Buffer[TItem]):
     async def remove(self, item: TItem) -> None:
         await self._buffer.remove(item)
 
+    def set_exception(self, exc: BaseException) -> None:
+        self._buffer.set_exception(exc)
+
+    def reset_exception(self) -> None:
+        self._buffer.reset_exception()
+
 
 class SimpleBuffer(Buffer[TItem]):
     """Most basic implementation of Buffer interface."""
 
     def __init__(self, items: Optional[Sequence[TItem]] = None):
         self._items = list(items) if items is not None else []
+        self._error: Optional[BaseException] = None
 
-        self._have_items = (
-            asyncio.Event()
-        )  # TODO: collections of future-object waiters instead of event
-
-        if self.size():
-            self._have_items.set()
+        self._waiter = Waiter()
 
     def size(self) -> int:
         return len(self._items)
 
+    @trace_span()
     async def wait_for_any_items(self) -> None:
-        while not self.size():
-            await self._have_items.wait()
+        await self._waiter.wait_for(lambda: bool(self.size() or self._error))
 
+    @trace_span()
     async def get(self) -> TItem:
-        await self.wait_for_any_items()
+        if not self.size():
+            if self._error:
+                raise self._error
+            else:
+                await self.wait_for_any_items()
+
+                if not self.size() and self._error:
+                    raise self._error
 
         item = self._items.pop(0)
-
-        if not self.size():
-            self._have_items.clear()
 
         return item
 
     async def get_all(self) -> MutableSequence[TItem]:
+        if not self._items and self._error:
+            raise self._error
+
         items = self._items[:]
         self._items.clear()
-        self._have_items.clear()
+
         return items
 
     async def put(self, item: TItem) -> None:
         self._items.append(item)
-        self._have_items.set()
+        self._waiter.notify()
 
     async def put_all(self, items: Sequence[TItem]) -> None:
         self._items.clear()
         self._items.extend(items[:])
 
-        if self.size():
-            self._have_items.set()
-        else:
-            self._have_items.clear()
+        self._waiter.notify(len(items))
 
     async def remove(self, item: TItem) -> None:
         self._items.remove(item)
 
-        if not self.size():
-            self._have_items.clear()
+    def set_exception(self, exc: BaseException) -> None:
+        self._error = exc
+        self._waiter.notify()
+
+    def reset_exception(self) -> None:
+        self._error = None
 
 
 class ExpirableBuffer(ComposableBuffer[TItem]):
-    """Composable that adds option to expire item after some time.
+    """Composable `Buffer` that adds option to expire item after some time.
 
     Items that are already in provided buffer will not expire.
     """
@@ -185,7 +207,9 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
         loop = asyncio.get_event_loop()
 
         self._expiration_handlers[id(item)].append(
-            loop.call_later(expiration.total_seconds(), lambda: asyncio.create_task(self._expire_item(item)))
+            loop.call_later(
+                expiration.total_seconds(), lambda: asyncio.create_task(self._expire_item(item))
+            )
         )
 
     async def _remove_expiration_handler_for_item(self, item: TItem) -> None:
@@ -238,6 +262,7 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
             await super().remove(item)
             await self._remove_expiration_handler_for_item(item)
 
+    @trace_span()
     async def _expire_item(self, item: TItem) -> None:
         await self.remove(item)
 
@@ -246,7 +271,7 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
 
 
 class BackgroundFeedBuffer(ComposableBuffer[TItem]):
-    """Composable that adds option to feed buffer in background task.
+    """Composable `Buffer` that adds option to feed buffer in background task.
 
     Background feed will happen only if background tasks are started by calling `.start()`
     and items were requested by `.request()`.
@@ -297,14 +322,24 @@ class BackgroundFeedBuffer(ComposableBuffer[TItem]):
 
     async def _worker_loop(self):
         while True:
+            logger.debug("Waiting for item request...")
+
             async with self._workers_semaphore:
+                logger.debug("Waiting for item request done")
+
+                logger.debug("Adding new item...")
+
                 item = await self._feed_func()
 
                 await self.put(item)
 
+                logger.debug("Adding new item done")
+
     async def request(self, count: int) -> None:
         """Request given number of items to be filled in background."""
         await self._workers_semaphore.increase(count)
+
+        logger.debug(f"Requested {count} items")
 
     def size_with_requested(self) -> int:
         """Return sum of items stored in buffer and requested to be filled."""

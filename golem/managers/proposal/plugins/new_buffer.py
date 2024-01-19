@@ -1,6 +1,6 @@
 from golem.managers import ProposalManagerPlugin
 from golem.resources import Proposal
-from golem.utils.buffer import BackgroundFeedBuffer, SimpleBuffer
+from golem.utils.asyncio.buffer import BackgroundFeedBuffer, SimpleBuffer
 
 
 class Buffer(ProposalManagerPlugin):
@@ -8,7 +8,7 @@ class Buffer(ProposalManagerPlugin):
         self,
         min_size: int,
         max_size: int,
-        fill_concurrency_size: int = 1,
+        fill_concurrency_size=1,
         fill_at_start=False,
     ) -> None:
         self._min_size = min_size
@@ -29,22 +29,22 @@ class Buffer(ProposalManagerPlugin):
         await self._buffer.start()
 
         if self._fill_at_start:
-            self._request_items()
+            await self._request_items()
 
     async def stop(self) -> None:
         await self._buffer.stop()
 
-    def _request_items(self):
-        self._buffer.request(self._max_size - self._buffer.size_with_requested())
+    async def _request_items(self):
+        await self._buffer.request(self._max_size - self._buffer.size_with_requested())
 
     async def get_proposal(self) -> Proposal:
         if not self._get_items_count():
-            self._request_items()
+            await self._request_items()
 
         proposal = await self._get_item()
 
         if self._get_items_count() < self._min_size:
-            self._request_items()
+            await self._request_items()
 
         return proposal
 

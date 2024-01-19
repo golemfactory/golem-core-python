@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from golem.utils.queue import ErrorReportingQueue
+from golem.utils.asyncio.queue import ErrorReportingQueue
 
 
 class SomeException(Exception):

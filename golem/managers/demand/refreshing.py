@@ -11,8 +11,8 @@ from golem.payload import defaults as payload_defaults
 from golem.resources import Allocation, Demand, Proposal
 from golem.resources.demand.demand_builder import DemandBuilder
 from golem.utils.asyncio import create_task_with_logging
+from golem.utils.asyncio.queue import ErrorReportingQueue
 from golem.utils.logging import get_trace_id_name, trace_span
-from golem.utils.queue import ErrorReportingQueue
 
 logger = logging.getLogger(__name__)
 
