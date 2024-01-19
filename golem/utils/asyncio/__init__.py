@@ -1,5 +1,5 @@
 from golem.utils.asyncio.buffer import (
-    BackgroundFeedBuffer,
+    BackgroundFillBuffer,
     Buffer,
     ComposableBuffer,
     ExpirableBuffer,
@@ -15,7 +15,7 @@ from golem.utils.asyncio.tasks import (
 from golem.utils.asyncio.waiter import Waiter
 
 __all__ = (
-    "BackgroundFeedBuffer",
+    "BackgroundFillBuffer",
     "Buffer",
     "ComposableBuffer",
     "ExpirableBuffer",

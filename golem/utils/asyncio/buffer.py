@@ -270,23 +270,23 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
             await self._on_expiration_func(item)
 
 
-class BackgroundFeedBuffer(ComposableBuffer[TItem]):
-    """Composable `Buffer` that adds option to feed buffer in background task.
+class BackgroundFillBuffer(ComposableBuffer[TItem]):
+    """Composable `Buffer` that adds option to fill buffer in background tasks.
 
-    Background feed will happen only if background tasks are started by calling `.start()`
+    Background fill will happen only if background tasks are started by calling `.start()`
     and items were requested by `.request()`.
     """
 
     def __init__(
         self,
         buffer: Buffer[TItem],
-        feed_func: Callable[[], Awaitable[TItem]],
-        feed_concurrency_size=1,
+        fill_func: Callable[[], Awaitable[TItem]],
+        fill_concurrency_size=1,
     ):
         super().__init__(buffer)
 
-        self._feed_func = feed_func
-        self._feed_concurrency_size = feed_concurrency_size
+        self._fill_func = fill_func
+        self._fill_concurrency_size = fill_concurrency_size
 
         self._is_started = False
         self._worker_tasks: List[asyncio.Task] = []
@@ -297,7 +297,7 @@ class BackgroundFeedBuffer(ComposableBuffer[TItem]):
         if self.is_started():
             raise RuntimeError("Already started!")
 
-        for i in range(self._feed_concurrency_size):
+        for i in range(self._fill_concurrency_size):
             self._worker_tasks.append(
                 create_task_with_logging(
                     self._worker_loop(), trace_id=get_trace_id_name(self, f"worker-{i}")
@@ -322,36 +322,40 @@ class BackgroundFeedBuffer(ComposableBuffer[TItem]):
 
     async def _worker_loop(self):
         while True:
-            logger.debug("Waiting for item request...")
+            logger.debug("Waiting for fill item request...")
 
             async with self._workers_semaphore:
-                logger.debug("Waiting for item request done")
+                logger.debug("Waiting for fill item request done")
 
                 logger.debug("Adding new item...")
 
-                item = await self._feed_func()
+                item = await self._fill_func()
 
                 await self.put(item)
 
-                logger.debug("Adding new item done")
+                logger.debug("Adding new item done with total of %d items in buffer", self.size())
 
     async def request(self, count: int) -> None:
         """Request given number of items to be filled in background."""
+
         await self._workers_semaphore.increase(count)
 
-        logger.debug(f"Requested {count} items")
+        logger.debug("Requested %d items to be filled in background", count)
 
     def size_with_requested(self) -> int:
-        """Return sum of items stored in buffer and requested to be filled."""
+        """Return sum of item count stored in buffer and requested to be filled."""
+
         return self.size() + self._workers_semaphore.get_count_with_pending()
 
     async def get_all_requested(self, deadline: timedelta) -> MutableSequence[TItem]:
         """Await for all requested items with given deadline, then remove and return all items stored in buffer."""
-        try:
-            await asyncio.wait_for(
-                self._workers_semaphore.finished.wait(), deadline.total_seconds()
-            )
-        except asyncio.TimeoutError:
-            pass
+
+        if not self._workers_semaphore.finished.is_set():
+            try:
+                await asyncio.wait_for(
+                    self._workers_semaphore.finished.wait(), deadline.total_seconds()
+                )
+            except asyncio.TimeoutError:
+                pass
 
         return await self.get_all()

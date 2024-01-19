@@ -17,7 +17,7 @@ def create_task_with_logging(coro, *, trace_id: Optional[str] = None) -> asyncio
     else:
         task_name = task.get_name()
 
-    logger.debug(f"Task `{task_name}` created")
+    logger.debug("Task `%s` created", task_name)
 
     return task
 

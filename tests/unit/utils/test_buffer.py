@@ -3,7 +3,7 @@ from datetime import timedelta
 
 import pytest
 
-from golem.utils.asyncio.buffer import BackgroundFeedBuffer, Buffer, ExpirableBuffer, SimpleBuffer
+from golem.utils.asyncio.buffer import BackgroundFillBuffer, Buffer, ExpirableBuffer, SimpleBuffer
 
 
 @pytest.fixture
@@ -339,7 +339,7 @@ async def test_expirable_buffer_can_expire_items_with_put_all_get_all(mocked_buf
 
 async def test_background_feed_buffer_start_stop(mocked_buffer, mocker):
     feed_func = mocker.AsyncMock()
-    buffer = BackgroundFeedBuffer(
+    buffer = BackgroundFillBuffer(
         mocked_buffer,
         feed_func,
     )
@@ -373,7 +373,7 @@ async def test_background_feed_buffer_request(mocked_buffer, mocker):
     item = object()
     feed_queue = asyncio.Queue()
     feed_func = mocker.AsyncMock(wraps=feed_queue.get)
-    buffer = BackgroundFeedBuffer(
+    buffer = BackgroundFillBuffer(
         mocked_buffer,
         feed_func,
     )
@@ -405,7 +405,7 @@ async def test_background_feed_buffer_get_all_requested(mocked_buffer, mocker, e
     item = object()
     feed_queue = asyncio.Queue()
     feed_func = mocker.AsyncMock(wraps=feed_queue.get)
-    buffer = BackgroundFeedBuffer(
+    buffer = BackgroundFillBuffer(
         mocked_buffer,
         feed_func,
     )
