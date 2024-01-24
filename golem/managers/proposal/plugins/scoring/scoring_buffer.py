@@ -6,7 +6,7 @@ from typing import Optional
 from golem.managers.proposal.plugins.buffer import Buffer as BufferPlugin
 from golem.managers.proposal.plugins.scoring import ProposalScoringMixin
 from golem.resources import Proposal
-from golem.utils.asyncio import Buffer, SimpleBuffer, create_task_with_logging
+from golem.utils.asyncio import Buffer, SimpleBuffer, create_task_with_logging, cancel_and_await
 from golem.utils.logging import get_trace_id_name, trace_span
 
 logger = logging.getLogger(__name__)
@@ -34,8 +34,11 @@ class ScoringBuffer(ProposalScoringMixin, BufferPlugin):
         await super().stop()
 
         if self._background_loop_task is not None:
-            self._background_loop_task.cancel()
+            await cancel_and_await(self._background_loop_task)
             self._background_loop_task = None
+
+    async def _on_added_callback(self):
+        pass  # explicit no-op
 
     async def _background_loop(self) -> None:
         while True:

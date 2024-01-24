@@ -12,7 +12,7 @@ class SingleUseSemaphore:
         self._condition = asyncio.Condition()
 
         self.finished = asyncio.Event()
-        if not self._value:
+        if self.locked():
             self.finished.set()
 
     async def __aenter__(self):
@@ -37,7 +37,7 @@ class SingleUseSemaphore:
 
         self._pending -= 1
 
-        if not self._pending:
+        if self.locked():
             self.finished.set()
 
     async def increase(self, value: int) -> None:

@@ -151,11 +151,24 @@ async def test_release():
 
 
 async def test_context_manager():
-    sem_value = 1
+    sem_value = 2
     sem = SingleUseSemaphore(sem_value)
 
     assert sem.get_count() == sem_value
     assert sem.get_count_with_pending() == sem_value
+    assert sem.get_pending_count() == 0
+    assert not sem.finished.is_set()
+    assert not sem.locked()
+
+    async with sem:
+        assert sem.get_count() == 1
+        assert sem.get_count_with_pending() == sem_value
+        assert sem.get_pending_count() == 1
+        assert not sem.finished.is_set()
+        assert not sem.locked()
+
+    assert sem.get_count() == 1
+    assert sem.get_count_with_pending() == 1
     assert sem.get_pending_count() == 0
     assert not sem.finished.is_set()
     assert not sem.locked()

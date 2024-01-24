@@ -25,10 +25,19 @@ class Buffer(ProposalManagerPlugin):
             buffer=SimpleBuffer(),
             fill_func=self._call_feed_func,
             fill_concurrency_size=self._fill_concurrency_size,
+            on_added_callback=self._on_added_callback
         )
 
     async def _call_feed_func(self) -> Proposal:
         return await self._get_proposal()
+
+    async def _on_added_callback(self):
+        count_current = self._buffer.size()
+        count_with_requested = self._buffer.size_with_requested()
+        pending = count_with_requested - count_current
+
+        logger.debug("Item added, having %d items, and %d pending, target %d", count_current, pending, self._max_size)
+
 
     @trace_span()
     async def start(self) -> None:
@@ -42,10 +51,14 @@ class Buffer(ProposalManagerPlugin):
         await self._buffer.stop()
 
     async def _request_items(self):
-        count = self._max_size - self._buffer.size_with_requested()
-        await self._buffer.request(count)
+        count_current = self._buffer.size()
+        count_with_requested = self._buffer.size_with_requested()
+        requested = self._max_size - count_with_requested
 
-        logger.debug("Requested %s items", count)
+        logger.debug("Having %d items, and %d already requested, requesting additional %d items to match target %d", count_current, count_with_requested - count_current, requested, self._max_size)
+
+        await self._buffer.request(requested)
+
 
     @trace_span(show_results=True)
     async def get_proposal(self) -> Proposal:
@@ -58,14 +71,14 @@ class Buffer(ProposalManagerPlugin):
         items_count = self._get_items_count()
         if items_count < self._min_size:
             logger.debug(
-                "Target items count `%s` is below min size `%d`, requesting fill",
+                "Items count is now `%s` which is below min size `%d`, requesting fill",
                 items_count,
                 self._min_size,
             )
             await self._request_items()
         else:
             logger.debug(
-                "Target items count `%s` is not below min size `%d`, requesting fill not needed",
+                "Target items is now `%s` which is not below min size `%d`, requesting fill not needed",
                 items_count,
                 self._min_size,
             )
@@ -76,4 +89,4 @@ class Buffer(ProposalManagerPlugin):
         return await self._buffer.get()
 
     def _get_items_count(self) -> int:
-        return self._buffer.size_with_requested()
+        return self._buffer.size()

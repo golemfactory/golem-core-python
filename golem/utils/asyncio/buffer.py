@@ -282,11 +282,13 @@ class BackgroundFillBuffer(ComposableBuffer[TItem]):
         buffer: Buffer[TItem],
         fill_func: Callable[[], Awaitable[TItem]],
         fill_concurrency_size=1,
+        on_added_callback: Optional[Callable[[], Awaitable[None]]] = None,
     ):
         super().__init__(buffer)
 
         self._fill_func = fill_func
         self._fill_concurrency_size = fill_concurrency_size
+        self._on_added_callback = on_added_callback
 
         self._is_started = False
         self._worker_tasks: List[asyncio.Task] = []
@@ -333,6 +335,9 @@ class BackgroundFillBuffer(ComposableBuffer[TItem]):
 
                 await self.put(item)
 
+                if self._on_added_callback is not None:
+                    await self._on_added_callback()
+
                 logger.debug("Adding new item done with total of %d items in buffer", self.size())
 
     async def request(self, count: int) -> None:
@@ -351,11 +356,16 @@ class BackgroundFillBuffer(ComposableBuffer[TItem]):
         """Await for all requested items with given deadline, then remove and return all items stored in buffer."""
 
         if not self._workers_semaphore.finished.is_set():
+            logger.debug("semaphore %d is not finished, waiting...", self._workers_semaphore.get_pending_count())
             try:
                 await asyncio.wait_for(
                     self._workers_semaphore.finished.wait(), deadline.total_seconds()
                 )
             except asyncio.TimeoutError:
                 pass
+
+            logger.debug("semaphore is not finished, waiting done")
+        else:
+            logger.debug("semaphore %d is finished, not waiting", self._workers_semaphore.get_pending_count())
 
         return await self.get_all()
