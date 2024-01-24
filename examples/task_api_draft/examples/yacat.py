@@ -1,7 +1,6 @@
 import asyncio
 from collections import defaultdict
 from typing import (
-    Any,
     AsyncIterator,
     Callable,
     DefaultDict,
@@ -205,7 +204,7 @@ async def main() -> None:
                 Zip(async_queue_aiter(tasks_queue)),  # type: ignore  # mypy, why?
                 Map(
                     lambda activity, task: task.execute(activity),  # type: ignore
-                    on_exception=close_agreement_repeat_task,  # type: ignore
+                    on_exception=close_agreement_repeat_task,
                 ),
                 Buffer(size=MAX_WORKERS * 2),
             ):
@@ -221,9 +220,7 @@ async def main() -> None:
 
 #############################################
 #   NOT REALLY INTERESTING PARTS OF THE LOGIC
-async def close_agreement_repeat_task(
-    func: Callable, args: Tuple[Activity, Any], e: Exception
-) -> None:
+async def close_agreement_repeat_task(func: Callable, args: Tuple, e: Exception) -> None:
     activity, task = args
     tasks_queue.put_nowait(task)
     print("Task failed on", activity)
