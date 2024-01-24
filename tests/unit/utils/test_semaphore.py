@@ -98,7 +98,7 @@ async def test_acquire():
     assert not sem.finished.is_set()
     assert sem.locked()
 
-    _, pending = await asyncio.wait([sem.acquire()], timeout=0.1)
+    _, pending = await asyncio.wait([asyncio.create_task(sem.acquire())], timeout=0.1)
     acquire_task = pending.pop()
     if not acquire_task:
         pytest.fail("Acquiring locked semaphore somehow finished instead of blocking!")

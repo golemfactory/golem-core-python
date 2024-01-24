@@ -62,7 +62,7 @@ async def test_simple_buffer_get_waits_for_items():
     buffer: Buffer[object] = SimpleBuffer()
     assert buffer.size() == 0
 
-    _, pending = await asyncio.wait([buffer.get()], timeout=0.1)
+    _, pending = await asyncio.wait([asyncio.create_task(buffer.get())], timeout=0.1)
     if not pending:
         pytest.fail("Getting empty buffer somehow finished instead of blocking!")
 
