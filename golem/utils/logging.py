@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from golem.event_bus import Event
 
 
-if (3, 8) <= sys.version_info:
+if (3, 12) <= sys.version_info:
     FilterReturn = Union[bool, logging.LogRecord]
 else:
     FilterReturn = bool
