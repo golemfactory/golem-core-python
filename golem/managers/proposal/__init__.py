@@ -1,7 +1,7 @@
 from golem.managers.proposal.default import DefaultProposalManager
 from golem.managers.proposal.plugins import (
     BlacklistProviderIdPlugin,
-    Buffer,
+    BufferPlugin,
     LinearAverageCostPricing,
     LinearCoeffsCost,
     LinearPerCpuAverageCostPricing,
@@ -14,13 +14,13 @@ from golem.managers.proposal.plugins import (
     ProposalScoringMixin,
     RandomScore,
     RejectIfCostsExceeds,
-    ScoringBuffer,
+    ScoringBufferPlugin,
 )
 
 __all__ = (
     "DefaultProposalManager",
     "BlacklistProviderIdPlugin",
-    "Buffer",
+    "BufferPlugin",
     "PaymentPlatformNegotiator",
     "MidAgreementPaymentsNegotiator",
     "NegotiatingPlugin",
@@ -33,5 +33,5 @@ __all__ = (
     "LinearPerCpuCoeffsCost",
     "PropertyValueLerpScore",
     "RandomScore",
-    "ScoringBuffer",
+    "ScoringBufferPlugin",
 )

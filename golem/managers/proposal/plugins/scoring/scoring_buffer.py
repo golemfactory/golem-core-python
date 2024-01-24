@@ -3,16 +3,16 @@ import logging
 from datetime import timedelta
 from typing import Optional
 
-from golem.managers.proposal.plugins.buffer import Buffer as BufferPlugin
+from golem.managers.proposal.plugins.buffer import BufferPlugin as BufferPlugin
 from golem.managers.proposal.plugins.scoring import ProposalScoringMixin
 from golem.resources import Proposal
-from golem.utils.asyncio import Buffer, SimpleBuffer, create_task_with_logging, cancel_and_await
+from golem.utils.asyncio import Buffer, SimpleBuffer, cancel_and_await, create_task_with_logging
 from golem.utils.logging import get_trace_id_name, trace_span
 
 logger = logging.getLogger(__name__)
 
 
-class ScoringBuffer(ProposalScoringMixin, BufferPlugin):
+class ScoringBufferPlugin(ProposalScoringMixin, BufferPlugin):
     def __init__(self, update_interval: timedelta = timedelta(seconds=10), *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 

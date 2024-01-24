@@ -8,7 +8,7 @@ from golem.utils.logging import trace_span
 logger = logging.getLogger(__name__)
 
 
-class Buffer(ProposalManagerPlugin):
+class BufferPlugin(ProposalManagerPlugin):
     def __init__(
         self,
         min_size: int,
@@ -21,11 +21,11 @@ class Buffer(ProposalManagerPlugin):
         self._fill_concurrency_size = fill_concurrency_size
         self._fill_at_start = fill_at_start
 
-        self._buffer = BackgroundFillBuffer(
+        self._buffer: BackgroundFillBuffer[Proposal] = BackgroundFillBuffer(
             buffer=SimpleBuffer(),
             fill_func=self._call_feed_func,
             fill_concurrency_size=self._fill_concurrency_size,
-            on_added_callback=self._on_added_callback
+            on_added_callback=self._on_added_callback,
         )
 
     async def _call_feed_func(self) -> Proposal:
@@ -36,8 +36,12 @@ class Buffer(ProposalManagerPlugin):
         count_with_requested = self._buffer.size_with_requested()
         pending = count_with_requested - count_current
 
-        logger.debug("Item added, having %d items, and %d pending, target %d", count_current, pending, self._max_size)
-
+        logger.debug(
+            "Item added, having %d items, and %d pending, target %d",
+            count_current,
+            pending,
+            self._max_size,
+        )
 
     @trace_span()
     async def start(self) -> None:
@@ -55,10 +59,16 @@ class Buffer(ProposalManagerPlugin):
         count_with_requested = self._buffer.size_with_requested()
         requested = self._max_size - count_with_requested
 
-        logger.debug("Having %d items, and %d already requested, requesting additional %d items to match target %d", count_current, count_with_requested - count_current, requested, self._max_size)
+        logger.debug(
+            "Having %d items, and %d already requested, requesting additional %d items to match"
+            " target %d",
+            count_current,
+            count_with_requested - count_current,
+            requested,
+            self._max_size,
+        )
 
         await self._buffer.request(requested)
-
 
     @trace_span(show_results=True)
     async def get_proposal(self) -> Proposal:
@@ -78,7 +88,8 @@ class Buffer(ProposalManagerPlugin):
             await self._request_items()
         else:
             logger.debug(
-                "Target items is now `%s` which is not below min size `%d`, requesting fill not needed",
+                "Target items is now `%s` which is not below min size `%d`, requesting fill not"
+                " needed",
                 items_count,
                 self._min_size,
             )

@@ -3,7 +3,7 @@ import logging
 from typing import Generic, List, Optional, Sequence
 
 from golem.managers.base import ManagerException, TPlugin
-from golem.utils.asyncio import create_task_with_logging, cancel_and_await
+from golem.utils.asyncio import cancel_and_await, create_task_with_logging
 from golem.utils.logging import get_trace_id_name, trace_span
 
 logger = logging.getLogger(__name__)

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Awaitable, Callable, DefaultDict, List, Optional, Tuple, Type
 
 from golem.event_bus.base import Event, EventBus, EventBusError, TEvent
-from golem.utils.asyncio import create_task_with_logging, cancel_and_await
+from golem.utils.asyncio import cancel_and_await, create_task_with_logging
 from golem.utils.logging import get_trace_id_name, trace_span
 
 logger = logging.getLogger(__name__)

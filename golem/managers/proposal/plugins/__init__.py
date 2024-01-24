@@ -1,5 +1,5 @@
 from golem.managers.proposal.plugins.blacklist import BlacklistProviderIdPlugin
-from golem.managers.proposal.plugins.buffer import Buffer
+from golem.managers.proposal.plugins.buffer import BufferPlugin
 from golem.managers.proposal.plugins.linear_coeffs import LinearCoeffsCost, LinearPerCpuCoeffsCost
 from golem.managers.proposal.plugins.negotiating import (
     MidAgreementPaymentsNegotiator,
@@ -14,12 +14,12 @@ from golem.managers.proposal.plugins.scoring import (
     PropertyValueLerpScore,
     ProposalScoringMixin,
     RandomScore,
-    ScoringBuffer,
+    ScoringBufferPlugin,
 )
 
 __all__ = (
     "BlacklistProviderIdPlugin",
-    "Buffer",
+    "BufferPlugin",
     "PaymentPlatformNegotiator",
     "MidAgreementPaymentsNegotiator",
     "NegotiatingPlugin",
@@ -32,5 +32,5 @@ __all__ = (
     "LinearPerCpuCoeffsCost",
     "PropertyValueLerpScore",
     "RandomScore",
-    "ScoringBuffer",
+    "ScoringBufferPlugin",
 )

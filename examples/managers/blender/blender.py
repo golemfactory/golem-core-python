@@ -16,7 +16,7 @@ from golem.managers import (
     PaymentPlatformNegotiator,
     PoolActivityManager,
     RefreshingDemandManager,
-    ScoringBuffer,
+    ScoringBufferPlugin,
     WorkContext,
     WorkResult,
     retry,
@@ -58,7 +58,7 @@ async def run_on_golem(
         demand_manager.get_initial_proposal,
         plugins=[
             NegotiatingPlugin(proposal_negotiators=negotiators),
-            ScoringBuffer(
+            ScoringBufferPlugin(
                 min_size=3, max_size=5, fill_concurrency_size=3, proposal_scorers=scorers
             ),
         ],

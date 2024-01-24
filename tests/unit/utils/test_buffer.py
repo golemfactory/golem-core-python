@@ -12,7 +12,7 @@ def mocked_buffer(mocker):
 
 
 def test_simple_buffer_creation():
-    buffer = SimpleBuffer()
+    buffer: Buffer[str] = SimpleBuffer()
     assert buffer.size() == 0
 
     buffer = SimpleBuffer(["a", "b", "c"])
@@ -20,7 +20,7 @@ def test_simple_buffer_creation():
 
 
 async def test_simple_buffer_put_get():
-    buffer = SimpleBuffer()
+    buffer: Buffer[object] = SimpleBuffer()
     assert buffer.size() == 0
 
     item_put = object()
@@ -59,7 +59,7 @@ async def test_simple_buffer_remove():
 
 
 async def test_simple_buffer_get_waits_for_items():
-    buffer = SimpleBuffer()
+    buffer: Buffer[object] = SimpleBuffer()
     assert buffer.size() == 0
 
     _, pending = await asyncio.wait([buffer.get()], timeout=0.1)
@@ -85,7 +85,7 @@ async def test_simple_buffer_get_waits_for_items():
 
     done, pending = await asyncio.wait([get_task1, get_task2], timeout=0.1)
     if len(done) != len(pending):
-        pytest.fail(f"One of the tasks should not block at this point!")
+        pytest.fail("One of the tasks should not block at this point!")
 
     await buffer.put(item_put)
 
@@ -126,7 +126,7 @@ async def test_simple_buffer_keeps_shallow_copy_of_items():
 
 
 async def test_simple_buffer_exceptions():
-    buffer = SimpleBuffer()
+    buffer: Buffer[str] = SimpleBuffer()
     assert buffer.size() == 0
 
     exc = ZeroDivisionError()
@@ -173,7 +173,7 @@ async def test_simple_buffer_exceptions():
 
 
 async def test_simple_buffer_wait_for_any_items():
-    buffer = SimpleBuffer()
+    buffer: Buffer[str] = SimpleBuffer()
     assert buffer.size() == 0
 
     # should block on empty
@@ -371,7 +371,7 @@ async def test_background_feed_buffer_start_stop(mocked_buffer, mocker):
 
 async def test_background_feed_buffer_request(mocked_buffer, mocker):
     item = object()
-    feed_queue = asyncio.Queue()
+    feed_queue: asyncio.Queue[object] = asyncio.Queue()
     feed_func = mocker.AsyncMock(wraps=feed_queue.get)
     buffer = BackgroundFillBuffer(
         mocked_buffer,
@@ -403,7 +403,7 @@ async def test_background_feed_buffer_request(mocked_buffer, mocker):
 async def test_background_feed_buffer_get_all_requested(mocked_buffer, mocker, event_loop):
     timeout = timedelta(seconds=0.1)
     item = object()
-    feed_queue = asyncio.Queue()
+    feed_queue: asyncio.Queue[object] = asyncio.Queue()
     feed_func = mocker.AsyncMock(wraps=feed_queue.get)
     buffer = BackgroundFillBuffer(
         mocked_buffer,

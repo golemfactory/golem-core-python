@@ -1,7 +1,7 @@
 import asyncio
 import contextvars
 import logging
-from typing import Optional, Sequence
+from typing import Iterable, Optional
 
 from golem.utils.logging import trace_id_var
 
@@ -52,5 +52,5 @@ async def cancel_and_await(task: asyncio.Task) -> None:
         pass
 
 
-async def cancel_and_await_many(tasks: Sequence[asyncio.Task]) -> None:
+async def cancel_and_await_many(tasks: Iterable[asyncio.Task]) -> None:
     await asyncio.gather(*[cancel_and_await(task) for task in tasks])

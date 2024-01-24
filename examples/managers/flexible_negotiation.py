@@ -3,7 +3,7 @@ import logging.config
 
 from golem.managers import (
     BlacklistProviderIdPlugin,
-    Buffer,
+    BufferPlugin,
     DefaultAgreementManager,
     DefaultProposalManager,
     NegotiatingPlugin,
@@ -48,14 +48,14 @@ async def main():
         golem,
         demand_manager.get_initial_proposal,
         plugins=[
-            Buffer(
+            BufferPlugin(
                 min_size=10,
                 max_size=1000,
                 fill_concurrency_size=5,
             ),
             BlacklistProviderIdPlugin(BLACKLISTED_PROVIDERS),
             NegotiatingPlugin(proposal_negotiators=[PaymentPlatformNegotiator()]),
-            Buffer(
+            BufferPlugin(
                 min_size=3,
                 max_size=5,
                 fill_concurrency_size=3,

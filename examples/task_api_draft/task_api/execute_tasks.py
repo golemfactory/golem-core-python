@@ -67,7 +67,7 @@ def get_chain(
             Zip(task_stream),
             Map(
                 execute_task,  # type: ignore[arg-type]
-                on_exception=close_agreement_repeat_task(task_stream),
+                on_exception=close_agreement_repeat_task(task_stream),  # type: ignore[arg-type]
             ),
             Buffer(size=max_workers),
         )

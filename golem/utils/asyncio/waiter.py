@@ -1,13 +1,14 @@
 import asyncio
 import collections
-from typing import Callable
+from typing import Callable, Deque
 
 
 class Waiter:
-    """Class similar to `asyncio.Event` but valueless and with notify interface similar to `asyncio.Condition`."""
+    """Class similar to `asyncio.Event` but valueless and with notify interface similar to \
+    `asyncio.Condition`."""
 
     def __init__(self) -> None:
-        self._waiters: collections.deque[asyncio.Future] = collections.deque()
+        self._waiters: Deque[asyncio.Future] = collections.deque()
         self._loop = asyncio.get_event_loop()
 
     async def wait_for(self, predicate: Callable[[], bool]) -> None:
