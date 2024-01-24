@@ -31,10 +31,10 @@ async def random_score(proposal: Proposal) -> float:
 
 def close_agreement_repeat_task(
     task_stream: TaskDataStream[TaskData],
-) -> Callable[[Callable, Tuple[Activity, TaskData], Exception], Awaitable[None]]:
+) -> Callable[[Callable, Tuple, Exception], Awaitable[None]]:
     async def on_exception(
-        func: Callable[[Activity, TaskData], Awaitable[TaskResult]],
-        args: Tuple[Activity, TaskData],
+        func: Callable,
+        args: Tuple,
         e: Exception,
     ) -> None:
         activity, in_data = args
@@ -67,7 +67,7 @@ def get_chain(
             Zip(task_stream),
             Map(
                 execute_task,  # type: ignore[arg-type]
-                on_exception=close_agreement_repeat_task(task_stream),  # type: ignore[arg-type]
+                on_exception=close_agreement_repeat_task(task_stream),
             ),
             Buffer(size=max_workers),
         )

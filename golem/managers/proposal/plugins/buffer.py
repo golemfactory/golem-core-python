@@ -31,7 +31,7 @@ class BufferPlugin(ProposalManagerPlugin):
     async def _call_feed_func(self) -> Proposal:
         return await self._get_proposal()
 
-    async def _on_added_callback(self):
+    async def _on_added_callback(self) -> None:
         count_current = self._buffer.size()
         count_with_requested = self._buffer.size_with_requested()
         pending = count_with_requested - count_current
@@ -54,7 +54,7 @@ class BufferPlugin(ProposalManagerPlugin):
     async def stop(self) -> None:
         await self._buffer.stop()
 
-    async def _request_items(self):
+    async def _request_items(self) -> None:
         count_current = self._buffer.size()
         count_with_requested = self._buffer.size_with_requested()
         requested = self._max_size - count_with_requested

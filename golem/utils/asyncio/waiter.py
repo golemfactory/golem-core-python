@@ -33,7 +33,7 @@ class Waiter:
         if not first_waiter.done():
             first_waiter.set_result(None)
 
-    async def _wait(self):
+    async def _wait(self) -> None:
         future = self._loop.create_future()
         self._waiters.append(future)
         try:

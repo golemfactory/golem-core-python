@@ -326,7 +326,7 @@ class BackgroundFillBuffer(ComposableBuffer[TItem]):
     def is_started(self) -> bool:
         return self._is_started
 
-    async def _worker_loop(self):
+    async def _worker_loop(self) -> None:
         while True:
             logger.debug("Waiting for fill item request...")
 

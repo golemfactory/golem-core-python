@@ -24,14 +24,14 @@ class SingleUseSemaphore:
     def locked(self) -> bool:
         return not self._value
 
-    async def acquire(self):
+    async def acquire(self) -> None:
         async with self._condition:
             await self._condition.wait_for(lambda: self._value)
 
             self._value -= 1
             self._pending += 1
 
-    def release(self):
+    def release(self) -> None:
         if self._pending <= 0:
             raise RuntimeError("Release called too many times!")
 
