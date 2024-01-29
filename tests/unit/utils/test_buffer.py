@@ -8,7 +8,11 @@ from golem.utils.asyncio.buffer import BackgroundFillBuffer, Buffer, ExpirableBu
 
 @pytest.fixture
 def mocked_buffer(mocker):
-    return mocker.Mock(spec=Buffer)
+    mock = mocker.Mock(spec=Buffer)
+
+    mock.condition = mocker.AsyncMock()
+
+    return mock
 
 
 def test_simple_buffer_creation():
@@ -131,7 +135,7 @@ async def test_simple_buffer_exceptions():
 
     exc = ZeroDivisionError()
 
-    buffer.set_exception(exc)
+    await buffer.set_exception(exc)
 
     # should raise when exception set and no items
     with pytest.raises(ZeroDivisionError):
@@ -164,7 +168,7 @@ async def test_simple_buffer_exceptions():
 
     await asyncio.sleep(0.1)
 
-    buffer.set_exception(exc)
+    await buffer.set_exception(exc)
 
     await asyncio.sleep(0.1)
 
@@ -196,7 +200,7 @@ async def test_simple_buffer_wait_for_any_items():
     # should not block a long time on item
     await asyncio.wait_for(buffer.wait_for_any_items(), timeout=0.1)
 
-    buffer.set_exception(ZeroDivisionError())
+    await buffer.set_exception(ZeroDivisionError())
 
     # should not block a long time on item with exception
     await asyncio.wait_for(buffer.wait_for_any_items(), timeout=0.1)
@@ -219,7 +223,7 @@ async def test_simple_buffer_wait_for_any_items():
 
     assert not wait_task.done()
 
-    buffer.set_exception(ZeroDivisionError())
+    await buffer.set_exception(ZeroDivisionError())
 
     await asyncio.sleep(0.1)
 
@@ -253,8 +257,8 @@ async def test_expirable_buffer_is_not_expiring_items_with_none_expiration(mocke
 
     await asyncio.sleep(0.2)
 
-    assert mocker.call("a") in mocked_buffer.remove.mock_calls
-    assert mocker.call("c") in mocked_buffer.remove.mock_calls
+    assert mocker.call("a", lock=False) in mocked_buffer.remove.mock_calls
+    assert mocker.call("c", lock=False) in mocked_buffer.remove.mock_calls
 
     mocked_buffer.get.return_value = "b"
 
@@ -272,7 +276,7 @@ async def test_expirable_buffer_can_expire_items_with_put_get(mocked_buffer, moc
     item_put = object()
 
     await buffer.put(item_put)
-    mocked_buffer.put.assert_called_with(item_put)
+    mocked_buffer.put.assert_called_with(item_put, lock=False)
 
     mocked_buffer.get.return_value = item_put
     await buffer.get()
@@ -289,11 +293,11 @@ async def test_expirable_buffer_can_expire_items_with_put_get(mocked_buffer, moc
     mocked_buffer.reset_mock()
 
     await buffer.put(item_put)
-    mocked_buffer.put.assert_called_with(item_put)
+    mocked_buffer.put.assert_called_with(item_put, lock=False)
 
     await asyncio.sleep(0.2)
 
-    mocked_buffer.remove.assert_called_with(item_put)
+    mocked_buffer.remove.assert_called_with(item_put, lock=False)
     on_expire.assert_called_with(item_put)
 
 
@@ -308,13 +312,15 @@ async def test_expirable_buffer_can_expire_items_with_put_all_get_all(mocked_buf
     items_put_all = ["a", "b", "c"]
 
     await buffer.put_all(items_put_all)
-    mocked_buffer.put_all.assert_called_with(items_put_all)
+    mocked_buffer.put_all.assert_called_with(items_put_all, lock=False)
 
     mocked_buffer.get_all.return_value = items_put_all
     await buffer.get_all()
-    mocked_buffer.get_all.assert_called()
+    mocked_buffer.get_all.assert_called_with(lock=False)
 
-    mocked_buffer.remove.assert_not_called()
+    with pytest.raises(AssertionError):
+        mocked_buffer.remove.assert_called_with(lock=False)
+
     on_expire.assert_not_called()
 
     await asyncio.sleep(0.2)
@@ -324,13 +330,13 @@ async def test_expirable_buffer_can_expire_items_with_put_all_get_all(mocked_buf
     mocked_buffer.reset_mock()
 
     await buffer.put_all(items_put_all)
-    mocked_buffer.put_all.assert_called_with(items_put_all)
+    mocked_buffer.put_all.assert_called_with(items_put_all, lock=False)
 
     await asyncio.sleep(0.2)
 
-    assert mocker.call(items_put_all[0]) in mocked_buffer.remove.mock_calls
-    assert mocker.call(items_put_all[1]) in mocked_buffer.remove.mock_calls
-    assert mocker.call(items_put_all[2]) in mocked_buffer.remove.mock_calls
+    assert mocker.call(items_put_all[0], lock=False) in mocked_buffer.remove.mock_calls
+    assert mocker.call(items_put_all[1], lock=False) in mocked_buffer.remove.mock_calls
+    assert mocker.call(items_put_all[2], lock=False) in mocked_buffer.remove.mock_calls
 
     assert mocker.call(items_put_all[0]) in on_expire.mock_calls
     assert mocker.call(items_put_all[1]) in on_expire.mock_calls
@@ -392,7 +398,7 @@ async def test_background_feed_buffer_request(mocked_buffer, mocker):
 
     await asyncio.sleep(0.1)
 
-    mocked_buffer.put.assert_called_with(item)
+    mocked_buffer.put.assert_called_with(item, lock=True)
     mocked_buffer.size.return_value = 1
     assert buffer.size() == 1
     assert buffer.size_with_requested() == 1
@@ -450,7 +456,7 @@ async def test_background_feed_buffer_get_all_requested(mocked_buffer, mocker, e
 
     await asyncio.sleep(0.1)
 
-    mocked_buffer.put.assert_called_with(item)
+    mocked_buffer.put.assert_called_with(item, lock=True)
     mocked_buffer.size.return_value = 1
     assert buffer.size() == 1
     assert buffer.size_with_requested() == 1

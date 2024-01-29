@@ -2,6 +2,7 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from contextlib import asynccontextmanager
 from datetime import timedelta
 from typing import (
     Awaitable,
@@ -21,7 +22,6 @@ from golem.utils.asyncio.tasks import (
     create_task_with_logging,
     resolve_maybe_awaitable,
 )
-from golem.utils.asyncio.waiter import Waiter
 from golem.utils.logging import get_trace_id_name, trace_span
 from golem.utils.typing import MaybeAwaitable
 
@@ -34,16 +34,18 @@ class Buffer(ABC, Generic[TItem]):
     """Interface class for object similar to `asyncio.Queue` but with more control over its \
     items."""
 
+    condition: asyncio.Condition
+
     @abstractmethod
     def size(self) -> int:
         """Return number of items stored in buffer."""
 
     @abstractmethod
-    async def wait_for_any_items(self) -> None:
+    async def wait_for_any_items(self, *, lock=True) -> None:
         """Wait until any items are stored in buffer."""
 
     @abstractmethod
-    async def get(self) -> TItem:
+    async def get(self, *, lock=True) -> TItem:
         """Await, remove and return left-most item stored in buffer.
 
         If `.set_exception()` was previously called, exception will be raised only if buffer
@@ -51,7 +53,7 @@ class Buffer(ABC, Generic[TItem]):
         """
 
     @abstractmethod
-    async def get_all(self) -> MutableSequence[TItem]:
+    async def get_all(self, *, lock=True) -> MutableSequence[TItem]:
         """Remove and return all items stored in buffer.
 
         Note that this method will not await for any items if buffer is empty.
@@ -61,25 +63,25 @@ class Buffer(ABC, Generic[TItem]):
         """
 
     @abstractmethod
-    async def put(self, item: TItem) -> None:
+    async def put(self, item: TItem, *, lock=True) -> None:
         """Add item to right-most position to buffer.
 
         Duplicates are supported.
         """
 
     @abstractmethod
-    async def put_all(self, items: Sequence[TItem]) -> None:
+    async def put_all(self, items: Sequence[TItem], *, lock=True) -> None:
         """Replace all items stored in buffer.
 
         Duplicates are supported.
         """
 
     @abstractmethod
-    async def remove(self, item: TItem) -> None:
+    async def remove(self, item: TItem, *, lock=True) -> None:
         """Remove first occurrence of item from buffer or raise `ValueError` if not found."""
 
     @abstractmethod
-    def set_exception(self, exc: BaseException) -> None:
+    async def set_exception(self, exc: BaseException, *, lock=True) -> None:
         """Set exception that will be raised while trying to `.get()`/`.get_all()` item from \
         empty buffer."""
 
@@ -94,29 +96,37 @@ class ComposableBuffer(Buffer[TItem]):
     def __init__(self, buffer: Buffer[TItem]):
         self._buffer = buffer
 
+    @asynccontextmanager
+    async def _handle_lock(self, lock: bool):
+        if lock:
+            async with self._buffer.condition:
+                yield
+        else:
+            yield
+
     def size(self) -> int:
         return self._buffer.size()
 
-    async def wait_for_any_items(self) -> None:
-        await self._buffer.wait_for_any_items()
+    async def wait_for_any_items(self, *, lock=True) -> None:
+        await self._buffer.wait_for_any_items(lock=lock)
 
-    async def get(self) -> TItem:
-        return await self._buffer.get()
+    async def get(self, *, lock=True) -> TItem:
+        return await self._buffer.get(lock=lock)
 
-    async def get_all(self) -> MutableSequence[TItem]:
-        return await self._buffer.get_all()
+    async def get_all(self, *, lock=True) -> MutableSequence[TItem]:
+        return await self._buffer.get_all(lock=lock)
 
-    async def put(self, item: TItem) -> None:
-        await self._buffer.put(item)
+    async def put(self, item: TItem, *, lock=True) -> None:
+        await self._buffer.put(item, lock=lock)
 
-    async def put_all(self, items: Sequence[TItem]) -> None:
-        await self._buffer.put_all(items)
+    async def put_all(self, items: Sequence[TItem], *, lock=True) -> None:
+        await self._buffer.put_all(items, lock=lock)
 
-    async def remove(self, item: TItem) -> None:
-        await self._buffer.remove(item)
+    async def remove(self, item: TItem, *, lock=True) -> None:
+        await self._buffer.remove(item, lock=lock)
 
-    def set_exception(self, exc: BaseException) -> None:
-        self._buffer.set_exception(exc)
+    async def set_exception(self, exc: BaseException, *, lock=True) -> None:
+        await self._buffer.set_exception(exc, lock=lock)
 
     def reset_exception(self) -> None:
         self._buffer.reset_exception()
@@ -129,55 +139,64 @@ class SimpleBuffer(Buffer[TItem]):
         self._items = list(items) if items is not None else []
         self._error: Optional[BaseException] = None
 
-        self._waiter = Waiter()
+        self.condition = asyncio.Condition()
 
     def size(self) -> int:
         return len(self._items)
 
-    @trace_span()
-    async def wait_for_any_items(self) -> None:
-        await self._waiter.wait_for(lambda: bool(self.size() or self._error))
+    @asynccontextmanager
+    async def _handle_lock(self, lock: bool):
+        if lock:
+            async with self.condition:
+                yield
+        else:
+            yield
 
     @trace_span()
-    async def get(self) -> TItem:
-        if not self.size():
-            if self._error:
+    async def wait_for_any_items(self, lock=True) -> None:
+        async with self._handle_lock(lock):
+            await self.condition.wait_for(lambda: bool(self.size() or self._error))
+
+    @trace_span()
+    async def get(self, *, lock=True) -> TItem:
+        async with self._handle_lock(lock):
+            await self.wait_for_any_items(lock=False)
+
+            if not self.size() and self._error:
                 raise self._error
-            else:
-                await self.wait_for_any_items()
 
-                if not self.size() and self._error:
-                    raise self._error
+            return self._items.pop(0)
 
-        item = self._items.pop(0)
+    async def get_all(self, *, lock=True) -> MutableSequence[TItem]:
+        async with self._handle_lock(lock):
+            if not self._items and self._error:
+                raise self._error
 
-        return item
+            items = self._items[:]
+            self._items.clear()
 
-    async def get_all(self) -> MutableSequence[TItem]:
-        if not self._items and self._error:
-            raise self._error
+            return items
 
-        items = self._items[:]
-        self._items.clear()
+    async def put(self, item: TItem, *, lock=True) -> None:
+        async with self._handle_lock(lock):
+            self._items.append(item)
+            self.condition.notify()
 
-        return items
+    async def put_all(self, items: Sequence[TItem], *, lock=True) -> None:
+        async with self._handle_lock(lock):
+            self._items.clear()
+            self._items.extend(items[:])
 
-    async def put(self, item: TItem) -> None:
-        self._items.append(item)
-        self._waiter.notify()
+            self.condition.notify(len(items))
 
-    async def put_all(self, items: Sequence[TItem]) -> None:
-        self._items.clear()
-        self._items.extend(items[:])
+    async def remove(self, item: TItem, *, lock=True) -> None:
+        async with self._handle_lock(lock):
+            self._items.remove(item)
 
-        self._waiter.notify(len(items))
-
-    async def remove(self, item: TItem) -> None:
-        self._items.remove(item)
-
-    def set_exception(self, exc: BaseException) -> None:
-        self._error = exc
-        self._waiter.notify()
+    async def set_exception(self, exc: BaseException, *, lock=True) -> None:
+        async with self._handle_lock(lock):
+            self._error = exc
+            self.condition.notify()
 
     def reset_exception(self) -> None:
         self._error = None
@@ -242,38 +261,44 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
 
         self._expiration_handlers.clear()
 
-    async def get(self) -> TItem:
-        item = await super().get()
+    async def get(self, *, lock=True) -> TItem:
+        async with self._handle_lock(lock):
+            item = await super().get(lock=False)
 
-        self._remove_expiration_handler_for_item(item)
+            self._remove_expiration_handler_for_item(item)
 
-        return item
+            return item
 
-    async def get_all(self) -> MutableSequence[TItem]:
-        items = await super().get_all()
+    async def get_all(self, *, lock=True) -> MutableSequence[TItem]:
+        async with self._handle_lock(lock):
+            items = await super().get_all(lock=False)
 
-        self._remove_all_expiration_handlers()
+            self._remove_all_expiration_handlers()
 
-        return items
+            return items
 
-    async def put(self, item: TItem) -> None:
-        await super().put(item)
+    async def put(self, item: TItem, *, lock=True) -> None:
+        async with self._handle_lock(lock):
+            await super().put(item, lock=False)
 
-        await self._add_expiration_task_for_item(item)
+            await self._add_expiration_task_for_item(item)
 
-    async def put_all(self, items: Sequence[TItem]) -> None:
-        await super().put_all(items)
+    async def put_all(self, items: Sequence[TItem], *, lock=True) -> None:
+        async with self._handle_lock(lock):
+            await super().put_all(items, lock=False)
 
-        self._remove_all_expiration_handlers()
+            self._remove_all_expiration_handlers()
 
-        await asyncio.gather(
-            *[self._add_expiration_task_for_item(item) for item in items], return_exceptions=True
-        )
+            await asyncio.gather(
+                *[self._add_expiration_task_for_item(item) for item in items],
+                return_exceptions=True,
+            )
 
-    async def remove(self, item: TItem) -> None:
-        await super().remove(item)
+    async def remove(self, item: TItem, *, lock=True) -> None:
+        async with self._handle_lock(lock):
+            await super().remove(item, lock=False)
 
-        self._remove_expiration_handler_for_item(item)
+            self._remove_expiration_handler_for_item(item)
 
     @trace_span(show_arguments=True)
     async def _expire_item(self, item: TItem) -> None:

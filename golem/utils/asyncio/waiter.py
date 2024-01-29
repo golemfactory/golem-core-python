@@ -5,7 +5,10 @@ from typing import Callable, Deque
 
 class Waiter:
     """Class similar to `asyncio.Event` but valueless and with notify interface similar to \
-    `asyncio.Condition`."""
+    `asyncio.Condition`.
+
+    Note: Developed to support `golem.utils.asyncio.buffer`, but finally not used.
+    """
 
     def __init__(self) -> None:
         self._waiters: Deque[asyncio.Future] = collections.deque()
