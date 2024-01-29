@@ -1,9 +1,13 @@
 import logging
+from datetime import timedelta
+from typing import Callable, Optional
 
 from golem.managers import ProposalManagerPlugin
 from golem.resources import Proposal
-from golem.utils.asyncio.buffer import BackgroundFillBuffer, SimpleBuffer
+from golem.utils.asyncio.buffer import BackgroundFillBuffer, Buffer, ExpirableBuffer, SimpleBuffer
+from golem.utils.asyncio.tasks import resolve_maybe_awaitable
 from golem.utils.logging import trace_span
+from golem.utils.typing import MaybeAwaitable
 
 logger = logging.getLogger(__name__)
 
@@ -15,23 +19,38 @@ class BufferPlugin(ProposalManagerPlugin):
         max_size: int,
         fill_concurrency_size=1,
         fill_at_start=False,
+        get_expiration_func: Optional[
+            Callable[[Proposal], MaybeAwaitable[Optional[timedelta]]]
+        ] = None,
+        on_expiration_func: Optional[Callable[[Proposal], MaybeAwaitable[None]]] = None,
     ) -> None:
         self._min_size = min_size
         self._max_size = max_size
         self._fill_concurrency_size = fill_concurrency_size
         self._fill_at_start = fill_at_start
+        self._get_expiration_func = get_expiration_func
+        self._on_expiration_func = on_expiration_func
+
+        buffer: Buffer[Proposal] = SimpleBuffer()
+
+        if self._get_expiration_func is not None:
+            buffer = ExpirableBuffer(
+                buffer=buffer,
+                get_expiration_func=self._get_expiration_func,
+                on_expired_func=self._on_item_expire,
+            )
 
         self._buffer: BackgroundFillBuffer[Proposal] = BackgroundFillBuffer(
-            buffer=SimpleBuffer(),
+            buffer=buffer,
             fill_func=self._call_feed_func,
             fill_concurrency_size=self._fill_concurrency_size,
-            on_added_callback=self._on_added_callback,
+            on_added_func=self._on_item_added,
         )
 
     async def _call_feed_func(self) -> Proposal:
         return await self._get_proposal()
 
-    async def _on_added_callback(self) -> None:
+    async def _on_item_added(self, item: Proposal) -> None:
         count_current = self._buffer.size()
         count_with_requested = self._buffer.size_with_requested()
         pending = count_with_requested - count_current
@@ -42,6 +61,14 @@ class BufferPlugin(ProposalManagerPlugin):
             pending,
             self._max_size,
         )
+
+    async def _on_item_expire(self, item: Proposal):
+        logger.debug("Item %r expired, rejecting proposal and requesting fill", item)
+        await item.reject("Proposal no longer needed")
+        await self._request_items()
+
+        if self._on_expiration_func is not None:
+            await resolve_maybe_awaitable(self._on_expiration_func, item)
 
     @trace_span()
     async def start(self) -> None:

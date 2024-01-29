@@ -9,6 +9,7 @@ from ya_market import ApiException
 from golem.managers import ProposalManagerPlugin, RejectProposal
 from golem.managers.base import ProposalNegotiator
 from golem.resources import DemandData, Proposal
+from golem.utils.asyncio.tasks import resolve_maybe_awaitable
 from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
@@ -116,10 +117,9 @@ class NegotiatingPlugin(ProposalManagerPlugin):
         proposal_data = await offer_proposal.get_proposal_data()
 
         for negotiator in self._proposal_negotiators:
-            negotiator_result = negotiator(demand_data_after_negotiators, proposal_data)
-
-            if asyncio.iscoroutine(negotiator_result):
-                negotiator_result = await negotiator_result
+            negotiator_result = await resolve_maybe_awaitable(
+                negotiator, demand_data_after_negotiators, proposal_data
+            )
 
             if isinstance(negotiator_result, RejectProposal):
                 raise negotiator_result

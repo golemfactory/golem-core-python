@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, AsyncIterator, Callable, Dict, List, Optional, Union, cast
 
 from ya_market import RequestorApi
@@ -14,6 +14,8 @@ from golem.utils.low import YagnaEventCollector
 
 if TYPE_CHECKING:
     from golem.node import GolemNode
+
+DEFAULT_TTL = timedelta(hours=1)
 
 
 class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], YagnaEventCollector):
@@ -139,3 +141,8 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], Yagn
             )
 
         return self._demand_data
+
+    def get_expiration_date(self) -> datetime:
+        """Return expiration date to auto unsubscribe."""
+
+        return cast(datetime, self.data.timestamp) + DEFAULT_TTL

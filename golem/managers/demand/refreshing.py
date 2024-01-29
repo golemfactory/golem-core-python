@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Awaitable, Callable, List, Tuple
 
 from golem.managers.base import DemandManager
@@ -67,13 +67,10 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         if not self._demands:
             return
 
-        remaining: timedelta = (
-            datetime.utcfromtimestamp(
-                self._demands[-1][0].data.properties["golem.srv.comp.expiration"] / 1000
-            )
-            - datetime.utcnow()
-        )
-        await asyncio.sleep(remaining.seconds)
+        await self._demands[-1][0].get_data()
+        expiration_date = self._demands[-1][0].get_expiration_date()
+        remaining = expiration_date - datetime.now(timezone.utc)
+        await asyncio.sleep(remaining.total_seconds())
 
     @trace_span()
     async def _create_and_subscribe_demand(self):

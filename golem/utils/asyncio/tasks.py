@@ -1,9 +1,13 @@
 import asyncio
 import contextvars
+import inspect
 import logging
-from typing import Iterable, Optional
+from typing import Callable, Iterable, Optional, TypeVar, cast
 
 from golem.utils.logging import trace_id_var
+from golem.utils.typing import MaybeAwaitable
+
+T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
@@ -54,3 +58,12 @@ async def cancel_and_await(task: asyncio.Task) -> None:
 
 async def cancel_and_await_many(tasks: Iterable[asyncio.Task]) -> None:
     await asyncio.gather(*[cancel_and_await(task) for task in tasks])
+
+
+async def resolve_maybe_awaitable(func: Callable[..., MaybeAwaitable[T]], *args, **kwargs) -> T:
+    result = func(*args, **kwargs)
+
+    if inspect.iscoroutine(result):
+        result = await result
+
+    return cast(T, result)  # FIXME: This cast should not be needed

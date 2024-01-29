@@ -15,6 +15,7 @@ from golem.resources import (
     Script,
 )
 from golem.resources.activity import commands
+from golem.utils.typing import MaybeAwaitable
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +185,7 @@ class ProposalNegotiator(ABC):
     @abstractmethod
     def __call__(
         self, demand_data: DemandData, proposal_data: ProposalData
-    ) -> Union[Awaitable[Optional[RejectProposal]], Optional[RejectProposal]]:
+    ) -> MaybeAwaitable[Optional[RejectProposal]]:
         ...
 
 
@@ -212,7 +213,7 @@ class ProposalScorer(ABC):
     @abstractmethod
     def __call__(
         self, proposals_data: Sequence[ProposalData]
-    ) -> Union[Awaitable[ProposalScoringResult], ProposalScoringResult]:
+    ) -> MaybeAwaitable[ProposalScoringResult]:
         ...
 
 

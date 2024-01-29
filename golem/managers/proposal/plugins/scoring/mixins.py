@@ -1,10 +1,10 @@
-import inspect
 from datetime import datetime
 from typing import List, Optional, Sequence, Tuple, cast
 
 from golem.managers.base import ScorerWithOptionalWeight
 from golem.payload import PayloadSyntaxParser, Properties
 from golem.resources import Proposal, ProposalData
+from golem.utils.asyncio.tasks import resolve_maybe_awaitable
 from golem.utils.logging import trace_span
 
 
@@ -43,10 +43,7 @@ class ProposalScoringMixin:
             else:
                 weight = 1
 
-            scorer_scores = scorer(proposals_data)
-
-            if inspect.isawaitable(scorer_scores):
-                scorer_scores = await scorer_scores
+            scorer_scores = await resolve_maybe_awaitable(scorer, proposals_data)
 
             proposal_scores.append((weight, scorer_scores))  # type: ignore[arg-type]
 

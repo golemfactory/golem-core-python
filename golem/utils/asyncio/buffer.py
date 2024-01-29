@@ -16,9 +16,14 @@ from typing import (
 )
 
 from golem.utils.asyncio.semaphore import SingleUseSemaphore
-from golem.utils.asyncio.tasks import cancel_and_await_many, create_task_with_logging
+from golem.utils.asyncio.tasks import (
+    cancel_and_await_many,
+    create_task_with_logging,
+    resolve_maybe_awaitable,
+)
 from golem.utils.asyncio.waiter import Waiter
 from golem.utils.logging import get_trace_id_name, trace_span
+from golem.utils.typing import MaybeAwaitable
 
 TItem = TypeVar("TItem")
 
@@ -190,20 +195,19 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
     def __init__(
         self,
         buffer: Buffer[TItem],
-        get_expiration_func: Callable[[TItem], Optional[timedelta]],
-        on_expiration_func: Optional[Callable[[TItem], Awaitable[None]]] = None,
+        get_expiration_func: Callable[[TItem], MaybeAwaitable[Optional[timedelta]]],
+        on_expired_func: Optional[Callable[[TItem], MaybeAwaitable[None]]] = None,
     ):
         super().__init__(buffer)
 
         self._get_expiration_func = get_expiration_func
-        self._on_expiration_func = on_expiration_func
+        self._on_expired_func = on_expired_func
 
-        # Lock is used to keep items in buffer and expiration tasks in sync
-        self._lock = asyncio.Lock()
+        # TODO: Could this collection be liable to race conditions?
         self._expiration_handlers: Dict[int, List[asyncio.TimerHandle]] = defaultdict(list)
 
-    def _add_expiration_task_for_item(self, item: TItem) -> None:
-        expiration = self._get_expiration_func(item)
+    async def _add_expiration_task_for_item(self, item: TItem) -> None:
+        expiration = await resolve_maybe_awaitable(self._get_expiration_func, item)
 
         if expiration is None:
             return
@@ -212,11 +216,14 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
 
         self._expiration_handlers[id(item)].append(
             loop.call_later(
-                expiration.total_seconds(), lambda: asyncio.create_task(self._expire_item(item))
+                expiration.total_seconds(),
+                lambda: create_task_with_logging(
+                    self._expire_item(item), trace_id=get_trace_id_name(self, f"item-expire-{item}")
+                ),
             )
         )
 
-    async def _remove_expiration_handler_for_item(self, item: TItem) -> None:
+    def _remove_expiration_handler_for_item(self, item: TItem) -> None:
         item_id = id(item)
 
         if item_id not in self._expiration_handlers or not len(self._expiration_handlers[item_id]):
@@ -228,7 +235,7 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
         if not self._expiration_handlers[item_id]:
             del self._expiration_handlers[item_id]
 
-    async def _remove_all_expiration_handlers(self) -> None:
+    def _remove_all_expiration_handlers(self) -> None:
         for handlers in self._expiration_handlers.values():
             for handler in handlers:
                 handler.cancel()
@@ -236,42 +243,44 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
         self._expiration_handlers.clear()
 
     async def get(self) -> TItem:
-        async with self._lock:
-            item = await super().get()
-            await self._remove_expiration_handler_for_item(item)
+        item = await super().get()
 
-            return item
+        self._remove_expiration_handler_for_item(item)
+
+        return item
 
     async def get_all(self) -> MutableSequence[TItem]:
-        async with self._lock:
-            items = await super().get_all()
-            await self._remove_all_expiration_handlers()
-            return items
+        items = await super().get_all()
+
+        self._remove_all_expiration_handlers()
+
+        return items
 
     async def put(self, item: TItem) -> None:
-        async with self._lock:
-            await super().put(item)
-            self._add_expiration_task_for_item(item)
+        await super().put(item)
+
+        await self._add_expiration_task_for_item(item)
 
     async def put_all(self, items: Sequence[TItem]) -> None:
-        async with self._lock:
-            await super().put_all(items)
-            await self._remove_all_expiration_handlers()
+        await super().put_all(items)
 
-            for item in items:
-                self._add_expiration_task_for_item(item)
+        self._remove_all_expiration_handlers()
+
+        await asyncio.gather(
+            *[self._add_expiration_task_for_item(item) for item in items], return_exceptions=True
+        )
 
     async def remove(self, item: TItem) -> None:
-        async with self._lock:
-            await super().remove(item)
-            await self._remove_expiration_handler_for_item(item)
+        await super().remove(item)
 
-    @trace_span()
+        self._remove_expiration_handler_for_item(item)
+
+    @trace_span(show_arguments=True)
     async def _expire_item(self, item: TItem) -> None:
         await self.remove(item)
 
-        if self._on_expiration_func:
-            await self._on_expiration_func(item)
+        if self._on_expired_func:
+            await resolve_maybe_awaitable(self._on_expired_func, item)
 
 
 class BackgroundFillBuffer(ComposableBuffer[TItem]):
@@ -286,13 +295,13 @@ class BackgroundFillBuffer(ComposableBuffer[TItem]):
         buffer: Buffer[TItem],
         fill_func: Callable[[], Awaitable[TItem]],
         fill_concurrency_size=1,
-        on_added_callback: Optional[Callable[[], Awaitable[None]]] = None,
+        on_added_func: Optional[Callable[[TItem], Awaitable[None]]] = None,
     ):
         super().__init__(buffer)
 
         self._fill_func = fill_func
         self._fill_concurrency_size = fill_concurrency_size
-        self._on_added_callback = on_added_callback
+        self._on_added_func = on_added_func
 
         self._is_started = False
         self._worker_tasks: List[asyncio.Task] = []
@@ -339,8 +348,8 @@ class BackgroundFillBuffer(ComposableBuffer[TItem]):
 
                 await self.put(item)
 
-            if self._on_added_callback is not None:
-                await self._on_added_callback()
+            if self._on_added_func is not None:
+                await self._on_added_func(item)
 
             logger.debug("Adding new item done with total of %d items in buffer", self.size())
 

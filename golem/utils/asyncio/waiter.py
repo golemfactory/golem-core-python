@@ -13,6 +13,7 @@ class Waiter:
 
     async def wait_for(self, predicate: Callable[[], bool]) -> None:
         """Check if predicate is true and return immediately, or await until it becomes true."""
+
         result = predicate()
 
         while not result:
@@ -43,6 +44,7 @@ class Waiter:
 
     def notify(self, count=1) -> None:
         """Notify given amount of `.wait_for()` calls to check its predicates."""
+
         notified = 0
         for waiter in self._waiters:
             if count <= notified:
