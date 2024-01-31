@@ -13,7 +13,8 @@ from typing import (
     Sequence,
     Tuple,
     TypeVar,
-    Union, runtime_checkable,
+    Union,
+    runtime_checkable,
 )
 
 from golem.exceptions import GolemException
