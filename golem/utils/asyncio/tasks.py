@@ -2,7 +2,7 @@ import asyncio
 import contextvars
 import inspect
 import logging
-from typing import Callable, Iterable, Optional, TypeVar, cast
+from typing import Iterable, Optional, TypeVar, cast
 
 from golem.utils.logging import trace_id_var
 from golem.utils.typing import MaybeAwaitable
@@ -44,7 +44,9 @@ def _handle_task_logging(task: asyncio.Task):
         logger.exception("Background async task encountered unhandled exception!")
 
 
-async def cancel_and_await(task: asyncio.Task) -> None:
+async def ensure_cancelled(task: asyncio.Task) -> None:
+    """Cancel given task and await for its cancellation."""
+
     if task.done():
         return
 
@@ -56,14 +58,18 @@ async def cancel_and_await(task: asyncio.Task) -> None:
         pass
 
 
-async def cancel_and_await_many(tasks: Iterable[asyncio.Task]) -> None:
-    await asyncio.gather(*[cancel_and_await(task) for task in tasks])
+async def ensure_cancelled_many(tasks: Iterable[asyncio.Task]) -> None:
+    """Cancel given tasks and concurrently await for their cancellation."""
+
+    await asyncio.gather(*[ensure_cancelled(task) for task in tasks])
 
 
-async def resolve_maybe_awaitable(func: Callable[..., MaybeAwaitable[T]], *args, **kwargs) -> T:
-    result = func(*args, **kwargs)
+async def resolve_maybe_awaitable(value: MaybeAwaitable[T]) -> T:
+    """Return given value or await for it results if value is awaitable."""
 
-    if inspect.iscoroutine(result):
-        result = await result
+    if inspect.isawaitable(value):
+        return await value
 
-    return cast(T, result)  # FIXME: This cast should not be needed
+    # TODO: remove cast as inspect.isawaitable can't tell mypy that at this
+    #  point value is T
+    return cast(T, value)

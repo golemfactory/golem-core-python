@@ -118,7 +118,7 @@ class NegotiatingPlugin(ProposalManagerPlugin):
 
         for negotiator in self._proposal_negotiators:
             negotiator_result = await resolve_maybe_awaitable(
-                negotiator, demand_data_after_negotiators, proposal_data
+                negotiator(demand_data_after_negotiators, proposal_data)
             )
 
             if isinstance(negotiator_result, RejectProposal):

@@ -77,4 +77,3 @@ class SingleUseSemaphore:
         """Reset "charges" amount to zero."""
 
         self._value = 0
-        self.finished.set()

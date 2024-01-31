@@ -18,11 +18,11 @@ from typing import (
 
 from golem.utils.asyncio.semaphore import SingleUseSemaphore
 from golem.utils.asyncio.tasks import (
-    cancel_and_await_many,
     create_task_with_logging,
+    ensure_cancelled_many,
     resolve_maybe_awaitable,
 )
-from golem.utils.logging import get_trace_id_name, trace_span
+from golem.utils.logging import get_trace_id_name
 from golem.utils.typing import MaybeAwaitable
 
 TItem = TypeVar("TItem")
@@ -34,11 +34,12 @@ class Buffer(ABC, Generic[TItem]):
     """Interface class for object similar to `asyncio.Queue` but with more control over its \
     items."""
 
+    # TODO: Consider hiding condition in favor of public lock related context manager method
     condition: asyncio.Condition
 
     @abstractmethod
     def size(self) -> int:
-        """Return number of items stored in buffer."""
+        """Return the number of items stored in the buffer."""
 
     @abstractmethod
     async def wait_for_any_items(self, *, lock=True) -> None:
@@ -46,19 +47,20 @@ class Buffer(ABC, Generic[TItem]):
 
     @abstractmethod
     async def get(self, *, lock=True) -> TItem:
-        """Await, remove and return left-most item stored in buffer.
+        """Await, remove and return left-most item stored in the buffer.
 
-        If `.set_exception()` was previously called, exception will be raised only if buffer
+        If `.set_exception()` was previously called, the exception will be raised only if the buffer
         is empty.
         """
 
     @abstractmethod
     async def get_all(self, *, lock=True) -> MutableSequence[TItem]:
-        """Remove and return all items stored in buffer.
+        """Remove and immediately return all items stored in the buffer.
 
-        Note that this method will not await for any items if buffer is empty.
+        Note that this method should not await any items if the buffer is empty and should instead
+        return an empty iterable.
 
-        If `.set_exception()` was previously called, exception will be raised only if buffer
+        If `.set_exception()` was previously called, exception should be raised only if buffer
         is empty.
         """
 
@@ -78,20 +80,21 @@ class Buffer(ABC, Generic[TItem]):
 
     @abstractmethod
     async def remove(self, item: TItem, *, lock=True) -> None:
-        """Remove first occurrence of item from buffer or raise `ValueError` if not found."""
+        """Remove the first occurrence of the item from the buffer or raise `ValueError` \
+        if not found."""
 
     @abstractmethod
     async def set_exception(self, exc: BaseException, *, lock=True) -> None:
-        """Set exception that will be raised while trying to `.get()`/`.get_all()` item from \
-        empty buffer."""
+        """Set the exception that will be raised on `.get()`/`.get_all()` if there are no more \
+         items in the buffer."""
 
     def reset_exception(self) -> None:
-        """Reset exception that was previously set by calling `.set_exception()`."""
+        """Reset (clear) the exception that was previously set by calling `.set_exception()`."""
 
 
 class ComposableBuffer(Buffer[TItem]):
     """Utility class for composable/stackable buffer implementations to help with calling \
-    underlying buffer."""
+    the underlying buffer."""
 
     def __init__(self, buffer: Buffer[TItem]):
         self._buffer = buffer
@@ -133,10 +136,10 @@ class ComposableBuffer(Buffer[TItem]):
 
 
 class SimpleBuffer(Buffer[TItem]):
-    """Most basic implementation of Buffer interface."""
+    """Basic implementation of the Buffer interface."""
 
     def __init__(self, items: Optional[Sequence[TItem]] = None):
-        self._items = list(items) if items is not None else []
+        self._items = list(items) if items else []
         self._error: Optional[BaseException] = None
 
         self.condition = asyncio.Condition()
@@ -152,12 +155,10 @@ class SimpleBuffer(Buffer[TItem]):
         else:
             yield
 
-    @trace_span()
     async def wait_for_any_items(self, lock=True) -> None:
         async with self._handle_lock(lock):
             await self.condition.wait_for(lambda: bool(self.size() or self._error))
 
-    @trace_span()
     async def get(self, *, lock=True) -> TItem:
         async with self._handle_lock(lock):
             await self.wait_for_any_items(lock=False)
@@ -226,7 +227,7 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
         self._expiration_handlers: Dict[int, List[asyncio.TimerHandle]] = defaultdict(list)
 
     async def _add_expiration_task_for_item(self, item: TItem) -> None:
-        expiration = await resolve_maybe_awaitable(self._get_expiration_func, item)
+        expiration = await resolve_maybe_awaitable(self._get_expiration_func(item))
 
         if expiration is None:
             return
@@ -300,12 +301,11 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
 
             self._remove_expiration_handler_for_item(item)
 
-    @trace_span(show_arguments=True)
     async def _expire_item(self, item: TItem) -> None:
         await self.remove(item)
 
         if self._on_expired_func:
-            await resolve_maybe_awaitable(self._on_expired_func, item)
+            await resolve_maybe_awaitable(self._on_expired_func(item))
 
 
 class BackgroundFillBuffer(ComposableBuffer[TItem]):
@@ -332,7 +332,6 @@ class BackgroundFillBuffer(ComposableBuffer[TItem]):
         self._worker_tasks: List[asyncio.Task] = []
         self._workers_semaphore = SingleUseSemaphore()
 
-    @trace_span()
     async def start(self) -> None:
         if self.is_started():
             raise RuntimeError("Already started!")
@@ -346,12 +345,11 @@ class BackgroundFillBuffer(ComposableBuffer[TItem]):
 
         self._is_started = True
 
-    @trace_span()
     async def stop(self) -> None:
         if not self.is_started():
             raise RuntimeError("Already stopped!")
 
-        await cancel_and_await_many(self._worker_tasks)
+        await ensure_cancelled_many(self._worker_tasks)
         self._worker_tasks.clear()
         self._is_started = False
 
@@ -373,7 +371,7 @@ class BackgroundFillBuffer(ComposableBuffer[TItem]):
 
                 await self.put(item)
 
-            if self._on_added_func is not None:
+            if self._on_added_func:
                 await self._on_added_func(item)
 
             logger.debug("Adding new item done with total of %d items in buffer", self.size())
@@ -388,16 +386,17 @@ class BackgroundFillBuffer(ComposableBuffer[TItem]):
 
         return self.size() + self._workers_semaphore.get_count_with_pending()
 
-    async def get_all_requested(self, deadline: timedelta) -> MutableSequence[TItem]:
-        """Await for all requested items with given deadline, then remove and return all items \
-        stored in buffer."""
+    async def get_requested(self, debounce: timedelta) -> MutableSequence[TItem]:
+        """Await for any requested items with given debounce time window, then remove and return \
+        all items stored in buffer."""
 
-        if not self._workers_semaphore.finished.is_set():
-            try:
-                await asyncio.wait_for(
-                    self._workers_semaphore.finished.wait(), deadline.total_seconds()
-                )
-            except asyncio.TimeoutError:
-                pass
+        await self._buffer.wait_for_any_items()
+
+        try:
+            await asyncio.wait_for(
+                self._workers_semaphore.finished.wait(), debounce.total_seconds()
+            )
+        except asyncio.TimeoutError:
+            pass
 
         return await self.get_all()

@@ -76,7 +76,7 @@ async def test_reset():
     assert sem.get_count() == 0
     assert sem.get_count_with_pending() == 0
     assert sem.get_pending_count() == 0
-    assert sem.finished.is_set()
+    assert not sem.finished.is_set()
     assert sem.locked()
 
 

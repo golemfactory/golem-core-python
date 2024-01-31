@@ -1,33 +1,53 @@
 import asyncio
 import logging
 from datetime import timedelta
-from typing import Optional
+from typing import Callable, Optional, Sequence
 
-from golem.managers.proposal.plugins.buffer import BufferPlugin as BufferPlugin
+from golem.managers.base import ScorerWithOptionalWeight
+from golem.managers.proposal.plugins.buffer import ProposalBuffer
 from golem.managers.proposal.plugins.scoring import ProposalScoringMixin
 from golem.resources import Proposal
 from golem.utils.asyncio import (
     Buffer,
     ExpirableBuffer,
     SimpleBuffer,
-    cancel_and_await,
     create_task_with_logging,
+    ensure_cancelled,
 )
 from golem.utils.logging import get_trace_id_name, trace_span
+from golem.utils.typing import MaybeAwaitable
 
 logger = logging.getLogger(__name__)
 
 
-class ScoringBufferPlugin(ProposalScoringMixin, BufferPlugin):
-    def __init__(self, update_interval: timedelta = timedelta(seconds=10), *args, **kwargs) -> None:
-        get_expiration_func = kwargs.pop("get_expiration_func", None)
+class ProposalScoringBuffer(ProposalScoringMixin, ProposalBuffer):
+    def __init__(
+        self,
+        min_size: int,
+        max_size: int,
+        fill_concurrency_size=1,
+        fill_at_start=False,
+        get_expiration_func: Optional[
+            Callable[[Proposal], MaybeAwaitable[Optional[timedelta]]]
+        ] = None,
+        on_expiration_func: Optional[Callable[[Proposal], MaybeAwaitable[None]]] = None,
+        scoring_debounce: timedelta = timedelta(seconds=10),
+        proposal_scorers: Optional[Sequence[ScorerWithOptionalWeight]] = None,
+    ) -> None:
+        super().__init__(
+            min_size=min_size,
+            max_size=max_size,
+            fill_concurrency_size=fill_concurrency_size,
+            fill_at_start=fill_at_start,
+            get_expiration_func=None,
+            on_expiration_func=on_expiration_func,
+            proposal_scorers=proposal_scorers,
+        )
 
-        super().__init__(*args, **kwargs)
+        self._scoring_debounce = scoring_debounce
 
-        self._update_interval = update_interval
-
-        # Postponing argument would disable expiration from BufferPlugin parent
-        # as we want to expire only scored items instead
+        # Postponing argument would disable expiration from ProposalBuffer parent
+        # as we want to expire only scored proposals instead
         self._get_expiration_func = get_expiration_func
 
         scored_buffer: Buffer[Proposal] = SimpleBuffer()
@@ -36,7 +56,7 @@ class ScoringBufferPlugin(ProposalScoringMixin, BufferPlugin):
             scored_buffer = ExpirableBuffer(
                 buffer=scored_buffer,
                 get_expiration_func=get_expiration_func,
-                on_expired_func=self._on_item_expire,
+                on_expired_func=self._on_expired,
             )
 
         self._buffer_scored: Buffer[Proposal] = scored_buffer
@@ -55,33 +75,34 @@ class ScoringBufferPlugin(ProposalScoringMixin, BufferPlugin):
         await super().stop()
 
         if self._background_loop_task is not None:
-            await cancel_and_await(self._background_loop_task)
+            await ensure_cancelled(self._background_loop_task)
             self._background_loop_task = None
 
-    async def _on_item_added(self, item: Proposal):
+    async def _on_added(self, proposal: Proposal) -> None:
         pass  # explicit no-op
 
     async def _background_loop(self) -> None:
         while True:
-            logger.debug("Waiting for any items to score...")
-            await self._buffer.wait_for_any_items()
-            logger.debug("Waiting for any items to score done, items are available for scoring")
+            logger.debug(
+                "Waiting for any proposals to score with debounce of `%s`...",
+                self._scoring_debounce,
+            )
+            proposals = await self._buffer.get_requested(self._scoring_debounce)
+            logger.debug(
+                "Waiting for any proposals done, %d new proposals will be scored", len(proposals)
+            )
 
-            logger.debug("Waiting for more items up to %s...", self._update_interval)
-            items = await self._buffer.get_all_requested(self._update_interval)
-            logger.debug("Waiting for more items done, %d new items will be scored", len(items))
+            proposals.extend(await self._buffer_scored.get_all())
 
-            items.extend(await self._buffer_scored.get_all())
+            logger.debug("Scoring total %d proposals...", len(proposals))
 
-            logger.debug("Scoring total %d items...", len(items))
+            scored_proposals = await self.do_scoring(proposals)
+            await self._buffer_scored.put_all([proposal for _, proposal in scored_proposals])
 
-            scored_items = await self.do_scoring(items)
-            await self._buffer_scored.put_all([proposal for _, proposal in scored_items])
+            logger.debug("Scoring total %d proposals done", len(proposals))
 
-            logger.debug("Scoring total %d items done", len(items))
-
-    async def _get_item(self) -> Proposal:
+    async def _get_buffered_proposal(self) -> Proposal:
         return await self._buffer_scored.get()
 
-    def _get_items_count(self) -> int:
-        return super()._get_items_count() + self._buffer_scored.size()
+    def _get_buffered_proposals_count(self) -> int:
+        return super()._get_buffered_proposals_count() + self._buffer_scored.size()

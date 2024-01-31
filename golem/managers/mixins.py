@@ -3,7 +3,7 @@ import logging
 from typing import Generic, List, Optional, Sequence
 
 from golem.managers.base import ManagerException, TPlugin
-from golem.utils.asyncio import cancel_and_await, create_task_with_logging
+from golem.utils.asyncio import create_task_with_logging, ensure_cancelled
 from golem.utils.logging import get_trace_id_name, trace_span
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class BackgroundLoopMixin:
             raise ManagerException("Already stopped!")
 
         if self._background_loop_task is not None:
-            await cancel_and_await(self._background_loop_task)
+            await ensure_cancelled(self._background_loop_task)
             self._background_loop_task = None
 
     def is_started(self) -> bool:

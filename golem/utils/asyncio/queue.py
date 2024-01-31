@@ -1,7 +1,7 @@
 import asyncio
 from typing import Generic, Optional, TypeVar
 
-from golem.utils.asyncio.tasks import cancel_and_await_many
+from golem.utils.asyncio.tasks import ensure_cancelled_many
 
 TQueueItem = TypeVar("TQueueItem")
 
@@ -37,7 +37,7 @@ class ErrorReportingQueue(asyncio.Queue, Generic[TQueueItem]):
             [error_task, get_task], return_when=asyncio.FIRST_COMPLETED
         )
 
-        await cancel_and_await_many(pending)
+        await ensure_cancelled_many(pending)
 
         if get_task in done:
             return await get_task

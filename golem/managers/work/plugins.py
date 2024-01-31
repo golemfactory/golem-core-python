@@ -10,7 +10,7 @@ from golem.managers.base import (
     WorkManagerPlugin,
     WorkResult,
 )
-from golem.utils.asyncio import cancel_and_await_many
+from golem.utils.asyncio import ensure_cancelled_many
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ def redundancy_cancel_others_on_first_done(size: int):
                 tasks, return_when=asyncio.FIRST_COMPLETED
             )
 
-            await cancel_and_await_many(tasks_pending)
+            await ensure_cancelled_many(tasks_pending)
 
             return tasks_done.pop().result()
 

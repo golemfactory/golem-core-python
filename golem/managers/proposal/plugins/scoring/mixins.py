@@ -43,7 +43,7 @@ class ProposalScoringMixin:
             else:
                 weight = 1
 
-            scorer_scores = await resolve_maybe_awaitable(scorer, proposals_data)
+            scorer_scores = await resolve_maybe_awaitable(scorer(proposals_data))
 
             proposal_scores.append((weight, scorer_scores))  # type: ignore[arg-type]
 

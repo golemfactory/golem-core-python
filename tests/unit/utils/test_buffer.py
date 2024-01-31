@@ -230,7 +230,7 @@ async def test_simple_buffer_wait_for_any_items():
     assert wait_task.done()
 
 
-async def test_expirable_buffer_is_not_expiring_initial_items(mocked_buffer, mocker):
+async def test_expirable_buffer_is_not_expiring_initial_items(mocked_buffer):
     expire_after = timedelta(seconds=0.1)
     ExpirableBuffer(
         mocked_buffer,
@@ -422,12 +422,12 @@ async def test_background_feed_buffer_get_all_requested(mocked_buffer, mocker, e
     mocked_buffer.size.return_value = 0
 
     time_before_wait = event_loop.time()
-    assert await buffer.get_all_requested(timeout) == []
+    assert await buffer.get_requested(timeout) == []
     time_after_wait = event_loop.time()
 
     assert (
         time_after_wait - time_before_wait < timeout.total_seconds()
-    ), "get_all_requested seems to wait for the deadline instead of retuning fast"
+    ), "get_requested seems to wait for the deadline instead of retuning fast"
     #
 
     await buffer.request(1)
@@ -444,12 +444,12 @@ async def test_background_feed_buffer_get_all_requested(mocked_buffer, mocker, e
     mocked_buffer.size.return_value = 0
 
     time_before_wait = event_loop.time()
-    assert await buffer.get_all_requested(timeout) == []
+    assert await buffer.get_requested(timeout) == []
     time_after_wait = event_loop.time()
 
     assert (
         timeout.total_seconds() <= time_after_wait - time_before_wait
-    ), "get_all_requested seems to not wait to the deadline"
+    ), "get_requested seems to not wait to the deadline"
     #
 
     await feed_queue.put(item)
@@ -466,12 +466,12 @@ async def test_background_feed_buffer_get_all_requested(mocked_buffer, mocker, e
     mocked_buffer.size.return_value = 0
 
     time_before_wait = event_loop.time()
-    assert await buffer.get_all_requested(timeout) == [item]
+    assert await buffer.get_requested(timeout) == [item]
     time_after_wait = event_loop.time()
 
     assert (
         time_after_wait - time_before_wait < timeout.total_seconds()
-    ), "get_all_requested seems to wait for the deadline instead of retuning fast"
+    ), "get_requested seems to wait for the deadline instead of retuning fast"
     #
 
     await buffer.stop()

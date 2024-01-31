@@ -12,7 +12,7 @@ from golem.utils.typing import MaybeAwaitable
 logger = logging.getLogger(__name__)
 
 
-class BufferPlugin(ProposalManagerPlugin):
+class ProposalBuffer(ProposalManagerPlugin):
     def __init__(
         self,
         min_size: int,
@@ -31,63 +31,64 @@ class BufferPlugin(ProposalManagerPlugin):
         self._get_expiration_func = get_expiration_func
         self._on_expiration_func = on_expiration_func
 
+        # TODO: Consider moving buffer composition from here to plugin level
         buffer: Buffer[Proposal] = SimpleBuffer()
 
-        if self._get_expiration_func is not None:
+        if self._get_expiration_func:
             buffer = ExpirableBuffer(
                 buffer=buffer,
                 get_expiration_func=self._get_expiration_func,
-                on_expired_func=self._on_item_expire,
+                on_expired_func=self._on_expired,
             )
 
         self._buffer: BackgroundFillBuffer[Proposal] = BackgroundFillBuffer(
             buffer=buffer,
             fill_func=self._call_feed_func,
             fill_concurrency_size=self._fill_concurrency_size,
-            on_added_func=self._on_item_added,
+            on_added_func=self._on_added,
         )
 
     async def _call_feed_func(self) -> Proposal:
         return await self._get_proposal()
 
-    async def _on_item_added(self, item: Proposal) -> None:
+    async def _on_added(self, proposal: Proposal) -> None:
         count_current = self._buffer.size()
         count_with_requested = self._buffer.size_with_requested()
         pending = count_with_requested - count_current
 
         logger.debug(
-            "Item added, having %d items, and %d pending, target %d",
+            "Proposal added, having %d proposals, and %d already requested, target %d",
             count_current,
             pending,
             self._max_size,
         )
 
-    async def _on_item_expire(self, item: Proposal):
-        logger.debug("Item %r expired, rejecting proposal and requesting fill", item)
-        await item.reject("Proposal no longer needed")
-        await self._request_items()
+    async def _on_expired(self, proposal: Proposal):
+        logger.debug("Rejecting expired `%r` and requesting fill", proposal)
+        await proposal.reject("Proposal no longer needed due to its near expiration.")
+        await self._request_proposals()
 
-        if self._on_expiration_func is not None:
-            await resolve_maybe_awaitable(self._on_expiration_func, item)
+        if self._on_expiration_func:
+            await resolve_maybe_awaitable(self._on_expiration_func(proposal))
 
     @trace_span()
     async def start(self) -> None:
         await self._buffer.start()
 
         if self._fill_at_start:
-            await self._request_items()
+            await self._request_proposals()
 
     @trace_span()
     async def stop(self) -> None:
         await self._buffer.stop()
 
-    async def _request_items(self) -> None:
+    async def _request_proposals(self) -> None:
         count_current = self._buffer.size()
         count_with_requested = self._buffer.size_with_requested()
         requested = self._max_size - count_with_requested
 
         logger.debug(
-            "Having %d items, and %d already requested, requesting additional %d items to match"
+            "Proposal count %d and %d already requested, requesting additional %d to match"
             " target %d",
             count_current,
             count_with_requested - count_current,
@@ -99,32 +100,31 @@ class BufferPlugin(ProposalManagerPlugin):
 
     @trace_span(show_results=True)
     async def get_proposal(self) -> Proposal:
-        if not self._get_items_count():
-            logger.debug("No items to get, requesting fill")
-            await self._request_items()
+        if not self._get_buffered_proposals_count():
+            logger.debug("No proposals to get, requesting fill")
+            await self._request_proposals()
 
-        proposal = await self._get_item()
+        proposal = await self._get_buffered_proposal()
 
-        items_count = self._get_items_count()
-        if items_count < self._min_size:
+        proposals_count = self._get_buffered_proposals_count()
+        if proposals_count < self._min_size:
             logger.debug(
-                "Items count is now `%s` which is below min size `%d`, requesting fill",
-                items_count,
+                "Proposals count %d is below minimum size %d, requesting fill",
+                proposals_count,
                 self._min_size,
             )
-            await self._request_items()
+            await self._request_proposals()
         else:
             logger.debug(
-                "Target items is now `%s` which is not below min size `%d`, requesting fill not"
-                " needed",
-                items_count,
+                "Proposals count %d is not below minimum size %d, skipping fill",
+                proposals_count,
                 self._min_size,
             )
 
         return proposal
 
-    async def _get_item(self) -> Proposal:
+    async def _get_buffered_proposal(self) -> Proposal:
         return await self._buffer.get()
 
-    def _get_items_count(self) -> int:
+    def _get_buffered_proposals_count(self) -> int:
         return self._buffer.size()

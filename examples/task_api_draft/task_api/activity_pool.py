@@ -4,7 +4,7 @@ from typing import AsyncIterator, Awaitable, List, Union
 
 from golem.pipeline import InputStreamExhausted
 from golem.resources import Activity
-from golem.utils.asyncio import cancel_and_await
+from golem.utils.asyncio import ensure_cancelled
 
 
 class ActivityPool:
@@ -95,7 +95,7 @@ class ActivityPool:
             return
 
         await activity.wait_destroyed()
-        await cancel_and_await(manager_task)
+        await ensure_cancelled(manager_task)
 
     async def _get_next_idle_activity(
         self, activity_stream: AsyncIterator[Union[Activity, Awaitable[Activity]]]
