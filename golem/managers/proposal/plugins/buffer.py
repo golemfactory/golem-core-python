@@ -17,7 +17,7 @@ class ProposalBuffer(ProposalManagerPlugin):
         self,
         min_size: int,
         max_size: int,
-        fill_concurrency_size=1,
+        fill_concurrency_size: int = 1,
         fill_at_start=False,
         get_expiration_func: Optional[
             Callable[[Proposal], MaybeAwaitable[Optional[timedelta]]]
@@ -116,7 +116,7 @@ class ProposalBuffer(ProposalManagerPlugin):
             await self._request_proposals()
         else:
             logger.debug(
-                "Proposals count %d is not below minimum size %d, skipping fill",
+                "Proposals count %d is above minimum size %d, skipping fill",
                 proposals_count,
                 self._min_size,
             )
