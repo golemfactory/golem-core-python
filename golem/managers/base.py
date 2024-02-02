@@ -2,7 +2,20 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+    runtime_checkable,
+)
 
 from golem.exceptions import GolemException
 from golem.resources import (
@@ -15,6 +28,7 @@ from golem.resources import (
     Script,
 )
 from golem.resources.activity import commands
+from golem.utils.typing import MaybeAwaitable
 
 logger = logging.getLogger(__name__)
 
@@ -180,11 +194,11 @@ class RejectProposal(ManagerPluginException):
     pass
 
 
-class ProposalNegotiator(ABC):
-    @abstractmethod
+@runtime_checkable
+class ProposalNegotiator(Protocol):
     def __call__(
         self, demand_data: DemandData, proposal_data: ProposalData
-    ) -> Union[Awaitable[Optional[RejectProposal]], Optional[RejectProposal]]:
+    ) -> MaybeAwaitable[Optional[RejectProposal]]:
         ...
 
 
@@ -208,21 +222,22 @@ class ProposalManagerPlugin(ABC):
 ProposalScoringResult = Sequence[Optional[float]]
 
 
-class ProposalScorer(ABC):
-    @abstractmethod
+@runtime_checkable
+class ProposalScorer(Protocol):
     def __call__(
         self, proposals_data: Sequence[ProposalData]
-    ) -> Union[Awaitable[ProposalScoringResult], ProposalScoringResult]:
+    ) -> MaybeAwaitable[ProposalScoringResult]:
         ...
 
 
 ScorerWithOptionalWeight = Union[ProposalScorer, Tuple[float, ProposalScorer]]
 
 
-class WorkManagerPlugin(ABC):
-    @abstractmethod
+@runtime_checkable
+class WorkManagerPlugin(Protocol):
     def __call__(self, do_work: DoWorkCallable) -> DoWorkCallable:
         ...
 
 
+# TODO: Make consistent naming on functions in arguments in whole project - callable or func
 PricingCallable = Callable[[ProposalData], Optional[float]]

@@ -1,21 +1,21 @@
 import asyncio
 from typing import Generic, Optional, TypeVar
 
-QueueItem = TypeVar("QueueItem")
+from golem.utils.asyncio.tasks import ensure_cancelled_many
+
+TQueueItem = TypeVar("TQueueItem")
 
 
-class ErrorReportingQueue(asyncio.Queue, Generic[QueueItem]):
+class ErrorReportingQueue(asyncio.Queue, Generic[TQueueItem]):
     """Asyncio Queue that enables exceptions to be passed to consumers from the feeding code."""
 
-    _error: Optional[BaseException]
-    _error_event: asyncio.Event
-
     def __init__(self, *args, **kwargs):
-        self._error = None
-        self._error_event = asyncio.Event()
+        self._error: Optional[BaseException] = None
+        self._error_event: asyncio.Event = asyncio.Event()
+
         super().__init__(*args, **kwargs)
 
-    def get_nowait(self) -> QueueItem:
+    def get_nowait(self) -> TQueueItem:
         """Perform a regular `get_nowait` if there are items in the queue.
 
         Otherwise, if an exception had been signalled, raise the exception.
@@ -24,7 +24,7 @@ class ErrorReportingQueue(asyncio.Queue, Generic[QueueItem]):
             raise self._error
         return super().get_nowait()
 
-    async def get(self) -> QueueItem:
+    async def get(self) -> TQueueItem:
         """Perform a regular, waiting `get` but raise an exception if happens while waiting.
 
         If there had been items in the queue,
@@ -37,7 +37,7 @@ class ErrorReportingQueue(asyncio.Queue, Generic[QueueItem]):
             [error_task, get_task], return_when=asyncio.FIRST_COMPLETED
         )
 
-        [t.cancel() for t in pending]
+        await ensure_cancelled_many(pending)
 
         if get_task in done:
             return await get_task
@@ -45,10 +45,10 @@ class ErrorReportingQueue(asyncio.Queue, Generic[QueueItem]):
         assert self._error
         raise self._error
 
-    async def put(self, item: QueueItem):
+    async def put(self, item: TQueueItem):
         await super().put(item)
 
-    def put_nowait(self, item: QueueItem):
+    def put_nowait(self, item: TQueueItem):
         super().put_nowait(item)
 
     def set_exception(self, exc: BaseException):

@@ -23,7 +23,6 @@ from golem.managers.network import SingleNetworkManager
 from golem.managers.payment import PayAllPaymentManager
 from golem.managers.proposal import (
     BlacklistProviderIdPlugin,
-    Buffer,
     DefaultProposalManager,
     LinearAverageCostPricing,
     LinearCoeffsCost,
@@ -34,10 +33,11 @@ from golem.managers.proposal import (
     NegotiatingPlugin,
     PaymentPlatformNegotiator,
     PropertyValueLerpScore,
+    ProposalBuffer,
+    ProposalScoringBuffer,
     ProposalScoringMixin,
     RandomScore,
     RejectIfCostsExceeds,
-    ScoringBuffer,
 )
 from golem.managers.work import (
     ConcurrentWorkManager,
@@ -73,7 +73,7 @@ __all__ = (
     "PayAllPaymentManager",
     "DefaultProposalManager",
     "BlacklistProviderIdPlugin",
-    "Buffer",
+    "ProposalBuffer",
     "PaymentPlatformNegotiator",
     "MidAgreementPaymentsNegotiator",
     "NegotiatingPlugin",
@@ -86,7 +86,7 @@ __all__ = (
     "LinearCoeffsCost",
     "PropertyValueLerpScore",
     "RandomScore",
-    "ScoringBuffer",
+    "ProposalScoringBuffer",
     "SequentialWorkManager",
     "ConcurrentWorkManager",
     "WorkManagerPluginsMixin",

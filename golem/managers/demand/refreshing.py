@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Awaitable, Callable, List, Tuple
 
 from golem.managers.base import DemandManager
@@ -10,9 +10,8 @@ from golem.payload import Payload
 from golem.payload import defaults as payload_defaults
 from golem.resources import Allocation, Demand, Proposal
 from golem.resources.demand.demand_builder import DemandBuilder
-from golem.utils.asyncio import create_task_with_logging
+from golem.utils.asyncio import ErrorReportingQueue, create_task_with_logging
 from golem.utils.logging import get_trace_id_name, trace_span
-from golem.utils.queue import ErrorReportingQueue
 
 logger = logging.getLogger(__name__)
 
@@ -68,13 +67,10 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
         if not self._demands:
             return
 
-        remaining: timedelta = (
-            datetime.utcfromtimestamp(
-                self._demands[-1][0].data.properties["golem.srv.comp.expiration"] / 1000
-            )
-            - datetime.utcnow()
-        )
-        await asyncio.sleep(remaining.seconds)
+        await self._demands[-1][0].get_data()
+        expiration_date = self._demands[-1][0].get_expiration_date()
+        remaining = expiration_date - datetime.now(timezone.utc)
+        await asyncio.sleep(remaining.total_seconds())
 
     @trace_span()
     async def _create_and_subscribe_demand(self):

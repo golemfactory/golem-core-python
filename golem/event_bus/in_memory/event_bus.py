@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Awaitable, Callable, DefaultDict, List, Optional, Tuple, Type
 
 from golem.event_bus.base import Event, EventBus, EventBusError, TEvent
-from golem.utils.asyncio import create_task_with_logging
+from golem.utils.asyncio import create_task_with_logging, ensure_cancelled
 from golem.utils.logging import get_trace_id_name, trace_span
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class InMemoryEventBus(EventBus[_CallbackHandler]):
         await self._event_queue.join()
 
         if self._process_event_queue_loop_task is not None:
-            self._process_event_queue_loop_task.cancel()
+            await ensure_cancelled(self._process_event_queue_loop_task)
             self._process_event_queue_loop_task = None
 
     @trace_span(show_results=True)

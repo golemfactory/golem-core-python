@@ -1,4 +1,8 @@
-from typing import Any, Callable, Optional, Type, Union, get_args, get_origin
+from typing import Any, Awaitable, Callable, Optional, Type, TypeVar, Union, get_args, get_origin
+
+T = TypeVar("T")
+
+MaybeAwaitable = Union[Awaitable[T], T]
 
 
 def match_type_union_aware(obj_type: Type, match_func: Callable[[Type], bool]) -> Optional[Any]:

@@ -1,12 +1,19 @@
 import contextvars
 import inspect
 import logging
+import sys
 from datetime import datetime, timezone
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Union
 
 if TYPE_CHECKING:
     from golem.event_bus import Event
+
+
+if (3, 12) <= sys.version_info:
+    FilterReturn = Union[bool, logging.LogRecord]
+else:
+    FilterReturn = bool
 
 
 DEFAULT_LOGGING = {
@@ -241,7 +248,7 @@ trace_span = TraceSpan
 
 
 class AddTraceIdFilter(logging.Filter):
-    def filter(self, record: logging.LogRecord) -> bool:
+    def filter(self, record: logging.LogRecord) -> FilterReturn:
         record.traceid = trace_id_var.get()
 
         return super().filter(record)

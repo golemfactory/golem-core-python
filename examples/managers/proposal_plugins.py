@@ -5,7 +5,6 @@ from random import randint, random
 
 from golem.managers import (
     BlacklistProviderIdPlugin,
-    Buffer,
     DefaultAgreementManager,
     DefaultProposalManager,
     LinearAverageCostPricing,
@@ -15,11 +14,12 @@ from golem.managers import (
     PaymentPlatformNegotiator,
     PoolActivityManager,
     PropertyValueLerpScore,
+    ProposalBuffer,
+    ProposalScoringBuffer,
     RandomScore,
     RefreshingDemandManager,
     RejectIfCostsExceeds,
     RejectProposal,
-    ScoringBuffer,
     SequentialWorkManager,
     WorkContext,
     WorkResult,
@@ -78,7 +78,7 @@ async def main():
         golem,
         demand_manager.get_initial_proposal,
         plugins=[
-            Buffer(
+            ProposalBuffer(
                 min_size=10,
                 max_size=1000,
             ),
@@ -101,7 +101,7 @@ async def main():
                     else None,
                 )
             ),
-            ScoringBuffer(
+            ProposalScoringBuffer(
                 min_size=3,
                 max_size=5,
                 fill_concurrency_size=3,

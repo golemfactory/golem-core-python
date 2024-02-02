@@ -1,7 +1,6 @@
 import asyncio
 from collections import defaultdict
 from typing import (
-    Any,
     AsyncIterator,
     Callable,
     DefaultDict,
@@ -221,9 +220,7 @@ async def main() -> None:
 
 #############################################
 #   NOT REALLY INTERESTING PARTS OF THE LOGIC
-async def close_agreement_repeat_task(
-    func: Callable, args: Tuple[Activity, Any], e: Exception
-) -> None:
+async def close_agreement_repeat_task(func: Callable, args: Tuple, e: Exception) -> None:
     activity, task = args
     tasks_queue.put_nowait(task)
     print("Task failed on", activity)

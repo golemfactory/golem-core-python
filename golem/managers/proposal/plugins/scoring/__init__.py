@@ -6,7 +6,7 @@ from golem.managers.proposal.plugins.scoring.pricings import (
 )
 from golem.managers.proposal.plugins.scoring.property_value_lerp import PropertyValueLerpScore
 from golem.managers.proposal.plugins.scoring.random import RandomScore
-from golem.managers.proposal.plugins.scoring.scoring_buffer import ScoringBuffer
+from golem.managers.proposal.plugins.scoring.scoring_buffer import ProposalScoringBuffer
 
 __all__ = (
     "MapScore",
@@ -15,5 +15,5 @@ __all__ = (
     "LinearPerCpuAverageCostPricing",
     "PropertyValueLerpScore",
     "RandomScore",
-    "ScoringBuffer",
+    "ProposalScoringBuffer",
 )

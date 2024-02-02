@@ -3,13 +3,13 @@ import logging.config
 from datetime import datetime, timedelta
 
 from golem.managers import (
-    Buffer,
     DefaultAgreementManager,
     DefaultProposalManager,
     MidAgreementPaymentsNegotiator,
     NegotiatingPlugin,
     PayAllPaymentManager,
     PaymentPlatformNegotiator,
+    ProposalBuffer,
     RefreshingDemandManager,
     SequentialWorkManager,
     SingleUseActivityManager,
@@ -91,7 +91,7 @@ async def main():
                     ),
                 ]
             ),
-            Buffer(
+            ProposalBuffer(
                 min_size=1,
                 max_size=4,
                 fill_concurrency_size=2,

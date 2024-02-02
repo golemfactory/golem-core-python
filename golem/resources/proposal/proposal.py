@@ -16,6 +16,8 @@ if TYPE_CHECKING:
     from golem.node import GolemNode
     from golem.resources.demand import Demand
 
+DEFAULT_TTL = timedelta(hours=1)
+
 
 class Proposal(
     Resource[
@@ -230,3 +232,14 @@ class Proposal(
             node_info = NodeInfo.from_properties(proposal_data.properties)
             self._provider_node_name = node_info.name
         return self._provider_node_name
+
+    def get_expiration_date(self) -> datetime:
+        """Return expiration date to auto unsubscribe.
+
+        Note: As Proposal can have different expiration date than its Demand, it would be unusable
+        after demand expiration anyway, hence earliest from both dates is returned.
+        """
+        demand_expiration_date = self.demand.get_expiration_date()
+        proposal_expiration_date = cast(datetime, self.data.timestamp) + DEFAULT_TTL
+
+        return min(proposal_expiration_date, demand_expiration_date)
