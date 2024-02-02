@@ -43,7 +43,7 @@ class Buffer(ABC, Generic[TItem]):
 
     @abstractmethod
     async def wait_for_any_items(self, *, lock=True) -> None:
-        """Wait until any items are stored in buffer."""
+        """Wait until any items are stored in the buffer."""
 
     @abstractmethod
     async def get(self, *, lock=True) -> TItem:
