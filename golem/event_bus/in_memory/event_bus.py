@@ -30,9 +30,7 @@ class InMemoryEventBus(EventBus[_CallbackHandler]):
     @trace_span()
     async def start(self):
         if self.is_started():
-            message = "Event bus is already started!"
-            logger.debug(f"Starting event bus failed with `{message}`")
-            raise EventBusError(message)
+            raise EventBusError("Event bus is already started!")
 
         self._process_event_queue_loop_task = create_task_with_logging(
             self._process_event_queue_loop(),
@@ -41,11 +39,6 @@ class InMemoryEventBus(EventBus[_CallbackHandler]):
 
     @trace_span()
     async def stop(self):
-        if not self.is_started():
-            message = "Event bus is not started!"
-            logger.debug(f"Stopping event bus failed with `{message}`")
-            raise EventBusError(message)
-
         await self._event_queue.join()
 
         if self._process_event_queue_loop_task is not None:

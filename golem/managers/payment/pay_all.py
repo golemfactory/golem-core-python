@@ -1,7 +1,10 @@
 import asyncio
+import json
 import logging
 from decimal import Decimal
 from typing import List, Optional
+
+from ya_payment import ApiException
 
 from golem.managers.base import PaymentManager
 from golem.node import GolemNode
@@ -65,15 +68,18 @@ class PayAllPaymentManager(PaymentManager):
 
     @trace_span()
     async def _create_allocation(self) -> None:
-        self._allocation = await Allocation.create_any_account(
-            self._golem, Decimal(self._budget), self._network, self._driver
-        )
+        try:
+            self._allocation = await Allocation.create_any_account(
+                self._golem, Decimal(self._budget), self._network, self._driver
+            )
+        except ApiException as e:
+            raise RuntimeError(json.loads(e.body)["message"])
 
         # TODO: We should not rely on golem node with cleanups, manager should do it by itself
         self._golem.add_autoclose_resource(self._allocation)
 
     @trace_span("Getting allocation", show_results=True, log_level=logging.INFO)
-    async def get_allocation(self) -> "Allocation":
+    async def get_allocation(self) -> Allocation:
         # TODO handle NoMatchingAccount
         if self._allocation is None:
             await self._create_allocation()

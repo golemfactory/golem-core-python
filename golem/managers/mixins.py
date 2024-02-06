@@ -25,9 +25,6 @@ class BackgroundLoopMixin:
         )
 
     async def stop(self) -> None:
-        if not self.is_started():
-            raise ManagerException("Already stopped!")
-
         if self._background_loop_task is not None:
             await ensure_cancelled(self._background_loop_task)
             self._background_loop_task = None

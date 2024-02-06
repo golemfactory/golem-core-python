@@ -43,7 +43,11 @@ class Buffer(ABC, Generic[TItem]):
 
     @abstractmethod
     async def wait_for_any_items(self, *, lock=True) -> None:
-        """Wait until any items are stored in the buffer."""
+        """Wait until any items are stored in the buffer.
+
+        If `.set_exception()` was previously called, exception should be raised only if buffer
+        is empty.
+        """
 
     @abstractmethod
     async def get(self, *, lock=True) -> TItem:
@@ -159,19 +163,21 @@ class SimpleBuffer(Buffer[TItem]):
         async with self._handle_lock(lock):
             await self.condition.wait_for(lambda: bool(self.size() or self._error))
 
+            self._handle_error_if_empty()
+
+    def _handle_error_if_empty(self) -> None:
+        if not self.size() and self._error:
+            raise self._error
+
     async def get(self, *, lock=True) -> TItem:
         async with self._handle_lock(lock):
             await self.wait_for_any_items(lock=False)
-
-            if not self.size() and self._error:
-                raise self._error
 
             return self._items.pop(0)
 
     async def get_all(self, *, lock=True) -> MutableSequence[TItem]:
         async with self._handle_lock(lock):
-            if not self._items and self._error:
-                raise self._error
+            self._handle_error_if_empty()
 
             items = self._items[:]
             self._items.clear()
@@ -346,9 +352,6 @@ class BackgroundFillBuffer(ComposableBuffer[TItem]):
         self._is_started = True
 
     async def stop(self) -> None:
-        if not self.is_started():
-            raise RuntimeError("Already stopped!")
-
         await ensure_cancelled_many(self._worker_tasks)
         self._worker_tasks.clear()
         self._is_started = False
@@ -367,7 +370,19 @@ class BackgroundFillBuffer(ComposableBuffer[TItem]):
 
                 logger.debug("Adding new item...")
 
-                item = await self._fill_func()
+                try:
+                    item = await self._fill_func()
+                except Exception as e:
+                    await self.set_exception(e)
+                    logger.error(
+                        "Encountered unexpected exception while adding a new item,"
+                        " worker loops will be stopped!"
+                    )
+
+                    loop = asyncio.get_event_loop()
+                    loop.call_soon(lambda: asyncio.create_task(self.stop()))
+
+                    return
 
                 await self.put(item)
 

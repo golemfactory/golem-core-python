@@ -207,8 +207,9 @@ async def test_simple_buffer_wait_for_any_items():
 
     await buffer.get()
 
-    # should not block a long time with exception and no items
-    await asyncio.wait_for(buffer.wait_for_any_items(), timeout=0.1)
+    # should raise with exception and no items
+    with pytest.raises(ZeroDivisionError):
+        await asyncio.wait_for(buffer.wait_for_any_items(), timeout=0.1)
 
     buffer.reset_exception()
 
@@ -343,11 +344,11 @@ async def test_expirable_buffer_can_expire_items_with_put_all_get_all(mocked_buf
     assert mocker.call(items_put_all[2]) in on_expire.mock_calls
 
 
-async def test_background_feed_buffer_start_stop(mocked_buffer, mocker):
-    feed_func = mocker.AsyncMock()
+async def test_background_fill_buffer_start_stop(mocked_buffer, mocker):
+    fill_func = mocker.AsyncMock()
     buffer = BackgroundFillBuffer(
         mocked_buffer,
-        feed_func,
+        fill_func,
     )
 
     assert not buffer.is_started()
@@ -367,21 +368,22 @@ async def test_background_feed_buffer_start_stop(mocked_buffer, mocker):
 
     assert not buffer.is_started()
 
-    with pytest.raises(RuntimeError):
-        await buffer.stop()
+    await buffer.stop()
 
     assert not buffer.is_started()
 
-    feed_func.assert_not_called()
+    fill_func.assert_not_called()
 
 
-async def test_background_feed_buffer_request(mocked_buffer, mocker):
+async def test_background_fill_buffer_request(mocked_buffer, mocker):
     item = object()
-    feed_queue: asyncio.Queue[object] = asyncio.Queue()
-    feed_func = mocker.AsyncMock(wraps=feed_queue.get)
+    fill_queue: asyncio.Queue[object] = asyncio.Queue()
+    fill_func = mocker.AsyncMock(wraps=fill_queue.get)
+    on_added_func = mocker.AsyncMock()
     buffer = BackgroundFillBuffer(
         mocked_buffer,
-        feed_func,
+        fill_func,
+        on_added_func=on_added_func,
     )
     await buffer.start()
 
@@ -389,31 +391,69 @@ async def test_background_feed_buffer_request(mocked_buffer, mocker):
 
     await asyncio.sleep(0.1)
 
-    feed_func.assert_called()
+    fill_func.assert_called()
     mocked_buffer.size.return_value = 0
     assert buffer.size() == 0
     assert buffer.size_with_requested() == 1
 
-    await feed_queue.put(item)
+    await fill_queue.put(item)
 
     await asyncio.sleep(0.1)
 
     mocked_buffer.put.assert_called_with(item, lock=True)
     mocked_buffer.size.return_value = 1
+    on_added_func.assert_called()
     assert buffer.size() == 1
     assert buffer.size_with_requested() == 1
 
     await buffer.stop()
 
 
-async def test_background_feed_buffer_get_all_requested(mocked_buffer, mocker, event_loop):
-    timeout = timedelta(seconds=0.1)
-    item = object()
-    feed_queue: asyncio.Queue[object] = asyncio.Queue()
-    feed_func = mocker.AsyncMock(wraps=feed_queue.get)
+async def test_background_fill_buffer_fill_exception(mocked_buffer, mocker):
+    event = asyncio.Event()
+    exc = ZeroDivisionError()
+
+    async def fill_func():
+        await event.wait()
+        raise exc
+
+    on_added_func = mocker.AsyncMock()
     buffer = BackgroundFillBuffer(
         mocked_buffer,
-        feed_func,
+        fill_func,
+        on_added_func=on_added_func,
+    )
+    await buffer.start()
+
+    await buffer.request(1)
+
+    await asyncio.sleep(0.1)
+
+    mocked_buffer.size.return_value = 0
+    assert buffer.size() == 0
+    assert buffer.size_with_requested() == 1
+
+    event.set()
+
+    await asyncio.sleep(0.1)
+
+    mocked_buffer.put.assert_not_called()
+    mocked_buffer.set_exception.assert_called_with(exc, lock=True)
+    mocked_buffer.size.return_value = 0
+    on_added_func.assert_not_called()
+    assert buffer.size() == 0
+    assert buffer.size_with_requested() == 0
+    assert not buffer.is_started()
+
+
+async def test_background_fill_buffer_get_requested(mocked_buffer, mocker, event_loop):
+    timeout = timedelta(seconds=0.1)
+    item = object()
+    fill_queue: asyncio.Queue[object] = asyncio.Queue()
+    fill_func = mocker.AsyncMock(wraps=fill_queue.get)
+    buffer = BackgroundFillBuffer(
+        mocked_buffer,
+        fill_func,
     )
     await buffer.start()
 
@@ -434,7 +474,7 @@ async def test_background_feed_buffer_get_all_requested(mocked_buffer, mocker, e
 
     await asyncio.sleep(0.1)
 
-    feed_func.assert_called()
+    fill_func.assert_called()
     mocked_buffer.size.return_value = 0
     assert buffer.size() == 0
     assert buffer.size_with_requested() == 1
@@ -452,7 +492,7 @@ async def test_background_feed_buffer_get_all_requested(mocked_buffer, mocker, e
     ), "get_requested seems to not wait to the deadline"
     #
 
-    await feed_queue.put(item)
+    await fill_queue.put(item)
 
     await asyncio.sleep(0.1)
 
