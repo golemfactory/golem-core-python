@@ -61,9 +61,9 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
                 await self._create_and_subscribe_demand()
         except Exception as e:
             self._initial_proposals.set_exception(e)
-            logger.exception(
+            logger.debug(
                 "Encountered unexpected exception while handling demands,"
-                " background loop will be stopped!"
+                " exception is set and background loop will be stopped!"
             )
         finally:
             await self._stop_consuming_initial_proposals()

@@ -374,9 +374,9 @@ class BackgroundFillBuffer(ComposableBuffer[TItem]):
                     item = await self._fill_func()
                 except Exception as e:
                     await self.set_exception(e)
-                    logger.error(
+                    logger.debug(
                         "Encountered unexpected exception while adding a new item,"
-                        " worker loops will be stopped!"
+                        " exception is set and worker loops will be stopped!"
                     )
 
                     loop = asyncio.get_event_loop()

@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from ya_payment import ApiException
 
-from golem.managers.base import PaymentManager
+from golem.managers.base import PaymentManager, ManagerException
 from golem.node import GolemNode
 from golem.payload.defaults import DEFAULT_PAYMENT_DRIVER, DEFAULT_PAYMENT_NETWORK
 from golem.resources import (
@@ -60,7 +60,7 @@ class PayAllPaymentManager(PaymentManager):
     async def stop(self):
         try:
             await self.wait_for_invoices()
-        except RuntimeError:
+        except ManagerException:
             pass
 
         for event_handler in self._event_handlers:
@@ -73,7 +73,7 @@ class PayAllPaymentManager(PaymentManager):
                 self._golem, Decimal(self._budget), self._network, self._driver
             )
         except ApiException as e:
-            raise RuntimeError(json.loads(e.body)["message"])
+            raise ManagerException(json.loads(e.body)["message"]) from e
 
         # TODO: We should not rely on golem node with cleanups, manager should do it by itself
         self._golem.add_autoclose_resource(self._allocation)
@@ -101,7 +101,7 @@ class PayAllPaymentManager(PaymentManager):
             await asyncio.sleep(1)
 
         # TODO: Add list of agreements without payment
-        raise RuntimeError("Waiting for invoices failed with timeout!")
+        raise ManagerException("Waiting for invoices failed with timeout!")
 
     async def _increment_opened_agreements(self, event: NewAgreement):
         self._opened_agreements_count += 1

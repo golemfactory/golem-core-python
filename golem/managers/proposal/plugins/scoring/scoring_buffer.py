@@ -92,9 +92,9 @@ class ProposalScoringBuffer(ProposalScoringMixin, ProposalBuffer):
                 proposals = await self._buffer.get_requested(self._scoring_debounce)
             except Exception as e:
                 await self._buffer_scored.set_exception(e)
-                logger.error(
+                logger.debug(
                     "Encountered unexpected exception while getting proposal,"
-                    " background loop will be stopped!"
+                    " exception is set and background loop will be stopped!"
                 )
 
                 return
