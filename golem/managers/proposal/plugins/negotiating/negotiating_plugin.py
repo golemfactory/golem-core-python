@@ -7,7 +7,7 @@ from typing import Optional, Sequence
 from ya_market import ApiException
 
 from golem.managers import ProposalManagerPlugin, RejectProposal
-from golem.managers.base import ProposalNegotiator, ManagerPluginException
+from golem.managers.base import ManagerPluginException, ProposalNegotiator
 from golem.resources import DemandData, Proposal
 from golem.utils.asyncio.tasks import resolve_maybe_awaitable
 from golem.utils.logging import trace_span

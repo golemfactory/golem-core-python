@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from ya_payment import ApiException
 
-from golem.managers.base import PaymentManager, ManagerException
+from golem.managers.base import ManagerException, PaymentManager
 from golem.node import GolemNode
 from golem.payload.defaults import DEFAULT_PAYMENT_DRIVER, DEFAULT_PAYMENT_NETWORK
 from golem.resources import (
