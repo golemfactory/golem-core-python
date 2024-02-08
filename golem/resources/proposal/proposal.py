@@ -233,13 +233,15 @@ class Proposal(
             self._provider_node_name = node_info.name
         return self._provider_node_name
 
-    def get_expiration_date(self) -> datetime:
+    async def get_expiration_date(self) -> datetime:
         """Return expiration date to auto unsubscribe.
 
         Note: As Proposal can have different expiration date than its Demand, it would be unusable
         after demand expiration anyway, hence earliest from both dates is returned.
         """
-        demand_expiration_date = self.demand.get_expiration_date()
+        await self.get_data()
+
+        demand_expiration_date = await self.demand.get_expiration_date()
         proposal_expiration_date = cast(datetime, self.data.timestamp) + DEFAULT_TTL
 
         return min(proposal_expiration_date, demand_expiration_date)
