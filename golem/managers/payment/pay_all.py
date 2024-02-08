@@ -1,9 +1,12 @@
 import asyncio
+import json
 import logging
 from decimal import Decimal
 from typing import List, Optional
 
-from golem.managers.base import PaymentManager
+from ya_payment import ApiException
+
+from golem.managers.base import ManagerException, PaymentManager
 from golem.node import GolemNode
 from golem.payload.defaults import DEFAULT_PAYMENT_DRIVER, DEFAULT_PAYMENT_NETWORK
 from golem.resources import (
@@ -57,7 +60,7 @@ class PayAllPaymentManager(PaymentManager):
     async def stop(self):
         try:
             await self.wait_for_invoices()
-        except RuntimeError:
+        except ManagerException:
             pass
 
         for event_handler in self._event_handlers:
@@ -65,15 +68,18 @@ class PayAllPaymentManager(PaymentManager):
 
     @trace_span()
     async def _create_allocation(self) -> None:
-        self._allocation = await Allocation.create_any_account(
-            self._golem, Decimal(self._budget), self._network, self._driver
-        )
+        try:
+            self._allocation = await Allocation.create_any_account(
+                self._golem, Decimal(self._budget), self._network, self._driver
+            )
+        except ApiException as e:
+            raise ManagerException(json.loads(e.body)["message"]) from e
 
         # TODO: We should not rely on golem node with cleanups, manager should do it by itself
         self._golem.add_autoclose_resource(self._allocation)
 
     @trace_span("Getting allocation", show_results=True, log_level=logging.INFO)
-    async def get_allocation(self) -> "Allocation":
+    async def get_allocation(self) -> Allocation:
         # TODO handle NoMatchingAccount
         if self._allocation is None:
             await self._create_allocation()
@@ -95,7 +101,7 @@ class PayAllPaymentManager(PaymentManager):
             await asyncio.sleep(1)
 
         # TODO: Add list of agreements without payment
-        raise RuntimeError("Waiting for invoices failed with timeout!")
+        raise ManagerException("Waiting for invoices failed with timeout!")
 
     async def _increment_opened_agreements(self, event: NewAgreement):
         self._opened_agreements_count += 1

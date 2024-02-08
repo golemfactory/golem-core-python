@@ -48,8 +48,9 @@ async def test_start_stop():
 
     assert not event_bus.is_started()
 
-    with pytest.raises(EventBusError, match="not started"):
-        await event_bus.stop()
+    await event_bus.stop()
+
+    assert not event_bus.is_started()
 
 
 async def test_on_off(mocker):

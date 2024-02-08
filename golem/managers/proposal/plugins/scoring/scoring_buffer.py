@@ -87,7 +87,18 @@ class ProposalScoringBuffer(ProposalScoringMixin, ProposalBuffer):
                 "Waiting for any proposals to score with debounce of `%s`...",
                 self._scoring_debounce,
             )
-            proposals = await self._buffer.get_requested(self._scoring_debounce)
+
+            try:
+                proposals = await self._buffer.get_requested(self._scoring_debounce)
+            except Exception as e:
+                await self._buffer_scored.set_exception(e)
+                logger.debug(
+                    "Encountered unexpected exception while getting proposal,"
+                    " exception is set and background loop will be stopped!"
+                )
+
+                return
+
             logger.debug(
                 "Waiting for any proposals done, %d new proposals will be scored", len(proposals)
             )

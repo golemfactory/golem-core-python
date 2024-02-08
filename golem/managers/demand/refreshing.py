@@ -10,7 +10,7 @@ from golem.payload import Payload
 from golem.payload import defaults as payload_defaults
 from golem.resources import Allocation, Demand, Proposal
 from golem.resources.demand.demand_builder import DemandBuilder
-from golem.utils.asyncio import ErrorReportingQueue, create_task_with_logging
+from golem.utils.asyncio import ErrorReportingQueue, create_task_with_logging, ensure_cancelled_many
 from golem.utils.logging import get_trace_id_name, trace_span
 
 logger = logging.getLogger(__name__)
@@ -54,19 +54,22 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
     async def _background_loop(self) -> None:
         try:
             while True:
-                await self._wait_for_demand_to_expire()
-                self._stop_consuming_initial_proposals()
+                if self._demands:
+                    await self._wait_for_demand_to_expire()
+                    await self._stop_consuming_initial_proposals()
+
                 await self._create_and_subscribe_demand()
         except Exception as e:
             self._initial_proposals.set_exception(e)
+            logger.debug(
+                "Encountered unexpected exception while handling demands,"
+                " exception is set and background loop will be stopped!"
+            )
         finally:
-            self._stop_consuming_initial_proposals()
+            await self._stop_consuming_initial_proposals()
             await self._unsubscribe_demands()
 
     async def _wait_for_demand_to_expire(self):
-        if not self._demands:
-            return
-
         await self._demands[-1][0].get_data()
         expiration_date = self._demands[-1][0].get_expiration_date()
         remaining = expiration_date - datetime.now(timezone.utc)
@@ -107,8 +110,8 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
             pass
 
     @trace_span()
-    def _stop_consuming_initial_proposals(self) -> List[bool]:
-        return [d[1].cancel() for d in self._demands]
+    async def _stop_consuming_initial_proposals(self) -> None:
+        await ensure_cancelled_many([d[1] for d in self._demands])
 
     @trace_span()
     async def _prepare_demand_builder(self, allocation: Allocation) -> DemandBuilder:

@@ -7,7 +7,7 @@ from typing import Optional, Sequence
 from ya_market import ApiException
 
 from golem.managers import ProposalManagerPlugin, RejectProposal
-from golem.managers.base import ProposalNegotiator
+from golem.managers.base import ManagerPluginException, ProposalNegotiator
 from golem.resources import DemandData, Proposal
 from golem.utils.asyncio.tasks import resolve_maybe_awaitable
 from golem.utils.logging import trace_span
@@ -92,7 +92,7 @@ class NegotiatingPlugin(ProposalManagerPlugin):
                 timeout=self._proposal_response_timeout,
             )
         except (StopAsyncIteration, asyncio.TimeoutError) as e:
-            raise RuntimeError("Failed to receive proposal response!") from e
+            raise ManagerPluginException("Failed to receive proposal response!") from e
 
     @trace_span()
     async def _send_demand_proposal(
@@ -104,7 +104,7 @@ class NegotiatingPlugin(ProposalManagerPlugin):
                 demand_data.constraints,
             )
         except (ApiException, asyncio.TimeoutError) as e:
-            raise RuntimeError(f"Failed to send proposal response! {e}") from e
+            raise ManagerPluginException(f"Failed to send proposal response! {e}") from e
 
     @trace_span()
     async def _reject_proposal(self, offer_proposal: Proposal) -> None:
