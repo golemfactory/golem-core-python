@@ -142,7 +142,8 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], Yagn
 
         return self._demand_data
 
-    def get_expiration_date(self) -> datetime:
+    async def get_expiration_date(self) -> datetime:
         """Return expiration date to auto unsubscribe."""
+        await self.get_data()
 
         return cast(datetime, self.data.timestamp) + DEFAULT_TTL

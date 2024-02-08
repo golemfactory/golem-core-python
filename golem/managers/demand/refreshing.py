@@ -71,7 +71,7 @@ class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
 
     async def _wait_for_demand_to_expire(self):
         await self._demands[-1][0].get_data()
-        expiration_date = self._demands[-1][0].get_expiration_date()
+        expiration_date = await self._demands[-1][0].get_expiration_date()
         remaining = expiration_date - datetime.now(timezone.utc)
         await asyncio.sleep(remaining.total_seconds())
 
