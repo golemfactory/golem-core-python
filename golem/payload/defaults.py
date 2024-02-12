@@ -15,7 +15,7 @@ INF_MEM = "golem.inf.mem.gib"
 INF_STORAGE = "golem.inf.storage.gib"
 
 DEFAULT_PAYMENT_DRIVER: str = getenv("YAGNA_PAYMENT_DRIVER", "erc20").lower()
-DEFAULT_PAYMENT_NETWORK: str = getenv("YAGNA_PAYMENT_NETWORK", "goerli").lower()
+DEFAULT_PAYMENT_NETWORK: str = getenv("YAGNA_PAYMENT_NETWORK", "holesky").lower()
 
 DEFAULT_LIFETIME = timedelta(minutes=30)
 DEFAULT_SUBNET: str = getenv("YAGNA_SUBNET", "public")

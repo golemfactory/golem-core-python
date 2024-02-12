@@ -30,7 +30,7 @@ python -m golem find-node --runtime vm --timeout 1m # stops after 60 seconds
 python -m golem allocation list
 
 python -m golem allocation new 1
-python -m golem allocation new 2 --driver erc20 --network goerli
+python -m golem allocation new 2 --driver erc20 --network holesky
 
 python -m golem allocation clean
 ```
