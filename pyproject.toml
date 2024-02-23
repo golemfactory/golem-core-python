@@ -18,7 +18,7 @@ requires = ["poetry_core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.dependencies]
-python = "^3.8.1"
+python = ">=3.8.1,<3.13"
 
 # CLI
 prettytable = "^3.4.1"
@@ -29,8 +29,8 @@ jsonrpc-base = "^1.0.3"
 srvresolver = "^0.3.5"
 semantic-version = "^2.8"
 async-exit-stack = "1.0.1"
-textx = "^3.1.1"
 setuptools = "*"  # textx external dependency
+textx = "^4.0.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7"
@@ -55,6 +55,7 @@ sphinx-rtd-theme = "^1"
 
 poethepoet = "^0.8"
 
+
 [tool.poe.tasks]
 checks = {sequence = ["checks_codestyle", "checks_typing", "checks_license"], help = "Run all available code checks"}
 checks_codestyle = {sequence = ["_checks_codestyle_flake8", "_checks_codestyle_isort", "_checks_codestyle_black"], help = "Run only code style checks"}
@@ -72,7 +73,7 @@ _format_isort = "isort ."
 _format_black = "black ."
 
 tests = {sequence = ["tests_unit", "tests_integration"], help = "Run all available tests"}
-tests_unit = {cmd = "pytest --ignore tests/integration", env = { YAGNA_APPKEY = "test" }, help = "Run only unit tests"}
+tests_unit = {cmd = "pytest --ignore tests/integration --cov golem --cov-report html --cov-report term-missing --no-cov-on-fail -sv", env = { YAGNA_APPKEY = "test" }, help = "Run only unit tests"}
 # `tests_integration` require yagna requestor with `YAGNA_APPKEY` in environement
 tests_integration = {cmd = "pytest --ignore tests/unit", help = "Run only integration tests"}
 
@@ -151,8 +152,7 @@ target-version = ['py38']
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-addopts = "--cov golem --cov-report html --cov-report term-missing --no-cov-on-fail -sv"
-testspaths = [
+testpaths = [
     "tests",
 ]
 
