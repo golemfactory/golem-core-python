@@ -18,7 +18,7 @@ requires = ["poetry_core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.dependencies]
-python = ">=3.8.1,<3.13"
+python = "^3.8.1"
 
 # CLI
 prettytable = "^3.4.1"
@@ -29,7 +29,7 @@ jsonrpc-base = "^1.0.3"
 srvresolver = "^0.3.5"
 semantic-version = "^2.8"
 async-exit-stack = "1.0.1"
-textx = "^4.0.1"
+textx = "^3.1.1"
 
 setuptools = "*"  # textx external dependency
 
