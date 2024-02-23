@@ -17,7 +17,7 @@ from golem.managers.base import (
     WorkManager,
     WorkResult,
 )
-from golem.managers.demand import RefreshingDemandManager
+from golem.managers.demand import AggregatingDemandManager, RefreshingDemandManager
 from golem.managers.mixins import BackgroundLoopMixin
 from golem.managers.network import SingleNetworkManager
 from golem.managers.payment import PayAllPaymentManager
@@ -64,6 +64,7 @@ __all__ = (
     "PaymentManager",
     "ProposalManager",
     "ProposalManagerPlugin",
+    "AggregatingDemandManager",
     "DemandManager",
     "AgreementManager",
     "ActivityManager",
