@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from golem.managers.demand.aggregating import AggregatingDemandManager
+from golem.managers import AggregatingDemandManager
 
 
 async def test_aggregating_demand_manager_should_block_until_proposal_arrives(mocker):
