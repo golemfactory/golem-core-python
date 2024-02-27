@@ -28,9 +28,7 @@ class DefaultAgreementManager(AgreementManager):
     @trace_span("Stopping DefaultAgreementManager", log_level=logging.INFO)
     async def stop(self) -> None:
         if self._agreements:
-            await asyncio.gather(
-                *[agreement.terminate() for agreement in self._agreements], return_exceptions=True
-            )
+            await asyncio.gather(*[agreement.close_all() for agreement in self._agreements])
         else:
             logger.info("All agreements are already terminated")
 
@@ -62,6 +60,6 @@ class DefaultAgreementManager(AgreementManager):
             self._agreements.remove(agreement)
         except ValueError:
             logger.warning(f"Agreement `{agreement}` not found when removing it from tracked list")
-        await agreement.terminate()
+        await agreement.close_all()
 
         logger.info(f"Agreement `{agreement}` closed")

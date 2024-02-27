@@ -1,5 +1,5 @@
 import asyncio
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, List, Optional
 
 from ya_market import RequestorApi
@@ -7,6 +7,7 @@ from ya_market import models as models
 from ya_market.exceptions import ApiException
 
 from golem.resources.activity import Activity
+from golem.resources.agreement.data import AgreementData
 from golem.resources.agreement.events import AgreementClosed, NewAgreement
 from golem.resources.base import _NULL, Resource, api_call_wrapper
 from golem.resources.invoice import Invoice
@@ -70,7 +71,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
         :param autoclose: Destroy the activity when the :any:`GolemNode` closes.
         :param timeout: Request timeout.
         """
-        from golem.resources import Activity
+        from golem.resources.activity.activity import Activity
 
         activity = await Activity.create(self.node, self.id, timeout)
         if autoclose:
@@ -105,7 +106,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
     @property
     def activities(self) -> List["Activity"]:
         """A list of :any:`Activity` created for this :any:`Agreement`."""
-        from golem.resources.activity.resources import Activity  # circular imports prevention
+        from golem.resources.activity.activity import Activity  # circular imports prevention
 
         return [child for child in self.children if isinstance(child, Activity)]
 
@@ -158,3 +159,18 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
     @property
     def proposal(self) -> "Proposal":
         return self.parent
+
+    async def get_agreement_data(self, force=False) -> AgreementData:
+        data = await self.get_data(force=force)
+        agreement_duration = (
+            datetime.utcnow() - data.approved_date.astimezone(timezone.utc).replace(tzinfo=None)
+            if data.approved_date
+            else None
+        )
+        return AgreementData(
+            agreement_id=data.agreement_id,
+            provider_id=data.offer.provider_id,
+            approved_date=data.approved_date,
+            properties=data.offer.properties,  # type: ignore
+            agreement_duration=agreement_duration,
+        )

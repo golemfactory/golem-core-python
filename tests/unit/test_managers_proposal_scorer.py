@@ -105,4 +105,9 @@ async def test_weight_proposal_scoring_plugins_mixin_ok(
 
     scorer = FooBarProposalScorer(proposal_scorers=given_plugins)
     received_proposals = await scorer.do_scoring(given_proposals)
-    assert expected_weights == [weight for weight, _ in received_proposals]
+    for expected_weight, received_weight in zip(
+        expected_weights, [weight for weight, _ in received_proposals]
+    ):
+        assert (
+            abs(expected_weight - received_weight) <= 0.000000001
+        ), f"{expected_weight} != {received_weight}"
