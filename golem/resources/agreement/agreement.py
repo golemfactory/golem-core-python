@@ -161,9 +161,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
     async def get_agreement_data(self, force=False) -> AgreementData:
         data = await self.get_data(force=force)
         agreement_duration = (
-            datetime.utcnow() - data.approved_date.astimezone(timezone.utc).replace(tzinfo=None)
-            if data.approved_date
-            else None
+            datetime.now(timezone.utc) - data.approved_date if data.approved_date else None
         )
         return AgreementData(
             agreement_id=data.agreement_id,

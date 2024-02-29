@@ -8,9 +8,9 @@ from typing import (
     Awaitable,
     Callable,
     Generic,
+    Iterable,
     List,
     Optional,
-    Tuple,
     Type,
     TypeVar,
 )
@@ -53,11 +53,11 @@ class _NULL:
 
 
 def api_call_wrapper(
-    ignore_status_codes: Tuple[int, ...] = (),
+    ignore_status_codes: Iterable[int] = (),
     retry_count: int = 0,
     retry_interval: int = 2,
-    retry_status_codes: Tuple[int, ...] = (408, 504),
-    retry_exceptions: Tuple[Type[Exception], ...] = (
+    retry_status_codes: Iterable[int] = (408, 504),
+    retry_exceptions: Iterable[Type[Exception]] = (
         aiohttp.ServerDisconnectedError,
         aiohttp.ClientOSError,
     ),
