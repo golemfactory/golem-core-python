@@ -19,7 +19,6 @@ from golem.resources import (
     NewDebitNote,
     NewInvoice,
 )
-from golem.utils.asyncio.tasks import ensure_cancelled_many
 from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
@@ -86,17 +85,20 @@ class DefaultPaymentManager(PaymentManager):
     @trace_span("Stopping DefaultPaymentManager", log_level=logging.INFO)
     async def stop(self):
         """Terminate all related agreements."""
-        wait_task = asyncio.create_task(asyncio.sleep(self._shutdown_timeout))
-        wait_for_invoices_task = asyncio.create_task(self._wait_for_invoices())
-        _, pending = await asyncio.wait(
-            [wait_task, wait_for_invoices_task], return_when=asyncio.FIRST_COMPLETED
-        )
-        await ensure_cancelled_many(pending)
+        try:
+            await asyncio.wait_for(self._wait_for_invoices(), timeout=self._shutdown_timeout)
+        except TimeoutError:
+            logger.error(
+                "Waiting for invoices failed with timeout! Those agreements did not sent invoices:"
+                f" {[a for a in self._agreements]}"
+            )
 
         await asyncio.gather(*[agreement.close_all() for agreement in self._agreements.values()])
+        self._agreements = {}
 
         for event_handler in self._event_handlers:
             await self._golem.event_bus.off(event_handler)
+        self._event_handlers = []
 
         await self._release_allocation()
 
@@ -107,10 +109,7 @@ class DefaultPaymentManager(PaymentManager):
                 await self._agreement_event.wait()
                 self._agreement_event.clear()
         except asyncio.CancelledError:
-            logger.error(
-                "Waiting for invoices failed with timeout! Those agreements did not sent invoices:"
-                f" {[a for a in self._agreements]}"
-            )
+            return
 
     def _save_agreement(self, agreement: "Agreement") -> None:
         """Add agreement form the pool of known agreements."""
