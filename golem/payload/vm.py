@@ -39,14 +39,14 @@ class VmPackageFormat(Enum):
 class BaseVmPayload(Payload, ABC):
     """Declarative description of common payload parameters for "vm" runtime."""
 
-    runtime: str = constraint(defaults.RUNTIME_NAME, "=", default="vm")
+    runtime: str = constraint(defaults.PROP_RUNTIME_NAME, "=", default="vm")
     capabilities: List[VmCaps] = constraint(
-        defaults.RUNTIME_CAPABILITIES, "=", default_factory=list
+        defaults.PROP_RUNTIME_CAPABILITIES, "=", default_factory=list
     )
 
-    min_mem_gib: float = constraint(defaults.INF_MEM, ">=", default=0.5)
-    min_storage_gib: float = constraint(defaults.INF_STORAGE, ">=", default=2.0)
-    min_cpu_threads: int = constraint(defaults.INF_CPU_THREADS, ">=", default=1)
+    min_mem_gib: float = constraint(defaults.PROP_INF_MEM, ">=", default=0.5)
+    min_storage_gib: float = constraint(defaults.PROP_INF_STORAGE, ">=", default=2.0)
+    min_cpu_threads: int = constraint(defaults.PROP_INF_CPU_THREADS, ">=", default=1)
 
     package_format: VmPackageFormat = prop(
         "golem.srv.comp.vm.package_format", default=VmPackageFormat.GVMKIT_SQUASH

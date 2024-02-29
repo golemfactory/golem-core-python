@@ -32,7 +32,7 @@ class Demand(Resource[RequestorApi, models.Demand, _NULL, Proposal, _NULL], Yagn
 
     ######################
     #   EXTERNAL INTERFACE
-    @api_call_wrapper(ignore_status_codes=[404, 410])
+    @api_call_wrapper(ignore_status_codes=(404, 410))
     async def unsubscribe(self) -> None:
         """Stop all operations related to this demand and remove it.
 

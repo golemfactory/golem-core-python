@@ -10,6 +10,7 @@ from typing import (
     Generic,
     List,
     Optional,
+    Tuple,
     Type,
     TypeVar,
 )
@@ -52,14 +53,14 @@ class _NULL:
 
 
 def api_call_wrapper(
-    ignore_status_codes: List[int] = [],
+    ignore_status_codes: Tuple[int, ...] = (),
     retry_count: int = 0,
     retry_interval: int = 2,
-    retry_status_codes: List[int] = [408, 504],
-    retry_exceptions: List[Type[Exception]] = [
+    retry_status_codes: Tuple[int, ...] = (408, 504),
+    retry_exceptions: Tuple[Type[Exception], ...] = (
         aiohttp.ServerDisconnectedError,
         aiohttp.ClientOSError,
-    ],
+    ),
 ) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
     def outer_wrapper(f: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
         @wraps(f)

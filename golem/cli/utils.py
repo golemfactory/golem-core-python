@@ -10,7 +10,7 @@ from typing_extensions import Concatenate, ParamSpec
 
 from golem.node import GolemNode
 from golem.payload import Payload, constraint
-from golem.payload.defaults import RUNTIME_NAME
+from golem.payload.defaults import PROP_RUNTIME_NAME
 from golem.resources import Allocation, Demand, Proposal
 
 
@@ -85,7 +85,7 @@ def format_proposals(proposals: List[Proposal], first: bool) -> str:
 
 @dataclass
 class CliPayload(Payload):
-    runtime: str = constraint(RUNTIME_NAME, default=MISSING)
+    runtime: str = constraint(PROP_RUNTIME_NAME, default=MISSING)
 
 
 def parse_timedelta_str(timedelta_str: str) -> float:

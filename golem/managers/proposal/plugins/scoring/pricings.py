@@ -44,7 +44,7 @@ class LinearAverageCostPricing:
 class LinearPerCpuAverageCostPricing(LinearAverageCostPricing):
     def __call__(self, proposal_data: ProposalData) -> Optional[float]:
         coeffs = LinearCoeffs.from_properties(proposal_data.properties)
-        cpu_count = proposal_data.properties.get(defaults.INF_CPU_THREADS)
+        cpu_count = proposal_data.properties.get(defaults.PROP_INF_CPU_THREADS)
 
         if coeffs is None or not cpu_count:
             return None

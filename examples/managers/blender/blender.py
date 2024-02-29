@@ -8,11 +8,11 @@ from typing import List
 from golem.managers import (
     ConcurrentWorkManager,
     DefaultAgreementManager,
+    DefaultPaymentManager,
     DefaultProposalManager,
     LinearAverageCostPricing,
     MapScore,
     NegotiatingPlugin,
-    PayAllPaymentManager,
     PaymentPlatformNegotiator,
     PoolActivityManager,
     ProposalScoringBuffer,
@@ -47,7 +47,7 @@ async def run_on_golem(
 
     golem = GolemNode()
 
-    payment_manager = PayAllPaymentManager(golem, budget=budget)
+    payment_manager = DefaultPaymentManager(golem, budget=budget)
     demand_manager = RefreshingDemandManager(
         golem,
         payment_manager.get_allocation,

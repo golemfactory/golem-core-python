@@ -8,20 +8,20 @@ from golem.payload.base import Payload, constraint, prop
 from golem.payload.constraints import Constraints
 from golem.payload.properties import Properties
 
-RUNTIME_NAME = "golem.runtime.name"
-RUNTIME_CAPABILITIES = "golem.runtime.capabilities"
-INF_CPU_THREADS = "golem.inf.cpu.threads"
-INF_MEM = "golem.inf.mem.gib"
-INF_STORAGE = "golem.inf.storage.gib"
+PROP_RUNTIME_NAME = "golem.runtime.name"
+PROP_RUNTIME_CAPABILITIES = "golem.runtime.capabilities"
+PROP_INF_CPU_THREADS = "golem.inf.cpu.threads"
+PROP_INF_MEM = "golem.inf.mem.gib"
+PROP_INF_STORAGE = "golem.inf.storage.gib"
 
-DEBIT_NOTES_ACCEPT_TIMEOUT = "golem.com.payment.debit-notes.accept-timeout?"
+PROP_DEBIT_NOTES_ACCEPT_TIMEOUT = "golem.com.payment.debit-notes.accept-timeout?"
 
-DEBIT_NOTES_INTERVAL = "golem.com.scheme.payu.debit-note.interval-sec?"
-PAYMENT_TIMEOUT = "golem.com.scheme.payu.payment-timeout-sec?"
+PROP_DEBIT_NOTES_INTERVAL = "golem.com.scheme.payu.debit-note.interval-sec?"
+PROP_PAYMENT_TIMEOUT = "golem.com.scheme.payu.payment-timeout-sec?"
 
-PRICING_MODEL = "golem.com.pricing.model"
-PRICING_LINEAR_COEFFS = "golem.com.pricing.model.linear.coeffs"
-USAGE_VECTOR = "golem.com.usage.vector"
+PROP_PRICING_MODEL = "golem.com.pricing.model"
+PROP_PRICING_LINEAR_COEFFS = "golem.com.pricing.model.linear.coeffs"
+PROP_USAGE_VECTOR = "golem.com.usage.vector"
 
 DEFAULT_PAYMENT_DRIVER: str = getenv("YAGNA_PAYMENT_DRIVER", "erc20").lower()
 DEFAULT_PAYMENT_NETWORK: str = getenv("YAGNA_PAYMENT_NETWORK", "goerli").lower()
@@ -113,7 +113,7 @@ class PaymentInfo(Payload):
     chosen_payment_platform: Optional[str] = prop("golem.com.payment.chosen-platform", default=None)
     """Payment platform selected to be used for this demand."""
 
-    debit_notes_accept_timeout: int = prop(DEBIT_NOTES_ACCEPT_TIMEOUT, default=120)
+    debit_notes_accept_timeout: int = prop(PROP_DEBIT_NOTES_ACCEPT_TIMEOUT, default=120)
 
-    debit_notes_interval: Optional[int] = prop(DEBIT_NOTES_INTERVAL, default=None)
-    payment_timeout: Optional[int] = prop(PAYMENT_TIMEOUT, default=None)
+    debit_notes_interval: Optional[int] = prop(PROP_DEBIT_NOTES_INTERVAL, default=None)
+    payment_timeout: Optional[int] = prop(PROP_PAYMENT_TIMEOUT, default=None)

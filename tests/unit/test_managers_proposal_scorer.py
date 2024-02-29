@@ -30,10 +30,10 @@ class FooBarProposalScorer(ProposalScoringMixin):
             (
                 (
                     0.5,
-                    PropertyValueLerpScore(defaults.INF_MEM, zero_at=1, one_at=5),
+                    PropertyValueLerpScore(defaults.PROP_INF_MEM, zero_at=1, one_at=5),
                 ),
             ),
-            ({defaults.INF_MEM: gib} for gib in range(7)),
+            ({defaults.PROP_INF_MEM: gib} for gib in range(7)),
             [1.0, 1.0, 0.75, 0.5, 0.25, 0.0, 0.0],
         ),
         (
@@ -62,7 +62,7 @@ class FooBarProposalScorer(ProposalScoringMixin):
             (
                 (
                     1.0,
-                    PropertyValueLerpScore(defaults.INF_MEM, zero_at=1, one_at=5),
+                    PropertyValueLerpScore(defaults.PROP_INF_MEM, zero_at=1, one_at=5),
                 ),
                 (
                     1.0,
@@ -77,7 +77,7 @@ class FooBarProposalScorer(ProposalScoringMixin):
             ),
             (
                 {
-                    defaults.INF_MEM: gib,
+                    defaults.PROP_INF_MEM: gib,
                     "golem.com.pricing.model": "linear",
                     "golem.com.pricing.model.linear.coeffs": coeffs,
                 }

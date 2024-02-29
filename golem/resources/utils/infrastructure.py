@@ -16,7 +16,7 @@ class InfrastructureProps:
     @classmethod
     def from_properties(cls, properties: Dict) -> "InfrastructureProps":
         return cls(
-            memory_gib=properties.get(defaults.INF_MEM, 0.0),
-            storage_gib=properties.get(defaults.INF_STORAGE, 0.0),
-            cpu_threads=properties.get(defaults.INF_CPU_THREADS, 0),
+            memory_gib=properties.get(defaults.PROP_INF_MEM, 0.0),
+            storage_gib=properties.get(defaults.PROP_INF_STORAGE, 0.0),
+            cpu_threads=properties.get(defaults.PROP_INF_CPU_THREADS, 0),
         )

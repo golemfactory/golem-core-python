@@ -25,7 +25,7 @@ class Allocation(Resource[RequestorApi, models.Allocation, _NULL, _NULL, _NULL])
         super().__init__(node, id_, data)
         asyncio.create_task(node.event_bus.emit(NewAllocation(self)))
 
-    @api_call_wrapper(ignore_status_codes=[404, 410])
+    @api_call_wrapper(ignore_status_codes=(404, 410))
     async def release(self) -> None:
         """Release the allocation.
 

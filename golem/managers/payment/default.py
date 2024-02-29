@@ -24,10 +24,11 @@ from golem.utils.logging import trace_span
 
 logger = logging.getLogger(__name__)
 
+# 2 minutes 30 seconds to as it sometimes take extra time to receive Invoice from an agreement
 DEFAULT_SHUTDOWN_TIMEOUT: timedelta = timedelta(seconds=150)
 
 
-class PayAllPaymentManager(PaymentManager):
+class DefaultPaymentManager(PaymentManager):
     def __init__(
         self,
         golem: GolemNode,
@@ -49,12 +50,12 @@ class PayAllPaymentManager(PaymentManager):
         self._agreements: Dict[str, Agreement] = {}
         self._agreement_event: asyncio.Event = asyncio.Event()
 
-    @trace_span("Starting PayAllPaymentManager", log_level=logging.INFO)
+    @trace_span("Starting DefaultPaymentManager", log_level=logging.INFO)
     async def start(self):
         self._event_handlers.extend(
             [
-                await self._golem.event_bus.on(NewInvoice, self._pay_invoice_if_received),
-                await self._golem.event_bus.on(NewDebitNote, self._pay_debit_note_if_received),
+                await self._golem.event_bus.on(NewInvoice, self._handle_invoice_payment),
+                await self._golem.event_bus.on(NewDebitNote, self._handle_pay_debit_note_payment),
                 await self._golem.event_bus.on(NewAgreement, self._handle_new_agreement),
             ]
         )
@@ -71,6 +72,7 @@ class PayAllPaymentManager(PaymentManager):
             return
 
         await self._allocation.release()
+        self._allocation = None
 
     @trace_span()
     async def _create_allocation(self) -> Allocation:
@@ -81,7 +83,7 @@ class PayAllPaymentManager(PaymentManager):
         except ApiException as e:
             raise ManagerException(json.loads(e.body)["message"]) from e
 
-    @trace_span("Stopping PayAllPaymentManager", log_level=logging.INFO)
+    @trace_span("Stopping DefaultPaymentManager", log_level=logging.INFO)
     async def stop(self):
         """Terminate all related agreements."""
         wait_task = asyncio.create_task(asyncio.sleep(self._shutdown_timeout))
@@ -111,11 +113,13 @@ class PayAllPaymentManager(PaymentManager):
             )
 
     def _save_agreement(self, agreement: "Agreement") -> None:
+        """Add agreement form the pool of known agreements."""
         self._agreements[agreement.id] = agreement
         self._agreement_event.set()
         logger.info(f"Added {agreement.id} to the pool of known agreements")
 
-    def _discard_agreement(self, agreement_id: str) -> None:
+    def _remove_agreement(self, agreement_id: str) -> None:
+        """Remove agreement form the pool of known agreements."""
         del self._agreements[agreement_id]
         self._agreement_event.set()
         logger.info(f"Removed {agreement_id} from the pool of known agreements")
@@ -125,7 +129,7 @@ class PayAllPaymentManager(PaymentManager):
         self._save_agreement(agreement)
 
     @trace_span()
-    async def _pay_invoice_if_received(self, event: NewInvoice) -> None:
+    async def _handle_invoice_payment(self, event: NewInvoice) -> None:
         invoice: Invoice = event.resource
         invoice_data = await invoice.get_data()
         if invoice_data.agreement_id not in self._agreements:
@@ -133,12 +137,12 @@ class PayAllPaymentManager(PaymentManager):
             return
 
         logger.debug("Accepting invoice `%s`: %s", invoice, invoice_data)
-        assert self._allocation is not None
+        assert self._allocation is not None  # mypy
         await invoice.validate_and_accept(self._allocation)
-        self._discard_agreement(invoice_data.agreement_id)
+        self._remove_agreement(invoice_data.agreement_id)
 
     @trace_span()
-    async def _pay_debit_note_if_received(self, event: NewDebitNote) -> None:
+    async def _handle_pay_debit_note_payment(self, event: NewDebitNote) -> None:
         debit_note: DebitNote = event.resource
         debit_note_data = await debit_note.get_data()
         if debit_note_data.agreement_id not in self._agreements:
@@ -148,5 +152,5 @@ class PayAllPaymentManager(PaymentManager):
             return
 
         logger.debug("Accepting debit note `%s`: %s", debit_note, debit_note_data)
-        assert self._allocation is not None
+        assert self._allocation is not None  # mypy
         await debit_note.validate_and_accept(self._allocation)

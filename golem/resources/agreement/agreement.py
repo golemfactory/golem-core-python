@@ -106,8 +106,6 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
     @property
     def activities(self) -> List["Activity"]:
         """A list of :any:`Activity` created for this :any:`Agreement`."""
-        from golem.resources.activity.activity import Activity  # circular imports prevention
-
         return [child for child in self.children if isinstance(child, Activity)]
 
     async def close_all(self) -> None:

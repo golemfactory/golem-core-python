@@ -84,17 +84,15 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
         if payment_props.debit_notes_accept_timeout is None:
             raise PaymentValidationException("Debit payment timeout is missing")
 
-        interval = payment_props.debit_notes_accept_timeout
-        if agreement_duration.total_seconds() + grace_period.total_seconds() < float(
-            previous_debit_notes_count * interval
-        ):
+        interval = timedelta(seconds=payment_props.debit_notes_accept_timeout)
+        if agreement_duration + grace_period < previous_debit_notes_count * interval:
             raise PaymentValidationException("Too many debit notes received.")
 
     @classmethod
     def validate_payment_data(
         cls,
         debit_note_data: models.DebitNote,
-        previous_dn_data: Optional[models.DebitNote],
+        previous_debit_note_data: Optional[models.DebitNote],
         previous_debit_notes_count: int,
         agreement_data: "AgreementData",
     ) -> Decimal:
@@ -123,9 +121,12 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
         )
 
         time_since_last_dn = amount_since_last_dn = None
-        if previous_dn_data:
-            time_since_last_dn = debit_note_data.timestamp - previous_dn_data.timestamp
-            amount_since_last_dn = total_amount_due - eth_decimal(previous_dn_data.total_amount_due)
+        if previous_debit_note_data:
+            time_since_last_dn = debit_note_data.timestamp - previous_debit_note_data.timestamp
+            amount_since_last_dn = total_amount_due - eth_decimal(
+                previous_debit_note_data.total_amount_due
+            )
+
         max_cost, max_cost_since_last_debit_note = validate_payment_max_cost(
             coeffs=coeffs,
             inf=InfrastructureProps.from_properties(agreement_data.properties),
@@ -152,14 +153,19 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
             force=True
         )
 
-        previous_dn_data = await self.get_previous_debit_note_data(debit_note_data.timestamp)
+        previous_debit_note_data = await self.get_previous_debit_note_data(
+            debit_note_data.timestamp
+        )
         previous_debit_notes_count = await self.get_previous_debit_notes_count(
             debit_note_data.timestamp
         )
 
         try:
             total_amount_due = self.validate_payment_data(
-                debit_note_data, previous_dn_data, previous_debit_notes_count, agreement_data
+                debit_note_data,
+                previous_debit_note_data,
+                previous_debit_notes_count,
+                agreement_data,
             )
         except PaymentValidationException:
             logger.warning(f"Debit Note {self.id} validation failed", exc_info=True)

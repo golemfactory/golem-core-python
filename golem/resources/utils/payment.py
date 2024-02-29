@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from decimal import ROUND_CEILING, Decimal
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from golem.payload import defaults
 from golem.resources.exceptions import PaymentValidationException
@@ -12,10 +12,10 @@ from golem.resources.utils.infrastructure import InfrastructureProps
 logger = logging.getLogger(__name__)
 
 
-ETH_SCALE = 10 ** Decimal(-18)
+ETH_EXPONENT = 10 ** Decimal(-18)
 
 
-USAGE_VECTOR_MAPPING = {
+USAGE_VECTOR_TO_PRICE_MAPPING = {
     # `_` versions are deprecated but still used by providers
     "golem.usage.cpu_sec": "price_cpu_sec",
     "golem.usage.cpu-sec": "price_cpu_sec",
@@ -37,20 +37,25 @@ class LinearCoeffs:
     price_initial: Decimal = Decimal("0.0")
 
     def usage_vector_price(self) -> List[Decimal]:
-        return [getattr(self, USAGE_VECTOR_MAPPING.get(vector, "")) for vector in self.usage_vector]
+        return [
+            getattr(self, USAGE_VECTOR_TO_PRICE_MAPPING.get(vector, ""))
+            for vector in self.usage_vector
+        ]
 
     @classmethod
     def from_properties(cls, properties: Dict) -> Optional["LinearCoeffs"]:
-        pricing_model = properties.get(defaults.PRICING_MODEL)
+        pricing_model = properties.get(defaults.PROP_PRICING_MODEL)
 
         if pricing_model != "linear":
             logger.debug("Pricing model `%s` is not `linear`, ignoring", pricing_model)
             return None
 
         coeffs: List[Decimal] = [
-            eth_decimal(coeff) for coeff in properties.get(defaults.PRICING_LINEAR_COEFFS, [])
+            eth_decimal(coeff) for coeff in properties.get(defaults.PROP_PRICING_LINEAR_COEFFS, [])
         ]
-        usage_vector: List[str] = [usage for usage in properties.get(defaults.USAGE_VECTOR, [])]
+        usage_vector: List[str] = [
+            usage for usage in properties.get(defaults.PROP_USAGE_VECTOR, [])
+        ]
 
         if len(coeffs) == 0 or len(coeffs) != len(usage_vector) + 1:
             logger.debug(
@@ -64,7 +69,7 @@ class LinearCoeffs:
         build_dict: Dict[str, Any] = {"price_initial": coeffs[-1], "usage_vector": usage_vector}
 
         for usage, coeff in zip(usage_vector, coeffs):
-            key = USAGE_VECTOR_MAPPING.get(usage)
+            key = USAGE_VECTOR_TO_PRICE_MAPPING.get(usage)
             if key is None:
                 continue
             build_dict[key] = coeff
@@ -94,14 +99,14 @@ class PaymentProps:
     @classmethod
     def from_properties(cls, properties: Dict) -> "PaymentProps":
         return cls(
-            debit_notes_accept_timeout=properties.get(defaults.DEBIT_NOTES_ACCEPT_TIMEOUT),
-            debit_note_interval=properties.get(defaults.DEBIT_NOTES_INTERVAL),
-            payment_timeout=properties.get(defaults.PAYMENT_TIMEOUT),
+            debit_notes_accept_timeout=properties.get(defaults.PROP_DEBIT_NOTES_ACCEPT_TIMEOUT),
+            debit_note_interval=properties.get(defaults.PROP_DEBIT_NOTES_INTERVAL),
+            payment_timeout=properties.get(defaults.PROP_PAYMENT_TIMEOUT),
         )
 
 
 def eth_decimal(value: Union[str, Decimal]) -> Decimal:
-    return Decimal(value).quantize(ETH_SCALE, ROUND_CEILING)
+    return Decimal(value).quantize(ETH_EXPONENT, ROUND_CEILING)
 
 
 def validate_payment_max_cost(
@@ -111,8 +116,13 @@ def validate_payment_max_cost(
     amount: Decimal,
     time_since_last_debit_note: Optional[timedelta] = None,
     amount_since_last_debit_note: Optional[Decimal] = None,
-):
+) -> Tuple[Decimal, Optional[Decimal]]:
     """Validate payment data max cost.
+
+    Returns:
+        maximum cost given `coeffs` and `infrastructure` could generate in
+        - given `duration`
+        - given `time_since_last_debit_note` if provided
 
     Raises: PaymentValidationException
     """
@@ -155,8 +165,10 @@ def validate_payment_calculated_cost(
     coeffs: LinearCoeffs,
     amount: Decimal,
     usage_counter_vector: List,
-):
+) -> Decimal:
     """Validate payment amount calculated from vector usage.
+
+    Returns: cost given `coeffs` and `usage_counter_vector` should generate
 
     Raises: PaymentValidationException
     """
