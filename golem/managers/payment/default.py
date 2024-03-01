@@ -47,7 +47,7 @@ class DefaultPaymentManager(PaymentManager):
         self._event_handlers: List = []
 
         self._agreements: Dict[str, Agreement] = {}
-        self._agreement_event: asyncio.Event = asyncio.Event()
+        self._last_agreement_removed_event: asyncio.Event = asyncio.Event()
 
     @trace_span("Starting DefaultPaymentManager", log_level=logging.INFO)
     async def start(self):
@@ -105,22 +105,21 @@ class DefaultPaymentManager(PaymentManager):
     @trace_span("Waiting for invoices", log_level=logging.INFO)
     async def _wait_for_invoices(self):
         try:
-            while len(self._agreements) > 0:
-                await self._agreement_event.wait()
-                self._agreement_event.clear()
+            await self._last_agreement_removed_event.wait()
         except asyncio.CancelledError:
             return
 
     def _save_agreement(self, agreement: "Agreement") -> None:
         """Add agreement form the pool of known agreements."""
         self._agreements[agreement.id] = agreement
-        self._agreement_event.set()
+        self._last_agreement_removed_event.clear()
         logger.info(f"Added {agreement.id} to the pool of known agreements")
 
     def _remove_agreement(self, agreement_id: str) -> None:
         """Remove agreement form the pool of known agreements."""
         del self._agreements[agreement_id]
-        self._agreement_event.set()
+        if len(self._agreements) == 0:
+            self._last_agreement_removed_event.set()
         logger.info(f"Removed {agreement_id} from the pool of known agreements")
 
     async def _handle_new_agreement(self, event: NewAgreement) -> None:
