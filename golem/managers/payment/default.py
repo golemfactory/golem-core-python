@@ -47,7 +47,8 @@ class DefaultPaymentManager(PaymentManager):
         self._event_handlers: List = []
 
         self._agreements: Dict[str, Agreement] = {}
-        self._last_agreement_removed_event: asyncio.Event = asyncio.Event()
+        self._no_agreements_event: asyncio.Event = asyncio.Event()
+        self._no_agreements_event.set()
 
     @trace_span("Starting DefaultPaymentManager", log_level=logging.INFO)
     async def start(self):
@@ -94,32 +95,29 @@ class DefaultPaymentManager(PaymentManager):
             )
 
         await asyncio.gather(*[agreement.close_all() for agreement in self._agreements.values()])
-        self._agreements = {}
+        self._agreements.clear()
 
         for event_handler in self._event_handlers:
             await self._golem.event_bus.off(event_handler)
-        self._event_handlers = []
+        self._event_handlers.clear()
 
         await self._release_allocation()
 
     @trace_span("Waiting for invoices", log_level=logging.INFO)
     async def _wait_for_invoices(self):
-        try:
-            await self._last_agreement_removed_event.wait()
-        except asyncio.CancelledError:
-            return
+        await self._no_agreements_event.wait()
 
     def _save_agreement(self, agreement: "Agreement") -> None:
         """Add agreement form the pool of known agreements."""
         self._agreements[agreement.id] = agreement
-        self._last_agreement_removed_event.clear()
+        self._no_agreements_event.clear()
         logger.info(f"Added {agreement.id} to the pool of known agreements")
 
     def _remove_agreement(self, agreement_id: str) -> None:
         """Remove agreement form the pool of known agreements."""
         del self._agreements[agreement_id]
-        if len(self._agreements) == 0:
-            self._last_agreement_removed_event.set()
+        if not self._agreements:
+            self._no_agreements_event.set()
         logger.info(f"Removed {agreement_id} from the pool of known agreements")
 
     async def _handle_new_agreement(self, event: NewAgreement) -> None:

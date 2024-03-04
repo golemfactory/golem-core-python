@@ -38,8 +38,9 @@ class LinearCoeffs:
 
     def usage_vector_price(self) -> List[Decimal]:
         return [
-            getattr(self, USAGE_VECTOR_TO_PRICE_MAPPING.get(vector, ""))
+            getattr(self, USAGE_VECTOR_TO_PRICE_MAPPING[vector])
             for vector in self.usage_vector
+            if vector in USAGE_VECTOR_TO_PRICE_MAPPING
         ]
 
     @classmethod
