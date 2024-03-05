@@ -4,10 +4,10 @@ from datetime import datetime, timedelta
 
 from golem.managers import (
     DefaultAgreementManager,
+    DefaultPaymentManager,
     DefaultProposalManager,
     MidAgreementPaymentsNegotiator,
     NegotiatingPlugin,
-    PayAllPaymentManager,
     PaymentPlatformNegotiator,
     ProposalBuffer,
     RefreshingDemandManager,
@@ -76,7 +76,7 @@ async def main():
 
     golem = GolemNode()
 
-    payment_manager = PayAllPaymentManager(golem, budget=10.0)
+    payment_manager = DefaultPaymentManager(golem, budget=10.0)
     demand_manager = RefreshingDemandManager(golem, payment_manager.get_allocation, payloads)
     proposal_manager = DefaultProposalManager(
         golem,

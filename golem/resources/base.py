@@ -8,12 +8,14 @@ from typing import (
     Awaitable,
     Callable,
     Generic,
+    Iterable,
     List,
     Optional,
     Type,
     TypeVar,
 )
 
+import aiohttp
 from typing_extensions import ParamSpec
 from ya_activity import ApiException as ActivityApiException
 from ya_market import ApiException as MarketApiException
@@ -51,21 +53,37 @@ class _NULL:
 
 
 def api_call_wrapper(
-    ignore: List[int] = [],
+    ignore_status_codes: Iterable[int] = (),
+    retry_count: int = 0,
+    retry_interval: int = 2,
+    retry_status_codes: Iterable[int] = (408, 504),
+    retry_exceptions: Iterable[Type[Exception]] = (
+        aiohttp.ServerDisconnectedError,
+        aiohttp.ClientOSError,
+    ),
 ) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
     def outer_wrapper(f: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
         @wraps(f)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
-            try:
-                return await f(*args, **kwargs)
-            except all_api_exceptions as e:
-                if e.status in ignore:
-                    return None
-                elif e.status == 404:
-                    self = args[0]
-                    raise ResourceNotFound(self)  # type: ignore
-                else:
-                    raise
+            remaining_tries = retry_count + 1
+            while True:
+                try:
+                    return await f(*args, **kwargs)
+                except all_api_exceptions as e:
+                    if e.status in ignore_status_codes:
+                        return None
+                    elif e.status in retry_status_codes or any(
+                        isinstance(e, err) for err in retry_exceptions
+                    ):
+                        remaining_tries -= 1
+                        if remaining_tries <= 0:
+                            raise
+                        await asyncio.sleep(retry_interval)
+                    elif e.status == 404:
+                        self = args[0]
+                        raise ResourceNotFound(self)  # type: ignore
+                    else:
+                        raise
 
         return wrapper  # type: ignore  # I don't understand this :/
 

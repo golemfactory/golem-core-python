@@ -17,17 +17,17 @@ class LinearCoeffsCost:
 
     @trace_span(lambda s: str(s), show_results=True)
     def __call__(self, proposal_data: ProposalData) -> Optional[float]:
-        coeffs = LinearCoeffs.from_proposal_data(proposal_data)
+        coeffs = LinearCoeffs.from_properties(proposal_data.properties)
 
         if coeffs is None:
             return None
 
-        return getattr(coeffs, self._coeff_name)
+        return float(getattr(coeffs, self._coeff_name))
 
 
 class LinearPerCpuCoeffsCost(LinearCoeffsCost):
     def __call__(self, proposal_data: ProposalData) -> Optional[float]:
-        cpu_count = proposal_data.properties.get(defaults.INF_CPU_THREADS)
+        cpu_count = proposal_data.properties.get(defaults.PROP_INF_CPU_THREADS)
 
         if not cpu_count:
             return None

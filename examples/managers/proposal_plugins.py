@@ -6,11 +6,11 @@ from random import randint, random
 from golem.managers import (
     BlacklistProviderIdPlugin,
     DefaultAgreementManager,
+    DefaultPaymentManager,
     DefaultProposalManager,
     LinearAverageCostPricing,
     MapScore,
     NegotiatingPlugin,
-    PayAllPaymentManager,
     PaymentPlatformNegotiator,
     PoolActivityManager,
     PropertyValueLerpScore,
@@ -68,7 +68,7 @@ async def main():
         average_cpu_load=0.2, average_duration=timedelta(seconds=5)
     )
 
-    payment_manager = PayAllPaymentManager(golem, budget=1.0)
+    payment_manager = DefaultPaymentManager(golem, budget=1.0)
     demand_manager = RefreshingDemandManager(
         golem,
         payment_manager.get_allocation,
@@ -108,7 +108,7 @@ async def main():
                 proposal_scorers=(
                     # List of Scorer or Tuple[float, Scorer], float in [-1,1] range
                     MapScore(linear_average_cost, normalize=True, normalize_flip=True),
-                    (0.5, PropertyValueLerpScore(defaults.INF_MEM, zero_at=1, one_at=8)),
+                    (0.5, PropertyValueLerpScore(defaults.PROP_INF_MEM, zero_at=1, one_at=8)),
                     (0.1, RandomScore()),
                     (0.0, lambda proposals_data: [random() for _ in range(len(proposals_data))]),
                     (0.0, MapScore(lambda proposal_data: random())),

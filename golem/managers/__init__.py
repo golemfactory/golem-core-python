@@ -20,7 +20,7 @@ from golem.managers.base import (
 from golem.managers.demand import AggregatingDemandManager, RefreshingDemandManager
 from golem.managers.mixins import BackgroundLoopMixin
 from golem.managers.network import SingleNetworkManager
-from golem.managers.payment import PayAllPaymentManager
+from golem.managers.payment import DefaultPaymentManager
 from golem.managers.proposal import (
     BlacklistProviderIdPlugin,
     DefaultProposalManager,
@@ -71,7 +71,7 @@ __all__ = (
     "RefreshingDemandManager",
     "BackgroundLoopMixin",
     "SingleNetworkManager",
-    "PayAllPaymentManager",
+    "DefaultPaymentManager",
     "DefaultProposalManager",
     "BlacklistProviderIdPlugin",
     "ProposalBuffer",

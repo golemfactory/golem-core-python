@@ -78,7 +78,6 @@ from golem.resources.pooling_batch import (
     PoolingBatchException,
 )
 from golem.resources.proposal import (
-    LinearCoeffs,
     NewProposal,
     Proposal,
     ProposalClosed,
@@ -88,6 +87,7 @@ from golem.resources.proposal import (
     default_create_agreement,
     default_negotiate,
 )
+from golem.resources.utils.payment import LinearCoeffs
 
 __all__ = (
     "Activity",

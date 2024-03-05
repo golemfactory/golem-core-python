@@ -30,10 +30,10 @@ class FooBarProposalScorer(ProposalScoringMixin):
             (
                 (
                     0.5,
-                    PropertyValueLerpScore(defaults.INF_MEM, zero_at=1, one_at=5),
+                    PropertyValueLerpScore(defaults.PROP_INF_MEM, zero_at=1, one_at=5),
                 ),
             ),
-            ({defaults.INF_MEM: gib} for gib in range(7)),
+            ({defaults.PROP_INF_MEM: gib} for gib in range(7)),
             [1.0, 1.0, 0.75, 0.5, 0.25, 0.0, 0.0],
         ),
         (
@@ -62,7 +62,7 @@ class FooBarProposalScorer(ProposalScoringMixin):
             (
                 (
                     1.0,
-                    PropertyValueLerpScore(defaults.INF_MEM, zero_at=1, one_at=5),
+                    PropertyValueLerpScore(defaults.PROP_INF_MEM, zero_at=1, one_at=5),
                 ),
                 (
                     1.0,
@@ -77,7 +77,7 @@ class FooBarProposalScorer(ProposalScoringMixin):
             ),
             (
                 {
-                    defaults.INF_MEM: gib,
+                    defaults.PROP_INF_MEM: gib,
                     "golem.com.pricing.model": "linear",
                     "golem.com.pricing.model.linear.coeffs": coeffs,
                 }
@@ -105,4 +105,9 @@ async def test_weight_proposal_scoring_plugins_mixin_ok(
 
     scorer = FooBarProposalScorer(proposal_scorers=given_plugins)
     received_proposals = await scorer.do_scoring(given_proposals)
-    assert expected_weights == [weight for weight, _ in received_proposals]
+    for expected_weight, received_weight in zip(
+        expected_weights, [weight for weight, _ in received_proposals]
+    ):
+        assert (
+            abs(expected_weight - received_weight) <= 0.000000001
+        ), f"{expected_weight} != {received_weight}"

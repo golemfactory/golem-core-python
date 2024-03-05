@@ -6,9 +6,9 @@ from uuid import uuid4
 
 from golem.managers import (
     DefaultAgreementManager,
+    DefaultPaymentManager,
     DefaultProposalManager,
     NegotiatingPlugin,
-    PayAllPaymentManager,
     PaymentPlatformNegotiator,
     RefreshingDemandManager,
     SequentialWorkManager,
@@ -80,7 +80,7 @@ async def main():
     golem = GolemNode()
 
     network_manager = SingleNetworkManager(golem, network_ip)
-    payment_manager = PayAllPaymentManager(golem, budget=1.0)
+    payment_manager = DefaultPaymentManager(golem, budget=1.0)
     demand_manager = RefreshingDemandManager(
         golem,
         payment_manager.get_allocation,

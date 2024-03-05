@@ -4,9 +4,9 @@ import logging.config
 from golem.managers import (
     BlacklistProviderIdPlugin,
     DefaultAgreementManager,
+    DefaultPaymentManager,
     DefaultProposalManager,
     NegotiatingPlugin,
-    PayAllPaymentManager,
     PaymentPlatformNegotiator,
     PoolActivityManager,
     ProposalBuffer,
@@ -41,7 +41,7 @@ async def main():
 
     golem = GolemNode()
 
-    payment_manager = PayAllPaymentManager(golem, budget=1.0)
+    payment_manager = DefaultPaymentManager(golem, budget=1.0)
     demand_manager = RefreshingDemandManager(golem, payment_manager.get_allocation, [payload])
 
     proposal_manager = DefaultProposalManager(

@@ -36,3 +36,7 @@ class ResourceNotFound(ResourceException):
     def resource(self) -> "Resource":
         """Resource that caused the exception."""
         return self._resource
+
+
+class PaymentValidationException(Exception):
+    ...
