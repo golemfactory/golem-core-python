@@ -83,17 +83,24 @@ class Invoice(Resource[RequestorApi, models.Invoice, "Agreement", _NULL, _NULL])
             ) = await self.get_time_and_amount_since_latest_debit_notes(
                 invoice_data.timestamp, amount_due
             )
+            coeffs = LinearCoeffs.from_properties(agreement_data.properties)
+            infrastructure = InfrastructureProps.from_properties(agreement_data.properties)
 
             max_cost, max_cost_since_latest_debit_notes = validate_payment_max_cost(
-                coeffs=LinearCoeffs.from_properties(agreement_data.properties),
-                inf=InfrastructureProps.from_properties(agreement_data.properties),
+                coeffs=coeffs,
+                inf=infrastructure,
                 duration=agreement_data.agreement_duration,
                 amount=amount_due,
                 time_since_last_debit_note=cumulative_time_since_last_dn,
                 amount_since_last_debit_note=cumulative_amount_since_last_dn,
             )
         except PaymentValidationException:
-            logger.warning(f"Invoice {self.id} validation failed", exc_info=True)
+            logger.warning(
+                f"Invoice {self.id} validation failed. {coeffs=}, {infrastructure= }, "
+                f"{agreement_data.agreement_duration= }, {amount_due= }, "
+                f"{cumulative_time_since_last_dn= }, {cumulative_amount_since_last_dn= }",
+                exc_info=True,
+            )
             return
 
         logger.info(
