@@ -86,7 +86,10 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
 
         interval = timedelta(seconds=payment_props.debit_notes_accept_timeout)
         if agreement_duration + grace_period < previous_debit_notes_count * interval:
-            raise PaymentValidationException("Too many debit notes received.")
+            raise PaymentValidationException(
+                f"Too many debit notes received {previous_debit_notes_count=}. "
+                f"{agreement_duration + grace_period} < {previous_debit_notes_count * interval}"
+            )
 
     @classmethod
     def validate_payment_data(
