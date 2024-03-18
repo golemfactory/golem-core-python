@@ -96,9 +96,9 @@ class Invoice(Resource[RequestorApi, models.Invoice, "Agreement", _NULL, _NULL])
             )
         except PaymentValidationException:
             logger.warning(
-                f"Invoice {self.id} validation failed. {coeffs=}, {infrastructure= }, "
-                f"{agreement_data.agreement_duration= }, {amount_due= }, "
-                f"{cumulative_time_since_last_dn= }, {cumulative_amount_since_last_dn= }",
+                f"Invoice {self.id} validation failed. {coeffs=}, {infrastructure=}, "
+                f"{agreement_data.agreement_duration=}, {amount_due=}, "
+                f"{cumulative_time_since_last_dn=}, {cumulative_amount_since_last_dn=}",
                 exc_info=True,
             )
             return

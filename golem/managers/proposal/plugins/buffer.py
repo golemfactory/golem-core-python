@@ -1,6 +1,10 @@
+import json
 import logging
+import re
 from datetime import timedelta
 from typing import Callable, Optional
+
+from ya_market import ApiException
 
 from golem.managers import ProposalManagerPlugin
 from golem.resources import Proposal
@@ -65,7 +69,20 @@ class ProposalBuffer(ProposalManagerPlugin):
 
     async def _on_expired(self, proposal: Proposal):
         logger.debug("Rejecting expired `%r` and requesting fill", proposal)
-        await proposal.reject("Proposal no longer needed due to its near expiration.")
+
+        try:
+            await proposal.reject("Proposal no longer needed due to its near expiration.")
+        except ApiException as e:
+            message = json.loads(e.body)["message"]
+            if e.status == 400 and re.match(
+                r"^Subscription \[([^]]+)\] (wasn't found|expired).$", message
+            ):
+                logger.warning(
+                    "Proposal assumed already expired. Consider shortening the expiry duration."
+                )
+            else:
+                raise
+
         await self._request_proposals()
 
         if self._on_expiration_func:
