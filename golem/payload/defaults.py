@@ -24,7 +24,7 @@ PROP_PRICING_LINEAR_COEFFS = "golem.com.pricing.model.linear.coeffs"
 PROP_USAGE_VECTOR = "golem.com.usage.vector"
 
 DEFAULT_PAYMENT_DRIVER: str = getenv("YAGNA_PAYMENT_DRIVER", "erc20").lower()
-DEFAULT_PAYMENT_NETWORK: str = getenv("YAGNA_PAYMENT_NETWORK", "goerli").lower()
+DEFAULT_PAYMENT_NETWORK: str = getenv("YAGNA_PAYMENT_NETWORK", "holesky").lower()
 
 DEFAULT_LIFETIME = timedelta(minutes=30)
 DEFAULT_SUBNET: str = getenv("YAGNA_SUBNET", "public")

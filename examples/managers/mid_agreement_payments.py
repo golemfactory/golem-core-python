@@ -23,7 +23,7 @@ from golem.utils.logging import DEFAULT_LOGGING
 WORK_RUN_TIME = timedelta(minutes=60)
 
 
-async def print_yagna_payment_status(yagna_path="yagna", network="goerli"):
+async def print_yagna_payment_status(yagna_path="yagna", network="holesky"):
     process = await asyncio.create_subprocess_exec(
         yagna_path,
         "payment",
