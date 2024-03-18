@@ -78,8 +78,7 @@ class ProposalBuffer(ProposalManagerPlugin):
                 r"^Subscription \[([^]]+)\] (wasn't found|expired).$", message
             ):
                 logger.warning(
-                    "Manual proposal expiration seems to be called too late."
-                    " Consider shortening the expire duration."
+                    "Proposal assumed already expired. Consider shortening the expiry duration."
                 )
             else:
                 raise
