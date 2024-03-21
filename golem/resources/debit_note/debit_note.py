@@ -90,7 +90,7 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
             raise PaymentValidationException(
                 f"Too many debit notes received {previous_payable_debit_notes_count=}. "
                 f"{agreement_duration + grace_period}"
-                f" < {previous_payable_debit_notes_count  * interval}"
+                f" < {previous_payable_debit_notes_count * interval}"
             )
 
     @classmethod
