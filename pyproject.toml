@@ -24,7 +24,7 @@ python = "^3.8.1"
 prettytable = "^3.4.1"
 click = "^8.1.3"
 
-ya-aioclient = "^0.6.4"
+ya-aioclient = { git = "https://github.com/golemfactory/ya_tmp_pyapi.git", rev = "3229c289ca327505f4b9d1174283a58dd798cba8" }
 jsonrpc-base = "^1.0.3"
 srvresolver = "^0.3.5"
 semantic-version = "^2.8"
