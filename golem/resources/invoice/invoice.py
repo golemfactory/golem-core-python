@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional, Tuple, Union
 
@@ -41,21 +41,23 @@ class Invoice(Resource[RequestorApi, models.Invoice, "Agreement", _NULL, _NULL])
         asyncio.create_task(node.event_bus.emit(NewInvoice(self)))
 
     async def get_time_and_amount_since_latest_debit_notes(
-        self, timestamp: datetime, total_amount: Decimal
+        self, total_amount: Decimal
     ) -> Tuple[timedelta, Decimal]:
         """Get cumulative time and amount since last debit notes from all activities."""
         cumulative_time_from_all_activities = timedelta()
         cumulative_amount_from_all_activities = Decimal(0)
 
         for activity in self.agreement.activities:
-            debit_notes_data = [(await dn.get_data()) for dn in activity.debit_notes]
-            debit_notes_data.sort(key=lambda dn: dn.timestamp, reverse=True)
-
             # Look for a newest Debit Note that came before the invoice
-            for dn_data in debit_notes_data:
-                if dn_data.timestamp < timestamp:
-                    cumulative_time_from_all_activities += timestamp - dn_data.timestamp
-                    cumulative_amount_from_all_activities += eth_decimal(dn_data.total_amount_due)
+            for debit_note in sorted(
+                activity.debit_notes, key=lambda dn: dn.created_at, reverse=True
+            ):
+                await debit_note.get_data()  # ensure there is access to `debit_note.data``
+                if debit_note.created_at < self.created_at:
+                    cumulative_time_from_all_activities += self.created_at - debit_note.created_at
+                    cumulative_amount_from_all_activities += eth_decimal(
+                        debit_note.data.total_amount_due
+                    )
                 break
 
         return (
@@ -80,9 +82,7 @@ class Invoice(Resource[RequestorApi, models.Invoice, "Agreement", _NULL, _NULL])
             (
                 cumulative_time_since_last_dn,
                 cumulative_amount_since_last_dn,
-            ) = await self.get_time_and_amount_since_latest_debit_notes(
-                invoice_data.timestamp, amount_due
-            )
+            ) = await self.get_time_and_amount_since_latest_debit_notes(amount_due)
             coeffs = LinearCoeffs.from_properties(agreement_data.properties)
             infrastructure = InfrastructureProps.from_properties(agreement_data.properties)
 

@@ -166,6 +166,7 @@ def validate_payment_calculated_cost(
     coeffs: LinearCoeffs,
     amount: Decimal,
     usage_counter_vector: List,
+    grace_amount: Decimal = 100 * ETH_EXPONENT,
 ) -> Decimal:
     """Validate payment amount calculated from vector usage.
 
@@ -178,7 +179,7 @@ def validate_payment_calculated_cost(
         calculated_cost += price * Decimal(value)
     calculated_cost = eth_decimal(calculated_cost)
 
-    if amount > calculated_cost:
+    if amount > calculated_cost + grace_amount:
         raise PaymentValidationException(
             "Total amount due exceeds expected calculated cost " f"{amount} > {calculated_cost}"
         )

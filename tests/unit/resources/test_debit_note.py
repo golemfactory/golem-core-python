@@ -8,99 +8,290 @@ from golem.resources.utils.payment import PaymentProps
 
 
 @pytest.mark.parametrize(
-    "payment_timeout, grace_period, agreement_duration, previous_payable_debit_notes_count",
+    "activity_offset, payment_timeout_s, debit_note_interval_s, payment_due_date_in, "
+    "previous_debit_note_offset, previous_payable_debit_note_offset, grace_period",
     (
-        (60, 0, 60, 1),
-        (10, 0, 100, 10),
-        (600, 0, 6000, 10),
-        (600, 600, 6000, 11),  # 600s of grace_period can compensate for 1 extra debit note
+        (
+            timedelta(seconds=900),
+            600,
+            60,
+            timedelta(seconds=600),
+            timedelta(seconds=60),
+            timedelta(seconds=600),
+            timedelta(seconds=0),
+        ),
+        (
+            timedelta(hours=1),
+            600,
+            60,
+            timedelta(seconds=700),
+            timedelta(seconds=120),
+            timedelta(seconds=700),
+            timedelta(seconds=0),
+        ),
+        (
+            timedelta(seconds=900),
+            600,
+            60,
+            timedelta(seconds=570),
+            timedelta(seconds=30),
+            timedelta(seconds=570),
+            timedelta(seconds=30),
+        ),
     ),
 )
 def test_validate_mid_agreement_payment_ok(
-    payment_timeout, grace_period, agreement_duration, previous_payable_debit_notes_count
+    activity_offset,
+    payment_timeout_s,
+    debit_note_interval_s,
+    payment_due_date_in,
+    previous_debit_note_offset,
+    previous_payable_debit_note_offset,
+    grace_period,
 ):
+    now = datetime.now(timezone.utc)
+    given_activity_created_at = now - activity_offset
+    given_debit_note_created_at = now
     given_payment_props = PaymentProps(
-        payment_timeout=payment_timeout, debit_notes_accept_timeout=grace_period
+        payment_timeout=payment_timeout_s, debit_note_interval=debit_note_interval_s
     )
-    given_payment_due_date = datetime.now(timezone.utc)
-    given_agreement_duration = timedelta(seconds=agreement_duration)
-    given_previous_payable_debit_notes_count = previous_payable_debit_notes_count
+    given_payment_due_date = now + payment_due_date_in
+    given_previous_debit_note_created_at = now - previous_debit_note_offset
+    given_previous_payable_debit_note_created_at = now - previous_payable_debit_note_offset
+    given_payment_timeout_grace_period = grace_period
+    given_debit_note_interval_grace_period = grace_period
     # no error
     DebitNote.validate_mid_agreement_payment(
+        given_activity_created_at,
+        given_debit_note_created_at,
         given_payment_props,
         given_payment_due_date,
-        given_agreement_duration,
-        given_previous_payable_debit_notes_count,
-        grace_period=timedelta(seconds=grace_period),
+        given_previous_debit_note_created_at,
+        given_previous_payable_debit_note_created_at,
+        given_payment_timeout_grace_period,
+        given_debit_note_interval_grace_period,
     )
 
 
 @pytest.mark.parametrize(
-    "payment_timeout, grace_period, agreement_duration, previous_payable_debit_notes_count",
+    "activity_offset, payment_timeout_s, debit_note_interval_s, payment_due_date_in, "
+    "grace_period",
     (
-        (60, 0, 50, 1),
-        (10, 0, 99, 10),
-        (10, 0, 100, 11),
-        (600, 0, 6000, 11),
-        (600, 599, 6000, 11),  # 599 of grace_period cannot compensate for 1 extra debit note
+        (
+            timedelta(seconds=600),
+            600,
+            60,
+            timedelta(seconds=600),
+            timedelta(seconds=0),
+        ),
+        (
+            timedelta(hours=1),
+            600,
+            60,
+            timedelta(seconds=700),
+            timedelta(seconds=0),
+        ),
+        (
+            timedelta(seconds=570),
+            600,
+            60,
+            timedelta(seconds=570),
+            timedelta(seconds=30),
+        ),
     ),
 )
-def test_validate_mid_agreement_payment_too_many_debit_notes(
-    payment_timeout, grace_period, agreement_duration, previous_payable_debit_notes_count
+def test_validate_mid_agreement_payment_first_debit_note_ok(
+    activity_offset,
+    payment_timeout_s,
+    debit_note_interval_s,
+    payment_due_date_in,
+    grace_period,
 ):
+    now = datetime.now(timezone.utc)
+    given_activity_created_at = now - activity_offset
+    given_debit_note_created_at = now
     given_payment_props = PaymentProps(
-        payment_timeout=payment_timeout, debit_notes_accept_timeout=grace_period
+        payment_timeout=payment_timeout_s, debit_note_interval=debit_note_interval_s
     )
-    given_payment_due_date = datetime.now(timezone.utc)
-    given_agreement_duration = timedelta(seconds=agreement_duration)
-    given_previous_payable_debit_notes_count = previous_payable_debit_notes_count
+    given_payment_due_date = now + payment_due_date_in
+    given_payment_timeout_grace_period = grace_period
+    given_debit_note_interval_grace_period = grace_period
+    # no error
+    DebitNote.validate_mid_agreement_payment(
+        given_activity_created_at,
+        given_debit_note_created_at,
+        given_payment_props,
+        given_payment_due_date,
+        payment_timeout_grace_period=given_payment_timeout_grace_period,
+        debit_note_interval_grace_period=given_debit_note_interval_grace_period,
+    )
+
+
+@pytest.mark.parametrize(
+    "activity_offset, payment_timeout_s, debit_note_interval_s, payment_due_date_in, "
+    "previous_debit_note_offset, previous_payable_debit_note_offset, grace_period",
+    (
+        (
+            timedelta(seconds=900),
+            600,
+            60,
+            timedelta(seconds=500),
+            timedelta(seconds=60),
+            timedelta(seconds=600),
+            timedelta(seconds=0),
+        ),
+        (
+            timedelta(seconds=900),
+            600,
+            60,
+            timedelta(seconds=600),
+            timedelta(seconds=45),
+            timedelta(seconds=600),
+            timedelta(seconds=0),
+        ),
+        (
+            timedelta(seconds=900),
+            600,
+            60,
+            timedelta(seconds=600),
+            timedelta(seconds=60),
+            timedelta(seconds=500),
+            timedelta(seconds=0),
+        ),
+        (
+            timedelta(seconds=900),
+            600,
+            60,
+            timedelta(seconds=500),
+            timedelta(seconds=60),
+            timedelta(seconds=600),
+            timedelta(seconds=30),
+        ),
+    ),
+)
+def test_validate_mid_agreement_payment_errors(
+    activity_offset,
+    payment_timeout_s,
+    debit_note_interval_s,
+    payment_due_date_in,
+    previous_debit_note_offset,
+    previous_payable_debit_note_offset,
+    grace_period,
+):
+    now = datetime.now(timezone.utc)
+    given_activity_created_at = now - activity_offset
+    given_debit_note_created_at = now
+    given_payment_props = PaymentProps(
+        payment_timeout=payment_timeout_s, debit_note_interval=debit_note_interval_s
+    )
+    given_payment_due_date = now + payment_due_date_in
+    given_previous_debit_note_created_at = now - previous_debit_note_offset
+    given_previous_payable_debit_note_created_at = now - previous_payable_debit_note_offset
+    given_payment_timeout_grace_period = grace_period
+    given_debit_note_interval_grace_period = grace_period
     with pytest.raises(PaymentValidationException):
         DebitNote.validate_mid_agreement_payment(
+            given_activity_created_at,
+            given_debit_note_created_at,
             given_payment_props,
             given_payment_due_date,
-            given_agreement_duration,
-            given_previous_payable_debit_notes_count,
-            grace_period=timedelta(seconds=grace_period),
+            given_previous_debit_note_created_at,
+            given_previous_payable_debit_note_created_at,
+            given_payment_timeout_grace_period,
+            given_debit_note_interval_grace_period,
+        )
+
+
+@pytest.mark.parametrize(
+    "activity_offset, payment_timeout_s, debit_note_interval_s, payment_due_date_in, "
+    "grace_period",
+    (
+        (
+            timedelta(seconds=590),
+            600,
+            60,
+            timedelta(seconds=600),
+            timedelta(seconds=0),
+        ),
+        (
+            timedelta(seconds=590),
+            600,
+            60,
+            timedelta(seconds=590),
+            timedelta(seconds=0),
+        ),
+        (
+            timedelta(seconds=600),
+            600,
+            60,
+            timedelta(seconds=500),
+            timedelta(seconds=30),
+        ),
+        (
+            timedelta(seconds=500),
+            600,
+            60,
+            timedelta(seconds=600),
+            timedelta(seconds=30),
+        ),
+    ),
+)
+def test_validate_mid_agreement_payment_first_debit_note_errors(
+    activity_offset,
+    payment_timeout_s,
+    debit_note_interval_s,
+    payment_due_date_in,
+    grace_period,
+):
+    now = datetime.now(timezone.utc)
+    given_activity_created_at = now - activity_offset
+    given_debit_note_created_at = now
+    given_payment_props = PaymentProps(
+        payment_timeout=payment_timeout_s, debit_note_interval=debit_note_interval_s
+    )
+    given_payment_due_date = now + payment_due_date_in
+    given_payment_timeout_grace_period = grace_period
+    given_debit_note_interval_grace_period = grace_period
+    with pytest.raises(PaymentValidationException):
+        DebitNote.validate_mid_agreement_payment(
+            given_activity_created_at,
+            given_debit_note_created_at,
+            given_payment_props,
+            given_payment_due_date,
+            payment_timeout_grace_period=given_payment_timeout_grace_period,
+            debit_note_interval_grace_period=given_debit_note_interval_grace_period,
         )
 
 
 def test_validate_mid_agreement_payment_no_payment_due_date():
-    given_payment_props = PaymentProps()
+    given_payment_props = PaymentProps(payment_timeout=600, debit_note_interval=60)
     given_payment_due_date = None
-    given_agreement_duration = timedelta(seconds=60)
-    given_previous_payable_debit_notes_count = 1
     # no error
     DebitNote.validate_mid_agreement_payment(
-        given_payment_props,
-        given_payment_due_date,
-        given_agreement_duration,
-        given_previous_payable_debit_notes_count,
+        payment_props=given_payment_props,
+        payment_due_date=given_payment_due_date,
+        activity_created_at=datetime.now(timezone.utc),
+        debit_note_created_at=datetime.now(timezone.utc),
     )
 
 
 def test_validate_mid_agreement_payment_no_payment_timeout():
-    given_payment_props = PaymentProps(payment_timeout=None, debit_notes_accept_timeout=120)
-    given_payment_due_date = datetime.now(timezone.utc)
-    given_agreement_duration = timedelta(seconds=60)
-    given_previous_payable_debit_notes_count = 1
+    given_payment_props = PaymentProps(payment_timeout=None, debit_note_interval=60)
     with pytest.raises(PaymentValidationException):
         DebitNote.validate_mid_agreement_payment(
-            given_payment_props,
-            given_payment_due_date,
-            given_agreement_duration,
-            given_previous_payable_debit_notes_count,
+            payment_props=given_payment_props,
+            activity_created_at=datetime.now(timezone.utc),
+            debit_note_created_at=datetime.now(timezone.utc),
+            payment_due_date=datetime.now(timezone.utc),
         )
 
 
-def test_validate_mid_agreement_payment_no_debit_notes_accept_timeout():
-    given_payment_props = PaymentProps(payment_timeout=1200, debit_notes_accept_timeout=None)
-    given_payment_due_date = datetime.now(timezone.utc)
-    given_agreement_duration = timedelta(seconds=60)
-    given_previous_payable_debit_notes_count = 1
+def test_validate_mid_agreement_payment_no_debit_note_interval():
+    given_payment_props = PaymentProps(payment_timeout=600, debit_note_interval=None)
     with pytest.raises(PaymentValidationException):
         DebitNote.validate_mid_agreement_payment(
-            given_payment_props,
-            given_payment_due_date,
-            given_agreement_duration,
-            given_previous_payable_debit_notes_count,
+            payment_props=given_payment_props,
+            activity_created_at=datetime.now(timezone.utc),
+            debit_note_created_at=datetime.now(timezone.utc),
+            payment_due_date=datetime.now(timezone.utc),
         )
