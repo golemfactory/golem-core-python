@@ -47,25 +47,24 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
 
     async def get_previous_debit_note(self) -> Optional["DebitNote"]:
         """Get previous debit note."""
-        for debit_note in sorted(
-            self.activity.debit_notes, key=lambda dn: dn.created_at, reverse=True
-        ):
-            if debit_note.created_at < self.created_at:
-                return debit_note
-        return None
+        return max(
+            (dn for dn in self.activity.debit_notes if dn.created_at < self.created_at),
+            key=lambda dn: dn.created_at,  # type: ignore[union-attr]
+            default=None,
+        )
 
     async def get_previous_payable_debit_note(self) -> Optional["DebitNote"]:
         """Get previous payable debit note."""
-        for debit_note in sorted(
-            self.activity.debit_notes, key=lambda dn: dn.created_at, reverse=True
-        ):
-            await debit_note.get_data()  # ensure debit_note.data is accessible
-            if (
-                debit_note.created_at < self.created_at
-                and debit_note.data.payment_due_date is not None
-            ):
-                return debit_note
-        return None
+        return max(
+            (
+                dn
+                for dn in self.activity.debit_notes
+                if dn.created_at < self.created_at
+                and (await dn.get_data()).payment_due_date is not None
+            ),
+            key=lambda dn: dn.created_at,  # type: ignore[union-attr]
+            default=None,
+        )
 
     @staticmethod
     def validate_mid_agreement_payment(
