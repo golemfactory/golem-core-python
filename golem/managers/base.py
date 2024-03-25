@@ -34,9 +34,12 @@ logger = logging.getLogger(__name__)
 
 
 class Batch:
-    def __init__(self, activity) -> None:
+    def __init__(
+        self, activity: Activity, timeout: Optional[Union[timedelta, float]] = None
+    ) -> None:
         self._script = Script()
         self._activity = activity
+        self._call_timeout = timeout
 
     def deploy(self, deploy_args: Optional[commands.ArgsDict] = None):
         self._script.add_command(commands.Deploy(deploy_args))
@@ -61,7 +64,7 @@ class Batch:
 
     async def __call__(self):
         pooling_batch = await self._activity.execute_script(self._script)
-        return await pooling_batch.wait()
+        return await pooling_batch.wait(timeout=self._call_timeout)
 
 
 class WorkContext:
@@ -87,9 +90,10 @@ class WorkContext:
         *,
         shell: Optional[bool] = None,
         shell_cmd: str = "/bin/sh",
+        timeout: Optional[float] = None,
     ):
         return await self._activity.execute_commands(
-            commands.Run(command, shell=shell, shell_cmd=shell_cmd)
+            commands.Run(command, shell=shell, shell_cmd=shell_cmd), timeout=timeout
         )
 
     async def create_batch(self) -> Batch:

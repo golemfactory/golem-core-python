@@ -1,7 +1,8 @@
 import asyncio
 import json
+import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 from ya_activity import models
 
@@ -15,6 +16,8 @@ from golem.utils.low import ActivityApi
 if TYPE_CHECKING:
     from golem.node import GolemNode
     from golem.resources.agreement import Agreement  # noqa
+
+logger = logging.getLogger(__name__)
 
 
 class Activity(Resource[ActivityApi, _NULL, "Agreement", PoolingBatch, _NULL]):
@@ -92,15 +95,19 @@ class Activity(Resource[ActivityApi, _NULL, "Agreement", PoolingBatch, _NULL]):
         await self.node.event_bus.emit(ActivityClosed(self))
 
     @api_call_wrapper()
-    async def execute(self, script: models.ExeScriptRequest) -> PoolingBatch:
-        batch_id = await self.api.call_exec(self.id, script)
+    async def execute(
+        self, script: models.ExeScriptRequest, timeout: Optional[float] = None
+    ) -> PoolingBatch:
+        batch_id = await self.api.call_exec(self.id, script, _request_timeout=timeout)
         batch = PoolingBatch(self.node, batch_id)
         batch.start_collecting_events()
         self.add_child(batch)
         self.running_batch_counter += 1
         return batch
 
-    async def execute_commands(self, *commands: Command) -> PoolingBatch:
+    async def execute_commands(
+        self, *commands: Command, timeout: Optional[float] = None
+    ) -> PoolingBatch:
         """Create a new batch that executes given :any:`Command` s in the exe unit.
 
         Sample usage::
@@ -115,7 +122,7 @@ class Activity(Resource[ActivityApi, _NULL, "Agreement", PoolingBatch, _NULL]):
         """
         await asyncio.gather(*[c.before() for c in commands])
         commands_str = json.dumps([c.text() for c in commands])
-        batch = await self.execute(models.ExeScriptRequest(text=commands_str))
+        batch = await self.execute(models.ExeScriptRequest(text=commands_str), timeout)
 
         async def execute_after() -> None:
             await batch.wait(ignore_errors=True)
