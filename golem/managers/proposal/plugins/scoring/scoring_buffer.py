@@ -111,9 +111,6 @@ class ProposalScoringBuffer(ProposalScoringMixin, ProposalBuffer):
 
             scored_proposals = await self.do_scoring(proposals)
 
-            with open('./scored.json', 'a') as file:
-                file.writelines([f"{sp[0]} {await sp[1].get_provider_name()}\n" for sp in scored_proposals])
-
             await self._buffer_scored.put_all([proposal for _, proposal in scored_proposals])
 
             logger.debug("Scoring total %d proposals done", len(proposals))
