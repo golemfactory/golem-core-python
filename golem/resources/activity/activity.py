@@ -79,6 +79,11 @@ class Activity(Resource[ActivityApi, _NULL, "Agreement", PoolingBatch, _NULL]):
 
     ####################
     #   API
+    @api_call_wrapper(retry_count=2)
+    async def get_state(self) -> models.ActivityState:
+        """Get state of the Activity."""
+        return await self.api.get_activity_state(self.id)
+
     @classmethod
     async def create(cls, node: "GolemNode", agreement_id: str, timeout: timedelta) -> "Activity":
         api = cls._get_api(node)
