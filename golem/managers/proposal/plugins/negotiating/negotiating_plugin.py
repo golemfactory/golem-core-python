@@ -9,6 +9,7 @@ from ya_market import ApiException
 from golem.managers import ProposalManagerPlugin, RejectProposal
 from golem.managers.base import ManagerPluginException, ProposalNegotiator
 from golem.resources import DemandData, Proposal
+from golem.resources.proposal.exceptions import ProposalRejected
 from golem.utils.asyncio.tasks import resolve_maybe_awaitable
 from golem.utils.logging import trace_span
 
@@ -91,6 +92,8 @@ class NegotiatingPlugin(ProposalManagerPlugin):
                 demand_proposal.responses().__anext__(),
                 timeout=self._proposal_response_timeout,
             )
+        except ProposalRejected as e:
+            if
         except (StopAsyncIteration, asyncio.TimeoutError) as e:
             raise ManagerPluginException("Failed to receive proposal response!") from e
 
