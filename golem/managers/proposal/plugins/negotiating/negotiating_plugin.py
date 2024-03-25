@@ -41,24 +41,40 @@ class NegotiatingPlugin(ProposalManagerPlugin):
         while True:
             proposal = await self._get_proposal()
             demand_data = await proposal.demand.get_demand_data()
+            provider_name = await proposal.get_provider_name()
 
             try:
                 negotiated_proposal = await self._negotiate_proposal(demand_data, proposal)
-                self._success_count += 1
-                logger.info(
-                    f"Negotiation based on proposal `{proposal}` succeeded"
+            except ProposalRejected as e:
+                self._fail_count += 1
+                logger.debug(
+                    f"Negotiation based on proposal `{proposal}` from `{provider_name}` failed as it was rejected by the provider: `{e}`, retrying with new one..."
                     "\nsuccess count: "
-                    f"{self._success_count}/{self._success_count + self._fail_count}"
+                    f"{self._success_count}/{self._success_count + self._fail_count}",
                 )
-                return negotiated_proposal
+            except RejectProposal as e:
+                self._fail_count += 1
+                logger.debug(
+                    f"Negotiation based on proposal `{proposal}` from `{provider_name}` failed as it was rejected by requestor: `{e}`, retrying with new one..."
+                    "\nsuccess count: "
+                    f"{self._success_count}/{self._success_count + self._fail_count}",
+                )
             except Exception:
                 self._fail_count += 1
                 logger.debug(
-                    f"Negotiation based on proposal `{proposal}` failed, retrying with new one..."
+                    f"Negotiation based on proposal `{proposal}` from `{provider_name}` failed, retrying with new one..."
                     "\nsuccess count: "
                     f"{self._success_count}/{self._success_count + self._fail_count}",
                     exc_info=True,
                 )
+            else:
+                self._success_count += 1
+                logger.info(
+                    f"Negotiation based on proposal `{proposal}` from `{provider_name}` succeeded"
+                    "\nsuccess count: "
+                    f"{self._success_count}/{self._success_count + self._fail_count}"
+                )
+                return negotiated_proposal
 
     @trace_span(show_arguments=True, show_results=True)
     async def _negotiate_proposal(
@@ -92,8 +108,6 @@ class NegotiatingPlugin(ProposalManagerPlugin):
                 demand_proposal.responses().__anext__(),
                 timeout=self._proposal_response_timeout,
             )
-        except ProposalRejected as e:
-            if
         except (StopAsyncIteration, asyncio.TimeoutError) as e:
             raise ManagerPluginException("Failed to receive proposal response!") from e
 
