@@ -108,7 +108,6 @@ class ProposalScoringBuffer(ProposalScoringMixin, ProposalBuffer):
             logger.debug("Scoring total %d proposals...", len(proposals))
 
             scored_proposals = await self.do_scoring(proposals)
-
             await self._buffer_scored.put_all([proposal for _, proposal in scored_proposals])
 
             logger.debug("Scoring total %d proposals done", len(proposals))
