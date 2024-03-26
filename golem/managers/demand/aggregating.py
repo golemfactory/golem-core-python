@@ -11,7 +11,7 @@ from golem.utils.asyncio import (
     create_task_with_logging,
     ensure_cancelled_many,
 )
-from golem.utils.logging import trace_span
+from golem.utils.logging import get_trace_id_name, trace_span
 
 
 class AggregatingDemandManager(DemandManager):
@@ -50,9 +50,12 @@ class AggregatingDemandManager(DemandManager):
             return await self._buffer.get()
 
         async with self._lock:
-            for func in self._get_initial_proposal_funcs:
+            for idx, func in enumerate(self._get_initial_proposal_funcs):
                 if func not in self._task_map:
-                    self._task_map[func] = create_task_with_logging(self._feed_queue(func))
+                    self._task_map[func] = create_task_with_logging(
+                        self._feed_queue(func),
+                        trace_id=get_trace_id_name(self, f"feed-func-{idx}"),
+                    )
 
         return await self._buffer.get()
 

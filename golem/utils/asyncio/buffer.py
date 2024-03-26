@@ -1,9 +1,11 @@
 import asyncio
+import itertools
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from datetime import timedelta
+from functools import partial
 from typing import (
     Awaitable,
     Callable,
@@ -18,7 +20,9 @@ from typing import (
 
 from golem.utils.asyncio.semaphore import SingleUseSemaphore
 from golem.utils.asyncio.tasks import (
+    create_delayed_task_with_logging,
     create_task_with_logging,
+    ensure_cancelled,
     ensure_cancelled_many,
     resolve_maybe_awaitable,
 )
@@ -229,8 +233,7 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
         self._get_expiration_func = get_expiration_func
         self._on_expired_func = on_expired_func
 
-        # TODO: Could this collection be liable to race conditions?
-        self._expiration_handlers: Dict[int, List[asyncio.TimerHandle]] = defaultdict(list)
+        self._expiration_tasks: Dict[int, List[asyncio.Task]] = defaultdict(list)
 
     async def _add_expiration_task_for_item(self, item: TItem) -> None:
         expiration = await resolve_maybe_awaitable(self._get_expiration_func(item))
@@ -238,41 +241,49 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
         if expiration is None:
             return
 
-        loop = asyncio.get_event_loop()
-
-        self._expiration_handlers[id(item)].append(
-            loop.call_later(
-                expiration.total_seconds(),
-                lambda: create_task_with_logging(
-                    self._expire_item(item), trace_id=get_trace_id_name(self, f"item-expire-{item}")
-                ),
+        self._expiration_tasks[id(item)].append(
+            create_delayed_task_with_logging(
+                expiration,
+                partial(self._expire_item_shielded, item),
+                trace_id=get_trace_id_name(self, f"item-expire-{item}"),
             )
         )
 
-    def _remove_expiration_handler_for_item(self, item: TItem) -> None:
+    async def _remove_expiration_task_for_item(self, item: TItem) -> None:
         item_id = id(item)
 
-        if item_id not in self._expiration_handlers or not len(self._expiration_handlers[item_id]):
+        if item_id not in self._expiration_tasks or not len(self._expiration_tasks[item_id]):
             return
 
-        expiration_handle = self._expiration_handlers[item_id].pop(0)
-        expiration_handle.cancel()
+        await ensure_cancelled(self._expiration_tasks[item_id].pop(0))
 
-        if not self._expiration_handlers[item_id]:
-            del self._expiration_handlers[item_id]
+        if not self._expiration_tasks[item_id]:
+            del self._expiration_tasks[item_id]
 
-    def _remove_all_expiration_handlers(self) -> None:
-        for handlers in self._expiration_handlers.values():
-            for handler in handlers:
-                handler.cancel()
+    async def _remove_all_expiration_handlers(self) -> None:
+        await ensure_cancelled_many(itertools.chain.from_iterable(self._expiration_tasks.values()))
 
-        self._expiration_handlers.clear()
+        self._expiration_tasks.clear()
+
+    async def _expire_item_shielded(self, item: TItem) -> None:
+        # We need to shield this function as by self.remove it will try to cancel itself
+        await asyncio.shield(self._expire_item(item))
+
+    async def _expire_item(self, item: TItem) -> None:
+        try:
+            await self.remove(item)
+        except ValueError:
+            # Item was removed in the meantime
+            return
+
+        if self._on_expired_func:
+            await resolve_maybe_awaitable(self._on_expired_func(item))
 
     async def get(self, *, lock=True) -> TItem:
         async with self._handle_lock(lock):
             item = await super().get(lock=False)
 
-            self._remove_expiration_handler_for_item(item)
+            await self._remove_expiration_task_for_item(item)
 
             return item
 
@@ -280,7 +291,7 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
         async with self._handle_lock(lock):
             items = await super().get_all(lock=False)
 
-            self._remove_all_expiration_handlers()
+            await self._remove_all_expiration_handlers()
 
             return items
 
@@ -294,7 +305,7 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
         async with self._handle_lock(lock):
             await super().put_all(items, lock=False)
 
-            self._remove_all_expiration_handlers()
+            await self._remove_all_expiration_handlers()
 
             await asyncio.gather(
                 *[self._add_expiration_task_for_item(item) for item in items],
@@ -305,13 +316,7 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
         async with self._handle_lock(lock):
             await super().remove(item, lock=False)
 
-            self._remove_expiration_handler_for_item(item)
-
-    async def _expire_item(self, item: TItem) -> None:
-        await self.remove(item)
-
-        if self._on_expired_func:
-            await resolve_maybe_awaitable(self._on_expired_func(item))
+            await self._remove_expiration_task_for_item(item)
 
 
 class BackgroundFillBuffer(ComposableBuffer[TItem]):

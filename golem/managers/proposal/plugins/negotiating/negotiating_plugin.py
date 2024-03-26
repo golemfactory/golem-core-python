@@ -48,21 +48,24 @@ class NegotiatingPlugin(ProposalManagerPlugin):
             except ProposalRejected as e:
                 self._fail_count += 1
                 logger.debug(
-                    f"Negotiation based on proposal `{proposal}` from `{provider_name}` failed as it was rejected by the provider: `{e}`, retrying with new one..."
+                    f"Negotiation based on proposal `{proposal}` from `{provider_name}` failed as"
+                    f" it was rejected by the provider: `{e}`, retrying with new one..."
                     "\nsuccess count: "
                     f"{self._success_count}/{self._success_count + self._fail_count}",
                 )
             except RejectProposal as e:
                 self._fail_count += 1
                 logger.debug(
-                    f"Negotiation based on proposal `{proposal}` from `{provider_name}` failed as it was rejected by requestor: `{e}`, retrying with new one..."
+                    f"Negotiation based on proposal `{proposal}` from `{provider_name}` failed as"
+                    f" it was rejected by requestor: `{e}`, retrying with new one..."
                     "\nsuccess count: "
                     f"{self._success_count}/{self._success_count + self._fail_count}",
                 )
             except Exception:
                 self._fail_count += 1
                 logger.debug(
-                    f"Negotiation based on proposal `{proposal}` from `{provider_name}` failed, retrying with new one..."
+                    f"Negotiation based on proposal `{proposal}` from `{provider_name}` failed,"
+                    f" retrying with new one..."
                     "\nsuccess count: "
                     f"{self._success_count}/{self._success_count + self._fail_count}",
                     exc_info=True,
