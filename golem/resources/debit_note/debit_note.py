@@ -91,7 +91,7 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
         received_payment_timeout = payment_due_date - debit_note_created_at
         if received_payment_timeout + payment_timeout_grace_period < payment_timeout_timedelta:
             raise PaymentValidationException(
-                f"Payment timeout is shorter then agreed {payment_due_date=}"
+                f"Payment timeout is shorter than agreed {payment_due_date=}"
                 f"{received_payment_timeout=} < {payment_timeout_timedelta=}."
             )
 
@@ -122,7 +122,7 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
         ):
             raise PaymentValidationException(
                 f"Too many debit notes received {time_since_last_debit_note=}"
-                f"{debit_note_interval_timedelta=}"
+                f" {debit_note_interval_timedelta=}"
             )
 
     def validate_payment_data(
