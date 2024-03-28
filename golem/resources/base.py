@@ -1,6 +1,8 @@
 import asyncio
+import logging
 import re
 from abc import ABC, ABCMeta
+from datetime import datetime, timezone
 from functools import wraps
 from typing import (
     TYPE_CHECKING,
@@ -28,6 +30,8 @@ from golem.utils.low import TRequestorApi, get_requestor_api
 
 if TYPE_CHECKING:
     from golem.node import GolemNode
+
+logger = logging.getLogger(__name__)
 
 all_api_exceptions = (
     PaymentApiException,
@@ -126,6 +130,7 @@ class Resource(
     """
 
     def __init__(self, node: "GolemNode", id_: str, data: Optional[TModel] = None):
+        self._created_at = datetime.now(timezone.utc)
         self._node = node
         self._id = id_
         self._data: Optional[TModel] = data
@@ -245,6 +250,10 @@ class Resource(
     def node(self) -> "GolemNode":
         """:any:`GolemNode` that defines the context of this :class:`Resource`."""
         return self._node
+
+    @property
+    def created_at(self) -> datetime:
+        return self._created_at
 
     ####################
     #   DATA LOADING
