@@ -56,12 +56,12 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
     async def get_previous_payable_debit_note(self) -> Optional["DebitNote"]:
         """Get previous payable debit note."""
         return max(
-            (
+            [
                 dn
                 for dn in self.activity.debit_notes
                 if dn.created_at < self.created_at
                 and (await dn.get_data()).payment_due_date is not None
-            ),
+            ],
             key=lambda dn: dn.created_at,  # type: ignore[union-attr]
             default=None,
         )
