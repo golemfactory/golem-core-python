@@ -64,14 +64,14 @@ class DefaultPaymentManager(PaymentManager):
     @trace_span("Getting allocation", show_results=True, log_level=logging.INFO)
     async def get_allocation(self) -> Allocation:
         async with self._lock:
-            if self._allocation is None:
+            if not self._allocation:
                 self._allocation = await self._create_allocation(
                     Decimal(self._budget),
                     self._network,
                     self._driver,
                 )
 
-            return self._allocation
+        return self._allocation
 
     async def _release_allocation(self) -> None:
         if self._allocation is None:

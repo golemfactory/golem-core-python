@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from datetime import timedelta
-from functools import partial
 from typing import (
     Awaitable,
     Callable,
@@ -244,7 +243,7 @@ class ExpirableBuffer(ComposableBuffer[TItem]):
         self._expiration_tasks[id(item)].append(
             create_delayed_task_with_logging(
                 expiration,
-                partial(self._expire_item_shielded, item),
+                self._expire_item_shielded(item),
                 trace_id=get_trace_id_name(self, f"item-expire-{item}"),
             )
         )

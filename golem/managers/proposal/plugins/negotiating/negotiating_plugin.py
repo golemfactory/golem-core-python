@@ -45,30 +45,21 @@ class NegotiatingPlugin(ProposalManagerPlugin):
 
             try:
                 negotiated_proposal = await self._negotiate_proposal(demand_data, proposal)
-            except ProposalRejected as e:
+            except Exception as e:
                 self._fail_count += 1
+                if isinstance(e, ProposalRejected):
+                    reason = f" as it was rejected by the provider: `{e}`"
+                elif isinstance(e, RejectProposal):
+                    reason = f" as it was rejected by the requestor: `{e}`"
+                else:
+                    reason = ""
+
                 logger.debug(
-                    f"Negotiation based on proposal `{proposal}` from `{provider_name}` failed as"
-                    f" it was rejected by the provider: `{e}`, retrying with new one..."
-                    "\nsuccess count: "
-                    f"{self._success_count}/{self._success_count + self._fail_count}",
-                )
-            except RejectProposal as e:
-                self._fail_count += 1
-                logger.debug(
-                    f"Negotiation based on proposal `{proposal}` from `{provider_name}` failed as"
-                    f" it was rejected by requestor: `{e}`, retrying with new one..."
-                    "\nsuccess count: "
-                    f"{self._success_count}/{self._success_count + self._fail_count}",
-                )
-            except Exception:
-                self._fail_count += 1
-                logger.debug(
-                    f"Negotiation based on proposal `{proposal}` from `{provider_name}` failed,"
+                    f"Negotiation based on proposal `{proposal}` from `{provider_name}` failed{reason},"
                     f" retrying with new one..."
                     "\nsuccess count: "
                     f"{self._success_count}/{self._success_count + self._fail_count}",
-                    exc_info=True,
+                    exc_info=not isinstance(e, (ProposalRejected, RejectProposal)),
                 )
             else:
                 self._success_count += 1

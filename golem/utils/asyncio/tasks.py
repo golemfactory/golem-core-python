@@ -3,7 +3,7 @@ import contextvars
 import inspect
 import logging
 from datetime import timedelta
-from typing import Awaitable, Callable, Coroutine, Iterable, Optional, Tuple, TypeVar, cast
+from typing import Coroutine, Iterable, Optional, Tuple, TypeVar, cast
 
 from golem.utils.logging import trace_id_var
 from golem.utils.typing import MaybeAwaitable
@@ -22,10 +22,10 @@ def create_task_with_logging(coro: Coroutine, *, trace_id: Optional[str] = None)
 
 
 def create_delayed_task_with_logging(
-    delay: timedelta, func: Callable[[], Awaitable], *, trace_id: Optional[str] = None
+    delay: timedelta, coro: Coroutine, *, trace_id: Optional[str] = None
 ) -> asyncio.Task:
     task, task_name = _create_task_with_context(
-        _create_delayed_task_with_logging(delay, func), trace_id=trace_id
+        _create_delayed_task_with_logging(delay, coro), trace_id=trace_id
     )
 
     logger.debug("Task `%s` created with delay `%s`", task_name, delay)
@@ -33,10 +33,14 @@ def create_delayed_task_with_logging(
     return task
 
 
-async def _create_delayed_task_with_logging(delay: timedelta, func: Callable[[], Awaitable]):
-    await asyncio.sleep(delay.total_seconds())
+async def _create_delayed_task_with_logging(delay: timedelta, coro: Coroutine):
+    try:
+        await asyncio.sleep(delay.total_seconds())
+    except asyncio.CancelledError:
+        coro.close()
+        raise
 
-    return await func()
+    return await coro
 
 
 def _create_task_with_context(
