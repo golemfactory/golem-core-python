@@ -80,7 +80,8 @@ class ProposalBuffer(ProposalManagerPlugin):
                 message,
             ):
                 logger.warning(
-                    f"Proposal assumed already expired. Consider shortening the expiry duration: `{message}`"
+                    f"Proposal assumed already expired. Consider shortening the expiry duration:"
+                    f" `{message}`"
                 )
             else:
                 raise

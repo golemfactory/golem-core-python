@@ -55,8 +55,8 @@ class NegotiatingPlugin(ProposalManagerPlugin):
                     reason = ""
 
                 logger.debug(
-                    f"Negotiation based on proposal `{proposal}` from `{provider_name}` failed{reason},"
-                    f" retrying with new one..."
+                    f"Negotiation based on proposal `{proposal}` from `{provider_name}`"
+                    f" failed{reason}, retrying with new one..."
                     "\nsuccess count: "
                     f"{self._success_count}/{self._success_count + self._fail_count}",
                     exc_info=not isinstance(e, (ProposalRejected, RejectProposal)),

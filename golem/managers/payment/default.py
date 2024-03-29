@@ -71,7 +71,7 @@ class DefaultPaymentManager(PaymentManager):
                     self._driver,
                 )
 
-        return self._allocation
+        return self._allocation  # type: ignore[return-value]
 
     async def _release_allocation(self) -> None:
         if self._allocation is None:
