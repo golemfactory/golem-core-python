@@ -53,17 +53,19 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
             default=None,
         )
 
-    async def get_previous_payable_debit_note(self) -> Optional["DebitNote"]:
-        """Get previous payable debit note."""
-        return max(
+    async def get_previous_debit_notes_count(self) -> int:
+        """Get previous debit notes count."""
+        return len([dn for dn in self.activity.debit_notes if dn.created_at < self.created_at])
+
+    async def get_previous_payable_debit_notes_count(self) -> int:
+        """Get previous payable debit notes count."""
+        return len(
             [
                 dn
                 for dn in self.activity.debit_notes
                 if dn.created_at < self.created_at
                 and (await dn.get_data()).payment_due_date is not None
-            ],
-            key=lambda dn: dn.created_at,  # type: ignore[union-attr]
-            default=None,
+            ]
         )
 
     @staticmethod
@@ -72,8 +74,8 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
         debit_note_created_at: datetime,
         payment_props: PaymentProps,
         payment_due_date: Optional[datetime],
-        previous_debit_note_created_at: Optional[datetime] = None,
-        previous_payable_debit_note_created_at: Optional[datetime] = None,
+        previous_debit_notes_count: int = 0,
+        previous_payable_debit_notes_count: int = 0,
         payment_timeout_grace_period: timedelta = timedelta(minutes=5),
         debit_note_interval_grace_period: timedelta = timedelta(seconds=30),
     ) -> None:
@@ -95,41 +97,36 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
                 f"{received_payment_timeout=} < {payment_timeout_timedelta=}."
             )
 
-        time_since_last_payable_debit_note = debit_note_created_at - (
-            previous_payable_debit_note_created_at
-            if previous_payable_debit_note_created_at
-            else activity_created_at
-        )
+        debit_note_interval = timedelta(seconds=payment_props.debit_note_interval)
+        activity_duration = debit_note_created_at - activity_created_at
         if (
-            time_since_last_payable_debit_note + payment_timeout_grace_period
-            < payment_timeout_timedelta
+            activity_duration + debit_note_interval_grace_period
+            < (previous_debit_notes_count - 1) * debit_note_interval
         ):
             raise PaymentValidationException(
-                f"Time since last payable debit note {time_since_last_payable_debit_note}"
-                f"exceeds agreed timeout {payment_timeout_timedelta=}"
+                f"Too many debit notes received {previous_debit_notes_count=}. "
+                f"{activity_duration + debit_note_interval_grace_period}"
+                f"< {previous_debit_notes_count * debit_note_interval}"
             )
 
-        debit_note_interval_timedelta = timedelta(seconds=payment_props.debit_note_interval)
-        time_since_last_debit_note = (
-            (debit_note_created_at - previous_debit_note_created_at)
-            if previous_debit_note_created_at
-            else None
-        )
+        payable_debit_note_interval = timedelta(seconds=payment_props.payment_timeout)
+        activity_duration = debit_note_created_at - activity_created_at
         if (
-            time_since_last_debit_note is not None
-            and time_since_last_debit_note + debit_note_interval_grace_period
-            < debit_note_interval_timedelta
+            activity_duration + payment_timeout_grace_period
+            < (previous_payable_debit_notes_count - 1) * payable_debit_note_interval
         ):
             raise PaymentValidationException(
-                f"Too many debit notes received {time_since_last_debit_note=}"
-                f" {debit_note_interval_timedelta=}"
+                f"Too many payable debit notes received {previous_payable_debit_notes_count=}."
+                f"{activity_duration + payment_timeout_grace_period}"
+                f"< {previous_payable_debit_notes_count * payable_debit_note_interval}"
             )
 
     def validate_payment_data(
         self,
         debit_note_data: models.DebitNote,
         previous_debit_note: Optional["DebitNote"],
-        previous_payable_debit_note: Optional["DebitNote"],
+        previous_debit_notes_count: int,
+        previous_payable_debit_notes_count: int,
         agreement_data: "AgreementData",
     ) -> Decimal:
         """Validate debit note payment data.
@@ -145,8 +142,8 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
             self.created_at,
             payment_props,
             debit_note_data.payment_due_date,
-            previous_debit_note.created_at if previous_debit_note else None,
-            previous_payable_debit_note.created_at if previous_payable_debit_note else None,
+            previous_debit_notes_count,
+            previous_payable_debit_notes_count,
         )
 
         coeffs = LinearCoeffs.from_properties(agreement_data.properties)
@@ -194,13 +191,15 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
         )
 
         previous_debit_note = await self.get_previous_debit_note()
-        previous_payable_debit_note = await self.get_previous_payable_debit_note()
+        previous_debit_notes_count = await self.get_previous_debit_notes_count()
+        previous_payable_debit_notes_count = await self.get_previous_payable_debit_notes_count()
 
         try:
             total_amount_due = self.validate_payment_data(
                 debit_note_data,
                 previous_debit_note,
-                previous_payable_debit_note,
+                previous_debit_notes_count,
+                previous_payable_debit_notes_count,
                 agreement_data,
             )
         except PaymentValidationException:

@@ -9,15 +9,15 @@ from golem.resources.utils.payment import PaymentProps
 
 @pytest.mark.parametrize(
     "activity_offset, payment_timeout_s, debit_note_interval_s, payment_due_date_in, "
-    "previous_debit_note_offset, previous_payable_debit_note_offset, grace_period",
+    "given_previous_debit_notes_count, given_previous_payable_debit_notes_count, grace_period",
     (
         (
             timedelta(seconds=900),
             600,
             60,
             timedelta(seconds=600),
-            timedelta(seconds=60),
-            timedelta(seconds=600),
+            16,
+            2,
             timedelta(seconds=0),
         ),
         (
@@ -25,8 +25,8 @@ from golem.resources.utils.payment import PaymentProps
             600,
             60,
             timedelta(seconds=700),
-            timedelta(seconds=120),
-            timedelta(seconds=700),
+            61,
+            7,
             timedelta(seconds=0),
         ),
         (
@@ -34,8 +34,8 @@ from golem.resources.utils.payment import PaymentProps
             600,
             60,
             timedelta(seconds=570),
-            timedelta(seconds=30),
-            timedelta(seconds=570),
+            16,
+            2,
             timedelta(seconds=30),
         ),
     ),
@@ -45,8 +45,8 @@ def test_validate_mid_agreement_payment_ok(
     payment_timeout_s,
     debit_note_interval_s,
     payment_due_date_in,
-    previous_debit_note_offset,
-    previous_payable_debit_note_offset,
+    given_previous_debit_notes_count,
+    given_previous_payable_debit_notes_count,
     grace_period,
 ):
     now = datetime.now(timezone.utc)
@@ -56,8 +56,6 @@ def test_validate_mid_agreement_payment_ok(
         payment_timeout=payment_timeout_s, debit_note_interval=debit_note_interval_s
     )
     given_payment_due_date = now + payment_due_date_in
-    given_previous_debit_note_created_at = now - previous_debit_note_offset
-    given_previous_payable_debit_note_created_at = now - previous_payable_debit_note_offset
     given_payment_timeout_grace_period = grace_period
     given_debit_note_interval_grace_period = grace_period
     # no error
@@ -66,8 +64,8 @@ def test_validate_mid_agreement_payment_ok(
         given_debit_note_created_at,
         given_payment_props,
         given_payment_due_date,
-        given_previous_debit_note_created_at,
-        given_previous_payable_debit_note_created_at,
+        given_previous_debit_notes_count,
+        given_previous_payable_debit_notes_count,
         given_payment_timeout_grace_period,
         given_debit_note_interval_grace_period,
     )
@@ -129,33 +127,16 @@ def test_validate_mid_agreement_payment_first_debit_note_ok(
 
 @pytest.mark.parametrize(
     "activity_offset, payment_timeout_s, debit_note_interval_s, payment_due_date_in, "
-    "previous_debit_note_offset, previous_payable_debit_note_offset, grace_period",
+    "given_previous_debit_notes_count, given_previous_payable_debit_notes_count, grace_period",
     (
+        # Payment timeout is shorter than agreed
         (
             timedelta(seconds=900),
             600,
             60,
             timedelta(seconds=500),
-            timedelta(seconds=60),
-            timedelta(seconds=600),
-            timedelta(seconds=0),
-        ),
-        (
-            timedelta(seconds=900),
-            600,
-            60,
-            timedelta(seconds=600),
-            timedelta(seconds=45),
-            timedelta(seconds=600),
-            timedelta(seconds=0),
-        ),
-        (
-            timedelta(seconds=900),
-            600,
-            60,
-            timedelta(seconds=600),
-            timedelta(seconds=60),
-            timedelta(seconds=500),
+            0,
+            0,
             timedelta(seconds=0),
         ),
         (
@@ -163,9 +144,29 @@ def test_validate_mid_agreement_payment_first_debit_note_ok(
             600,
             60,
             timedelta(seconds=500),
-            timedelta(seconds=60),
-            timedelta(seconds=600),
+            0,
+            0,
             timedelta(seconds=30),
+        ),
+        # Too many debit notes received
+        (
+            timedelta(seconds=900),
+            600,
+            60,
+            timedelta(seconds=600),
+            17,
+            0,
+            timedelta(seconds=0),
+        ),
+        # Too many payable debit notes received
+        (
+            timedelta(seconds=900),
+            600,
+            60,
+            timedelta(seconds=600),
+            0,
+            3,
+            timedelta(seconds=0),
         ),
     ),
 )
@@ -174,8 +175,8 @@ def test_validate_mid_agreement_payment_errors(
     payment_timeout_s,
     debit_note_interval_s,
     payment_due_date_in,
-    previous_debit_note_offset,
-    previous_payable_debit_note_offset,
+    given_previous_debit_notes_count,
+    given_previous_payable_debit_notes_count,
     grace_period,
 ):
     now = datetime.now(timezone.utc)
@@ -185,8 +186,6 @@ def test_validate_mid_agreement_payment_errors(
         payment_timeout=payment_timeout_s, debit_note_interval=debit_note_interval_s
     )
     given_payment_due_date = now + payment_due_date_in
-    given_previous_debit_note_created_at = now - previous_debit_note_offset
-    given_previous_payable_debit_note_created_at = now - previous_payable_debit_note_offset
     given_payment_timeout_grace_period = grace_period
     given_debit_note_interval_grace_period = grace_period
     with pytest.raises(PaymentValidationException):
@@ -195,8 +194,8 @@ def test_validate_mid_agreement_payment_errors(
             given_debit_note_created_at,
             given_payment_props,
             given_payment_due_date,
-            given_previous_debit_note_created_at,
-            given_previous_payable_debit_note_created_at,
+            given_previous_debit_notes_count,
+            given_previous_payable_debit_notes_count,
             given_payment_timeout_grace_period,
             given_debit_note_interval_grace_period,
         )
@@ -210,13 +209,6 @@ def test_validate_mid_agreement_payment_errors(
             timedelta(seconds=590),
             600,
             60,
-            timedelta(seconds=600),
-            timedelta(seconds=0),
-        ),
-        (
-            timedelta(seconds=590),
-            600,
-            60,
             timedelta(seconds=590),
             timedelta(seconds=0),
         ),
@@ -225,18 +217,11 @@ def test_validate_mid_agreement_payment_errors(
             600,
             60,
             timedelta(seconds=500),
-            timedelta(seconds=30),
-        ),
-        (
-            timedelta(seconds=500),
-            600,
-            60,
-            timedelta(seconds=600),
             timedelta(seconds=30),
         ),
     ),
 )
-def test_validate_mid_agreement_payment_first_debit_note_errors(
+def test_validate_mid_agreement_payment_first_debit_payment_timeout_shorter_than_agreed(
     activity_offset,
     payment_timeout_s,
     debit_note_interval_s,
