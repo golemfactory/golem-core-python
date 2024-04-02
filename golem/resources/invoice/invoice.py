@@ -44,8 +44,8 @@ class Invoice(Resource[RequestorApi, models.Invoice, "Agreement", _NULL, _NULL])
         self, total_amount: Decimal
     ) -> Tuple[Optional[timedelta], Decimal]:
         """Get cumulative time and amount since last debit notes from all activities."""
-        cumulative_time_from_all_activities: Optional[timedelta] = timedelta()
-        cumulative_amount_from_all_activities: Decimal = Decimal(0)
+        cumulative_time_from_all_activities = timedelta()
+        cumulative_amount_from_all_activities = Decimal(0)
 
         for activity in self.agreement.activities:
             # Look for a newest Debit Note that came before the invoice
@@ -61,7 +61,7 @@ class Invoice(Resource[RequestorApi, models.Invoice, "Agreement", _NULL, _NULL])
                 break
 
         if cumulative_time_from_all_activities == timedelta():
-            cumulative_time_from_all_activities = None
+            cumulative_time_from_all_activities = None  # type: ignore[assignment]
 
         return (
             cumulative_time_from_all_activities,
