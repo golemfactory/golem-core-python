@@ -2,7 +2,8 @@ import asyncio
 import contextvars
 import inspect
 import logging
-from typing import Iterable, Optional, TypeVar, cast
+from datetime import timedelta
+from typing import Coroutine, Iterable, Optional, Tuple, TypeVar, cast
 
 from golem.utils.logging import trace_id_var
 from golem.utils.typing import MaybeAwaitable
@@ -12,7 +13,39 @@ T = TypeVar("T")
 logger = logging.getLogger(__name__)
 
 
-def create_task_with_logging(coro, *, trace_id: Optional[str] = None) -> asyncio.Task:
+def create_task_with_logging(coro: Coroutine, *, trace_id: Optional[str] = None) -> asyncio.Task:
+    task, task_name = _create_task_with_context(coro, trace_id=trace_id)
+
+    logger.debug("Task `%s` created", task_name)
+
+    return task
+
+
+def create_delayed_task_with_logging(
+    delay: timedelta, coro: Coroutine, *, trace_id: Optional[str] = None
+) -> asyncio.Task:
+    task, task_name = _create_task_with_context(
+        _create_delayed_task_with_logging(delay, coro), trace_id=trace_id
+    )
+
+    logger.debug("Task `%s` created with delay `%s`", task_name, delay)
+
+    return task
+
+
+async def _create_delayed_task_with_logging(delay: timedelta, coro: Coroutine):
+    try:
+        await asyncio.sleep(delay.total_seconds())
+    except asyncio.CancelledError:
+        coro.close()
+        raise
+
+    return await coro
+
+
+def _create_task_with_context(
+    coro: Coroutine, *, trace_id: Optional[str] = None
+) -> Tuple[asyncio.Task, str]:
     context = contextvars.copy_context()
     task = context.run(_create_task_with_logging, coro, trace_id=trace_id)
 
@@ -21,12 +54,10 @@ def create_task_with_logging(coro, *, trace_id: Optional[str] = None) -> asyncio
     else:
         task_name = task.get_name()
 
-    logger.debug("Task `%s` created", task_name)
-
-    return task
+    return task, task_name
 
 
-def _create_task_with_logging(coro, *, trace_id: Optional[str] = None) -> asyncio.Task:
+def _create_task_with_logging(coro: Coroutine, *, trace_id: Optional[str] = None) -> asyncio.Task:
     if trace_id is not None:
         trace_id_var.set(trace_id)
 

@@ -41,6 +41,7 @@ class DefaultPaymentManager(PaymentManager):
         self._network = network
         self._driver = driver
         self._shutdown_timeout = shutdown_timeout.total_seconds()
+        self._lock = asyncio.Lock()
 
         self._allocation: Optional[Allocation] = None
 
@@ -62,10 +63,15 @@ class DefaultPaymentManager(PaymentManager):
 
     @trace_span("Getting allocation", show_results=True, log_level=logging.INFO)
     async def get_allocation(self) -> Allocation:
-        if self._allocation is None:
-            self._allocation = await self._create_allocation()
+        async with self._lock:
+            if not self._allocation:
+                self._allocation = await self._create_allocation(
+                    Decimal(self._budget),
+                    self._network,
+                    self._driver,
+                )
 
-        return self._allocation
+        return self._allocation  # type: ignore[return-value]
 
     async def _release_allocation(self) -> None:
         if self._allocation is None:
@@ -74,12 +80,10 @@ class DefaultPaymentManager(PaymentManager):
         await self._allocation.release()
         self._allocation = None
 
-    @trace_span()
-    async def _create_allocation(self) -> Allocation:
+    @trace_span(show_arguments=True, show_results=True)
+    async def _create_allocation(self, budget: Decimal, network: str, driver: str) -> Allocation:
         try:
-            return await Allocation.create_any_account(
-                self._golem, Decimal(self._budget), self._network, self._driver
-            )
+            return await Allocation.create_any_account(self._golem, budget, network, driver)
         except ApiException as e:
             raise ManagerException(json.loads(e.body)["message"]) from e
 

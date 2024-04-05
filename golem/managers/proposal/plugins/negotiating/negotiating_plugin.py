@@ -9,6 +9,7 @@ from ya_market import ApiException
 from golem.managers import ProposalManagerPlugin, RejectProposal
 from golem.managers.base import ManagerPluginException, ProposalNegotiator
 from golem.resources import DemandData, Proposal
+from golem.resources.proposal.exceptions import ProposalRejected
 from golem.utils.asyncio.tasks import resolve_maybe_awaitable
 from golem.utils.logging import trace_span
 
@@ -40,24 +41,34 @@ class NegotiatingPlugin(ProposalManagerPlugin):
         while True:
             proposal = await self._get_proposal()
             demand_data = await proposal.demand.get_demand_data()
+            provider_name = await proposal.get_provider_name()
 
             try:
                 negotiated_proposal = await self._negotiate_proposal(demand_data, proposal)
+            except Exception as e:
+                self._fail_count += 1
+                if isinstance(e, ProposalRejected):
+                    reason = f" as it was rejected by the provider: `{e}`"
+                elif isinstance(e, RejectProposal):
+                    reason = f" as it was rejected by the requestor: `{e}`"
+                else:
+                    reason = ""
+
+                logger.debug(
+                    f"Negotiation based on proposal `{proposal}` from `{provider_name}`"
+                    f" failed{reason}, retrying with new one..."
+                    "\nsuccess count: "
+                    f"{self._success_count}/{self._success_count + self._fail_count}",
+                    exc_info=not isinstance(e, (ProposalRejected, RejectProposal)),
+                )
+            else:
                 self._success_count += 1
                 logger.info(
-                    f"Negotiation based on proposal `{proposal}` succeeded"
+                    f"Negotiation based on proposal `{proposal}` from `{provider_name}` succeeded"
                     "\nsuccess count: "
                     f"{self._success_count}/{self._success_count + self._fail_count}"
                 )
                 return negotiated_proposal
-            except Exception:
-                self._fail_count += 1
-                logger.debug(
-                    f"Negotiation based on proposal `{proposal}` failed, retrying with new one..."
-                    "\nsuccess count: "
-                    f"{self._success_count}/{self._success_count + self._fail_count}",
-                    exc_info=True,
-                )
 
     @trace_span(show_arguments=True, show_results=True)
     async def _negotiate_proposal(

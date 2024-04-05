@@ -71,14 +71,17 @@ class ProposalBuffer(ProposalManagerPlugin):
         logger.debug("Rejecting expired `%r` and requesting fill", proposal)
 
         try:
-            await proposal.reject("Proposal no longer needed due to its near expiration.")
+            if proposal.draft:
+                await proposal.reject("Proposal no longer needed due to its near expiration.")
         except ApiException as e:
             message = json.loads(e.body)["message"]
             if e.status == 400 and re.match(
-                r"^Subscription \[([^]]+)\] (wasn't found|expired).$", message
+                r"^Subscription \[([^]]+)\] (wasn't found|expired|was already unsubscribed).$",
+                message,
             ):
                 logger.warning(
-                    "Proposal assumed already expired. Consider shortening the expiry duration."
+                    f"Proposal assumed already expired. Consider shortening the expiry duration:"
+                    f" `{message}`"
                 )
             else:
                 raise

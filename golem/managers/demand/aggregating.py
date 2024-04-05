@@ -5,8 +5,13 @@ from typing import Awaitable, Callable, MutableMapping, Sequence
 from golem.managers import DemandManager
 from golem.node import GolemNode
 from golem.resources import Proposal
-from golem.utils.asyncio import create_task_with_logging, ensure_cancelled_many
-from golem.utils.logging import trace_span
+from golem.utils.asyncio import (
+    Buffer,
+    SimpleBuffer,
+    create_task_with_logging,
+    ensure_cancelled_many,
+)
+from golem.utils.logging import get_trace_id_name, trace_span
 
 
 class AggregatingDemandManager(DemandManager):
@@ -24,7 +29,7 @@ class AggregatingDemandManager(DemandManager):
 
         self._task_map: MutableMapping[Callable[[], Awaitable[Proposal]], asyncio.Task] = {}
 
-        self._queue: asyncio.Queue[Proposal] = asyncio.Queue()
+        self._buffer: Buffer[Proposal] = SimpleBuffer()
 
     @trace_span("Stopping AggregatingDemandManager", log_level=logging.INFO)
     async def stop(self) -> None:
@@ -41,21 +46,30 @@ class AggregatingDemandManager(DemandManager):
         are saved, they will be returned in completion  order.
         """
 
-        try:
-            return self._queue.get_nowait()
-        except asyncio.QueueEmpty:
-            pass
+        if self._buffer.size():
+            return await self._buffer.get()
 
         async with self._lock:
-            for func in self._get_initial_proposal_funcs:
+            for idx, func in enumerate(self._get_initial_proposal_funcs):
                 if func not in self._task_map:
-                    self._task_map[func] = create_task_with_logging(self._feed_queue(func))
+                    self._task_map[func] = create_task_with_logging(
+                        self._feed_queue(func),
+                        trace_id=get_trace_id_name(self, f"feed-func-{idx}"),
+                    )
 
-        return await self._queue.get()
+        return await self._buffer.get()
 
     async def _feed_queue(self, func: Callable[[], Awaitable[Proposal]]):
-        proposal = await func()
-        self._queue.put_nowait(proposal)
+        try:
+            proposal = await func()
+        except asyncio.CancelledError:
+            # we don't want to store cancellation error
+            raise
+        except Exception as e:
+            await self._buffer.set_exception(e)
+        else:
+            self._buffer.reset_exception()
+            await self._buffer.put(proposal)
 
         async with self._lock:
             del self._task_map[func]
