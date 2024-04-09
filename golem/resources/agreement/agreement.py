@@ -32,6 +32,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
 
     def __init__(self, node: "GolemNode", id_: str, data: Optional[models.Agreement] = None):
         super().__init__(node, id_, data)
+        self._approved_at: Optional[datetime] = None
         asyncio.create_task(node.event_bus.emit(NewAgreement(self)))
 
     @api_call_wrapper()
@@ -51,7 +52,9 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
         :returns: True if agreement was approved.
         """
         try:
+            approved_at = datetime.now(timezone.utc)
             await self.api.wait_for_approval(self.id, timeout=15, _request_timeout=16)
+            self._approved_at = approved_at
             return True
         except ApiException as e:
             if e.status == 410:
@@ -94,6 +97,10 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
                 pass
             else:
                 raise
+
+    @property
+    def approved_at(self) -> Optional[datetime]:
+        return self._approved_at
 
     @property
     def invoice(self) -> Optional[Invoice]:
@@ -161,7 +168,7 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
     async def get_agreement_data(self, force=False) -> AgreementData:
         data = await self.get_data(force=force)
         agreement_duration = (
-            datetime.now(timezone.utc) - data.approved_date if data.approved_date else None
+            datetime.now(timezone.utc) - self.approved_at if self.approved_at else None
         )
         return AgreementData(
             agreement_id=data.agreement_id,

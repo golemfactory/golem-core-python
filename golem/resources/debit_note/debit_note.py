@@ -186,9 +186,7 @@ class DebitNote(Resource[RequestorApi, models.DebitNote, "Activity", _NULL, _NUL
             logger.warning(f"Wrong status of debit_note {debit_note_data.status} != RECEIVED")
             return
 
-        agreement_data: "AgreementData" = await self.activity.agreement.get_agreement_data(
-            force=True
-        )
+        agreement_data: "AgreementData" = await self.activity.agreement.get_agreement_data()
 
         previous_debit_note = await self.get_previous_debit_note()
         previous_debit_notes_count = await self.get_previous_debit_notes_count()
