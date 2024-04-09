@@ -23,7 +23,11 @@ def test_validate_payment_max_cost_ok():
     given_duration = timedelta(seconds=60)
     given_amount = Decimal(181)
     received_max_cost, received_max_cost_since_last_debit_note = validate_payment_max_cost(
-        coeffs=given_coeffs, inf=given_inf, duration=given_duration, amount=given_amount
+        coeffs=given_coeffs,
+        inf=given_inf,
+        duration=given_duration,
+        amount=given_amount,
+        grace_period=timedelta(),
     )
     assert received_max_cost == Decimal(181)
     assert received_max_cost_since_last_debit_note is None
@@ -45,6 +49,7 @@ def test_validate_payment_max_cost_payment_validation_exception():
             inf=given_inf,
             duration=given_duration,
             amount=given_amount,
+            grace_period=timedelta(),
         )
 
 
@@ -67,6 +72,7 @@ def test_validate_payment_max_cost_last_debit_note_ok():
         amount=given_amount,
         time_since_last_debit_note=given_time_since_last_debit_note,
         amount_since_last_debit_note=given_amount_since_last_debit_note,
+        grace_period=timedelta(),
     )
     assert received_max_cost == Decimal(181)
     assert received_max_cost_since_last_debit_note is not None
@@ -92,6 +98,7 @@ def test_validate_payment_max_cost_last_debit_note_payment_validation_exception(
             amount=given_amount,
             time_since_last_debit_note=given_time_since_last_debit_note,
             amount_since_last_debit_note=given_amount_since_last_debit_note,
+            grace_period=timedelta(),
         )
 
 

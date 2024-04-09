@@ -117,6 +117,7 @@ def validate_payment_max_cost(
     amount: Decimal,
     time_since_last_debit_note: Optional[timedelta] = None,
     amount_since_last_debit_note: Optional[Decimal] = None,
+    grace_period: timedelta = timedelta(minutes=1),
 ) -> Tuple[Decimal, Optional[Decimal]]:
     """Validate payment data max cost.
 
@@ -127,11 +128,12 @@ def validate_payment_max_cost(
 
     Raises: PaymentValidationException
     """
+    duration_grace = duration + grace_period
     max_cost = eth_decimal(
         coeffs.price_storage_gib * Decimal(inf.storage_gib)
         + coeffs.price_mem_gib * Decimal(inf.memory_gib)
-        + coeffs.price_cpu_sec * Decimal(inf.cpu_threads) * Decimal(duration.total_seconds())
-        + coeffs.price_duration_sec * Decimal(duration.total_seconds())
+        + coeffs.price_cpu_sec * Decimal(inf.cpu_threads) * Decimal(duration_grace.total_seconds())
+        + coeffs.price_duration_sec * Decimal(duration_grace.total_seconds())
         + coeffs.price_initial
     )
 

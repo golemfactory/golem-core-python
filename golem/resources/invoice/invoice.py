@@ -75,12 +75,12 @@ class Invoice(Resource[RequestorApi, models.Invoice, "Agreement", _NULL, _NULL])
             logger.warning(f"Wrong status of invoice {invoice_data.status} != RECEIVED")
             return
 
-        agreement_data: "AgreementData" = await self.agreement.get_agreement_data(force=True)
-        if agreement_data.agreement_duration is None:
+        if self.agreement.approved_at is None:
             logger.warning("Agreement was not approved")
             return
 
         try:
+            agreement_data: "AgreementData" = await self.agreement.get_agreement_data()
             amount_due = eth_decimal(invoice_data.amount)
             (
                 cumulative_time_since_last_dn,
