@@ -52,8 +52,9 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
         :returns: True if agreement was approved.
         """
         try:
+            approved_at = datetime.now(timezone.utc)
             await self.api.wait_for_approval(self.id, timeout=15, _request_timeout=16)
-            self._approved_at = datetime.now(timezone.utc)
+            self._approved_at = approved_at
             return True
         except ApiException as e:
             if e.status == 410:
