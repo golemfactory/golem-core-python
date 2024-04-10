@@ -1,5 +1,5 @@
 name: On release
-run-name: ${{ github.event.action == 'released' && "Release" || "Pre-release" }} ${{ github.event.release.tag_name }}
+run-name: ${{ github.event.action == 'released' && 'Release' || 'Pre-release' }} ${{ github.event.release.tag_name }}
 
 on:
   release:
