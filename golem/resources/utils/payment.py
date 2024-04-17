@@ -115,9 +115,10 @@ def validate_payment_max_cost(
     inf: InfrastructureProps,
     duration: timedelta,
     amount: Decimal,
+    max_cost_grace_period: timedelta = timedelta(minutes=5),
     time_since_last_debit_note: Optional[timedelta] = None,
     amount_since_last_debit_note: Optional[Decimal] = None,
-    grace_period: timedelta = timedelta(minutes=1),
+    last_debit_note_grace_period: timedelta = timedelta(minutes=1),
 ) -> Tuple[Decimal, Optional[Decimal]]:
     """Validate payment data max cost.
 
@@ -128,7 +129,7 @@ def validate_payment_max_cost(
 
     Raises: PaymentValidationException
     """
-    duration_grace = duration + grace_period
+    duration_grace = duration + max_cost_grace_period
     max_cost = eth_decimal(
         coeffs.price_storage_gib * Decimal(inf.storage_gib)
         + coeffs.price_mem_gib * Decimal(inf.memory_gib)
@@ -139,19 +140,21 @@ def validate_payment_max_cost(
 
     if amount > max_cost:
         raise PaymentValidationException(
-            "Total amount due exceeds expected max possible cost " f"{amount} > {max_cost}"
+            f"Total amount due exceeds expected max possible cost {amount} > {max_cost}"
+            f"{coeffs=} {inf=} {duration_grace=}"
         )
 
     if time_since_last_debit_note is None or amount_since_last_debit_note is None:
         return max_cost, None
+    time_since_last_debit_note_grace = time_since_last_debit_note + last_debit_note_grace_period
 
     max_cost_since_last_debit_note = eth_decimal(
         coeffs.price_storage_gib * Decimal(inf.storage_gib)
         + coeffs.price_mem_gib * Decimal(inf.memory_gib)
         + coeffs.price_cpu_sec
         * Decimal(inf.cpu_threads)
-        * Decimal(time_since_last_debit_note.total_seconds())
-        + coeffs.price_duration_sec * Decimal(time_since_last_debit_note.total_seconds())
+        * Decimal(time_since_last_debit_note_grace.total_seconds())
+        + coeffs.price_duration_sec * Decimal(time_since_last_debit_note_grace.total_seconds())
         + coeffs.price_initial
     )
 
@@ -159,6 +162,7 @@ def validate_payment_max_cost(
         raise PaymentValidationException(
             "Amount due since last debit note exceeds expected max possible cost "
             f"{amount_since_last_debit_note} > {max_cost_since_last_debit_note}"
+            f"{coeffs} {inf=} {time_since_last_debit_note_grace=}"
         )
 
     return max_cost, max_cost_since_last_debit_note
