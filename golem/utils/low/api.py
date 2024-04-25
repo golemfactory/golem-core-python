@@ -70,8 +70,8 @@ class ApiConfig:
         self.activity_url: str = self.__resolve_url(self.activity_url, "/activity-api/v1")
         self.net_url: str = self.__resolve_url(self.net_url, "/net-api/v1")
 
-    def __resolve_url(self, given_url: Optional[str], prefix: str) -> str:
-        return given_url or f"{self.api_url}{prefix}"
+    def __resolve_url(self, given_url: Optional[str], suffix: str) -> str:
+        return given_url or f"{self.api_url}{suffix}"
 
 
 class ApiFactory(object):
