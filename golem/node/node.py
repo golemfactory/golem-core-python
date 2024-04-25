@@ -53,7 +53,7 @@ class GolemNode:
         self,
         app_key: Optional[str] = None,
         *,
-        base_url: Optional[str] = None,
+        api_url: Optional[str] = None,
         collect_payment_events: bool = True,
         app_session_id: Optional[Union[str, Type[_RandomSessionId]]] = _RandomSessionId,
     ):
@@ -61,7 +61,7 @@ class GolemNode:
 
         :param app_key: App key used as an authentication token for all `yagna` calls.
                         Defaults to the `YAGNA_APPKEY` env variable.
-        :param base_url: Base url for all `yagna` APIs. Defaults to `YAGNA_API_URL` env
+        :param api_url: Base url for all `yagna` APIs. Defaults to `YAGNA_API_URL` env
                          variable or http://127.0.0.1:7465.
         :param collect_payment_events: If True, GolemNode will watch for incoming
             debit notes/invoices and create corresponding objects (--> :any:`NewResource` events
@@ -73,7 +73,7 @@ class GolemNode:
         """
         config_kwargs = {
             param: value
-            for param, value in {"app_key": app_key, "base_url": base_url}.items()
+            for param, value in {"app_key": app_key, "api_url": api_url}.items()
             if value is not None
         }
         self._api_config = ApiConfig(**config_kwargs)
