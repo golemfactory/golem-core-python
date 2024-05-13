@@ -13,7 +13,7 @@ printf "\n*** ALLOCATION NEW ***\n"
 python3 -m golem allocation new 1
 
 printf "\n*** ALLOCATION NEW ***\n"
-python3 -m golem allocation new 2 --driver erc20 --network goerli
+python3 -m golem allocation new 2 --driver erc20 --network holesky
 
 printf "\n*** ALLOCATION LIST ***\n"
 python3 -m golem allocation list
