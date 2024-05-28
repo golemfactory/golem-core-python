@@ -3,6 +3,7 @@ from datetime import timedelta
 
 import pytest
 
+from golem.managers.proposal.plugins.buffer import ProposalBuffer
 from golem.utils.asyncio.buffer import BackgroundFillBuffer, Buffer, ExpirableBuffer, SimpleBuffer
 
 
@@ -515,3 +516,47 @@ async def test_background_fill_buffer_get_requested(mocked_buffer, mocker, event
     #
 
     await buffer.stop()
+
+
+async def test_proposal_buffer_min_size_0_fill_sequential():
+    async def proposal_callback():
+        await asyncio.sleep(0.1)
+        return "Proposal"
+
+    buffer: ProposalBuffer = ProposalBuffer(
+        min_size=0,
+        max_size=4,
+        fill_concurrency_size=4,
+    )
+    buffer.set_proposal_callback(proposal_callback)
+    await buffer.start()
+
+    try:
+        for _ in range(10):
+            await asyncio.wait_for(buffer.get_proposal(), timeout=3)
+    except asyncio.TimeoutError:
+        assert False, "Get proposal task got stuck inside ProposalBuffer"
+    finally:
+        await buffer.stop()
+
+
+async def test_proposal_buffer_min_size_0_concurrent():
+    async def proposal_callback():
+        await asyncio.sleep(0.1)
+        return "Proposal"
+
+    buffer: ProposalBuffer = ProposalBuffer(
+        min_size=0,
+        max_size=4,
+        fill_concurrency_size=4,
+    )
+    buffer.set_proposal_callback(proposal_callback)
+    await buffer.start()
+
+    try:
+        for task in asyncio.as_completed([buffer.get_proposal() for _ in range(10)], timeout=3):
+            await task
+    except asyncio.TimeoutError:
+        assert False, "Get proposal task got stuck inside ProposalBuffer"
+    finally:
+        await buffer.stop()

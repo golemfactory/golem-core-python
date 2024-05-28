@@ -106,6 +106,10 @@ class ComposableBuffer(Buffer[TItem]):
     def __init__(self, buffer: Buffer[TItem]):
         self._buffer = buffer
 
+    @property
+    def condition(self):
+        return self._buffer.condition
+
     @asynccontextmanager
     async def _handle_lock(self, lock: bool):
         if lock:
