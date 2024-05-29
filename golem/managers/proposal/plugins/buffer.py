@@ -36,7 +36,7 @@ class ProposalBuffer(ProposalManagerPlugin):
         self._get_expiration_func = get_expiration_func
         self._on_expiration_func = on_expiration_func
 
-        self._get_proposal_semaphore = asyncio.Semaphore(value=max_size)
+        self._proposal_semaphore = asyncio.Semaphore(value=max_size)
 
         # TODO: Consider moving buffer composition from here to plugin level
         buffer: Buffer[Proposal] = SimpleBuffer()
@@ -123,7 +123,7 @@ class ProposalBuffer(ProposalManagerPlugin):
 
     @trace_span(show_results=True)
     async def get_proposal(self) -> Proposal:
-        async with self._get_proposal_semaphore:
+        async with self._proposal_semaphore:
             if not self._get_buffered_proposals_count():
                 logger.debug("No proposals to get, requesting fill")
                 await self._request_proposals()
