@@ -535,7 +535,7 @@ async def test_proposal_buffer_min_size_0_fill_sequential():
         for _ in range(10):
             await asyncio.wait_for(buffer.get_proposal(), timeout=3)
     except asyncio.TimeoutError:
-        assert False, "Get proposal task got stuck inside ProposalBuffer"
+        pytest.fail("Get proposal task got stuck inside ProposalBuffer")
     finally:
         await buffer.stop()
 
@@ -557,6 +557,6 @@ async def test_proposal_buffer_min_size_0_concurrent():
         for task in asyncio.as_completed([buffer.get_proposal() for _ in range(10)], timeout=3):
             await task
     except asyncio.TimeoutError:
-        assert False, "Get proposal task got stuck inside ProposalBuffer"
+        pytest.fail("Get proposal task got stuck inside ProposalBuffer")
     finally:
         await buffer.stop()
