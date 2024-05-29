@@ -92,7 +92,7 @@ class DefaultPaymentManager(PaymentManager):
         """Terminate all related agreements."""
         try:
             await asyncio.wait_for(self._wait_for_invoices(), timeout=self._shutdown_timeout)
-        except TimeoutError:
+        except asyncio.TimeoutError:
             logger.error(
                 "Waiting for invoices failed with timeout! Those agreements did not sent invoices:"
                 f" {[a for a in self._agreements]}"

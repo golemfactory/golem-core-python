@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import re
@@ -34,6 +35,8 @@ class ProposalBuffer(ProposalManagerPlugin):
         self._fill_at_start = fill_at_start
         self._get_expiration_func = get_expiration_func
         self._on_expiration_func = on_expiration_func
+
+        self._proposal_semaphore = asyncio.Semaphore(value=max_size)
 
         # TODO: Consider moving buffer composition from here to plugin level
         buffer: Buffer[Proposal] = SimpleBuffer()
@@ -120,28 +123,29 @@ class ProposalBuffer(ProposalManagerPlugin):
 
     @trace_span(show_results=True)
     async def get_proposal(self) -> Proposal:
-        if not self._get_buffered_proposals_count():
-            logger.debug("No proposals to get, requesting fill")
-            await self._request_proposals()
+        async with self._proposal_semaphore:
+            if not self._get_buffered_proposals_count():
+                logger.debug("No proposals to get, requesting fill")
+                await self._request_proposals()
 
-        proposal = await self._get_buffered_proposal()
+            proposal = await self._get_buffered_proposal()
 
-        proposals_count = self._get_buffered_proposals_count()
-        if proposals_count < self._min_size:
-            logger.debug(
-                "Proposals count %d is below minimum size %d, requesting fill",
-                proposals_count,
-                self._min_size,
-            )
-            await self._request_proposals()
-        else:
-            logger.debug(
-                "Proposals count %d is above minimum size %d, skipping fill",
-                proposals_count,
-                self._min_size,
-            )
+            proposals_count = self._get_buffered_proposals_count()
+            if proposals_count < self._min_size:
+                logger.debug(
+                    "Proposals count %d is below minimum size %d, requesting fill",
+                    proposals_count,
+                    self._min_size,
+                )
+                await self._request_proposals()
+            else:
+                logger.debug(
+                    "Proposals count %d is above minimum size %d, skipping fill",
+                    proposals_count,
+                    self._min_size,
+                )
 
-        return proposal
+            return proposal
 
     async def _get_buffered_proposal(self) -> Proposal:
         return await self._buffer.get()
