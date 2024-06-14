@@ -66,7 +66,7 @@ class VmPayload(BaseVmPayload, _VmPayload):
 
 @dataclass
 class _ManifestVmPayload(Payload, ABC):
-    manifest: str = prop("golem.srv.comp.payload")
+    manifest: Optional[str] = prop("golem.srv.comp.payload", default=None)
     manifest_sig: Optional[str] = prop("golem.srv.comp.payload.sig", default=None)
     manifest_sig_algorithm: Optional[str] = prop(
         "golem.srv.comp.payload.sig.algorithm", default=None
@@ -82,7 +82,7 @@ class ManifestVmPayload(BaseVmPayload, _ManifestVmPayload):
 
 @dataclass
 class _RepositoryVmPayload(ABC):
-    image_hash: str
+    image_hash: Optional[str] = None
     image_url: Optional[str] = None
     package_url: Optional[str] = prop("golem.srv.comp.task_package", default=None)
 
@@ -94,6 +94,9 @@ class RepositoryVmPayload(BaseVmPayload, _RepositoryVmPayload):
     parameter from remote repository."""
 
     async def _resolve_package_url(self) -> None:
+        if not self.image_url and not self.image_hash:
+            return
+
         if self.image_url:
             await check_image_url(self.image_url)
             image_url = self.image_url
