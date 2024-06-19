@@ -14,7 +14,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
-    runtime_checkable,
+    runtime_checkable, MutableMapping,
 )
 
 from golem.exceptions import GolemException
@@ -68,8 +68,9 @@ class Batch:
 
 
 class WorkContext:
-    def __init__(self, activity: Activity):
+    def __init__(self, activity: Activity, extra: Optional[MutableMapping] = None):
         self._activity = activity
+        self.extra = extra or {}
 
     async def deploy(
         self, deploy_args: Optional[commands.ArgsDict] = None, timeout: Optional[timedelta] = None
