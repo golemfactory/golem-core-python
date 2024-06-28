@@ -65,11 +65,7 @@ class DefaultPaymentManager(PaymentManager):
     async def get_allocation(self) -> Allocation:
         async with self._lock:
             if not self._allocation:
-                self._allocation = await self._create_allocation(
-                    Decimal(self._budget),
-                    self._network,
-                    self._driver,
-                )
+                self._allocation = await self._create_allocation()
 
         return self._allocation  # type: ignore[return-value]
 
@@ -81,9 +77,9 @@ class DefaultPaymentManager(PaymentManager):
         self._allocation = None
 
     @trace_span(show_arguments=True, show_results=True)
-    async def _create_allocation(self, budget: Decimal, network: str, driver: str) -> Allocation:
+    async def _create_allocation(self) -> Allocation:
         try:
-            return await Allocation.create_any_account(self._golem, budget, network, driver)
+            return await Allocation.create_any_account(self._golem, Decimal(self._budget), self._network, self._driver)
         except ApiException as e:
             raise ManagerException(json.loads(e.body)["message"]) from e
 

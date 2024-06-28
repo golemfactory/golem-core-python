@@ -117,7 +117,7 @@ class Proposal(
     @api_call_wrapper()
     async def create_agreement(
         self, autoclose: bool = True, timeout: timedelta = timedelta(seconds=60)
-    ) -> "Agreement":
+    ) -> Agreement:
         """Promote this proposal to an agreement.
 
         :param autoclose: Terminate the agreement when the :any:`GolemNode` closes.
