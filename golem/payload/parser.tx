@@ -23,7 +23,7 @@ ConstraintOperator:
 ;
 
 PropertyName:
-    /[\w-]+(\.[\w-]+)*/
+    /[\w!-]+(\.[\w!-]+)*/
 ;
 
 PropertyValueList:
