@@ -83,14 +83,16 @@ class Agreement(Resource[RequestorApi, models.Agreement, "Proposal", Activity, _
         return activity
 
     @api_call_wrapper()
-    async def terminate(self, reason: str = "") -> None:
+    async def terminate(self, reason: str = "", **extra) -> None:
         """Terminate the agreement.
 
         :param reason: Optional information for the provider explaining why the agreement was
             terminated.
+        :param extra: Optional additional information attached to termination reason, which will be
+            shared with Provider.
         """
         try:
-            await self.api.terminate_agreement(self.id, request_body={"message": reason})
+            await self.api.terminate_agreement(self.id, request_body={"message": reason, **extra})
             await self.node.event_bus.emit(AgreementClosed(self))
         except ApiException as e:
             if self._is_permanent_410(e):
