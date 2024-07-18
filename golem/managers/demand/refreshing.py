@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 class RefreshingDemandManager(BackgroundLoopMixin, DemandManager):
+    """DemandManager that creates new demand under the hood after given lifetime is reached."""
+
     def __init__(
         self,
         golem: GolemNode,

@@ -94,7 +94,7 @@ class RepositoryVmPayload(BaseVmPayload, _RepositoryVmPayload):
     parameter from remote repository."""
 
     async def _resolve_package_url(self) -> None:
-        if not self.image_url and not self.image_hash:
+        if not self.image_hash:
             return
 
         if self.image_url:
