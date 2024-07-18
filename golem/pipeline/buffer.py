@@ -109,7 +109,7 @@ class Buffer(Generic[DataType]):
             #   NOTE: Buffer is useful only with awaitables, so this scenario doesn't make much
             #         sense. But maybe stream sometimes returns awaitables and sometimes already
             #         awaited values?
-            awaited = in_val  # type: ignore
+            awaited = in_val
 
         self._result_queue.put_nowait(awaited)
 

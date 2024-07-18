@@ -74,7 +74,7 @@ class Sort:
                 await asyncio.sleep(0.1)
 
     async def score_function(self, element: TElement) -> Optional[float]:
-        return await self._score_function(element)
+        return await self._score_function(element)  # type: ignore
 
     async def _process_stream(self, element_stream: AsyncIterator[TElement]) -> None:
         async for element in element_stream:

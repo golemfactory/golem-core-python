@@ -60,8 +60,8 @@ class InMemoryEventBus(EventBus[_CallbackHandler]):
         filter_func: Optional[Callable[[TEvent], bool]] = None,
     ) -> _CallbackHandler:
         callback_info = _CallbackInfo(
-            callback=callback,
-            filter_func=filter_func,
+            callback=callback,  # type: ignore
+            filter_func=filter_func,  # type: ignore
             once=False,
         )
 
@@ -79,8 +79,8 @@ class InMemoryEventBus(EventBus[_CallbackHandler]):
         filter_func: Optional[Callable[[TEvent], bool]] = None,
     ) -> _CallbackHandler:
         callback_info = _CallbackInfo(
-            callback=callback,
-            filter_func=filter_func,
+            callback=callback,  # type: ignore
+            filter_func=filter_func,  # type: ignore
             once=True,
         )
 

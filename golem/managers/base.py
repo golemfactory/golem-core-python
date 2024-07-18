@@ -8,13 +8,14 @@ from typing import (
     Callable,
     Dict,
     List,
+    MutableMapping,
     Optional,
     Protocol,
     Sequence,
     Tuple,
     TypeVar,
     Union,
-    runtime_checkable, MutableMapping,
+    runtime_checkable,
 )
 
 from golem.exceptions import GolemException

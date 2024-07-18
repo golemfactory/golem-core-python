@@ -99,7 +99,7 @@ class RedundanceManager:
     def _task_for_provider(self, provider_id: str) -> Optional[TaskData]:
         for task_data in self.remaining_tasks:
             if task_data not in self._provider_tasks[provider_id]:
-                return task_data
+                return task_data  # type: ignore
         return None
 
     def _process_task_result(self, this_task_data: TaskData, this_task_result: TaskResult) -> None:
@@ -110,7 +110,7 @@ class RedundanceManager:
             #   things up, so is not really a bug/problem, but rather a decision.
             return
 
-        self._partial_results.append((this_task_data, this_task_result))
+        self._partial_results.append((this_task_data, this_task_result))  # type: ignore
         task_results = [
             task_result
             for task_data, task_result in self._partial_results
@@ -128,5 +128,5 @@ class RedundanceManager:
         if (task_results.count(most_common) / cnt) < self.min_success:
             return
 
-        self.remaining_tasks.remove(this_task_data)
+        self.remaining_tasks.remove(this_task_data)  # type: ignore
         self._results_queue.put_nowait(most_common)
