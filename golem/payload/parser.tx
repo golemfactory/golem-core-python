@@ -35,5 +35,5 @@ PropertyValue:
 ;
 
 PropertyValueStr:
-    /[a-zA-Z0-9_.\*\/:;-]+/
+    /[\sa-zA-Z0-9_.\*\/\\:;-]+/
 ;

@@ -24,7 +24,7 @@ from golem.utils.logging import trace_span
 logger = logging.getLogger(__name__)
 
 # 2 minutes 30 seconds to as it sometimes take extra time to receive Invoice from an agreement
-DEFAULT_SHUTDOWN_TIMEOUT: timedelta = timedelta(seconds=150)
+DEFAULT_SHUTDOWN_TIMEOUT: timedelta = timedelta(minutes=2, seconds=30)
 
 
 class DefaultPaymentManager(PaymentManager):

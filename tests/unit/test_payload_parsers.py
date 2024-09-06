@@ -26,6 +26,8 @@ def test_parse_raises_exception_on_bad_syntax(demand_offer_parser):
         ("(float.value=1.5)", Constraint("float.value", "=", "1.5")),
         ("(float.!exp.value=1.5)", Constraint("float.!exp.value", "=", "1.5")),
         ("(foo=bar)", Constraint("foo", "=", "bar")),
+        ("(foo=multiple words with spaces and   double  tabs)", Constraint("foo", "=", "multiple words with spaces and   double  tabs")),
+        (r"(foo=escaped\2Acharacters)", Constraint("foo", "=", r"escaped\2Acharacters")),
         (
             "(foo=more.complex.value)",
             Constraint("foo", "=", "more.complex.value"),
