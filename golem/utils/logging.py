@@ -2,6 +2,7 @@ import contextvars
 import inspect
 import logging
 import sys
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Union
@@ -147,6 +148,15 @@ class DefaultLogger:
 
 
 trace_id_var = contextvars.ContextVar("trace_id", default="root")
+
+
+@contextmanager
+def set_trace_id(trace_id):
+    token = trace_id_var.set(trace_id)
+    try:
+        yield
+    finally:
+        trace_id_var.reset(token)
 
 
 def get_trace_id_name(obj: Any, postfix: str) -> str:
