@@ -30,7 +30,9 @@ class InMemoryEventBus(EventBus[_CallbackHandler]):
     @trace_span()
     async def start(self):
         if self.is_started():
-            raise EventBusError("Event bus is already started!")
+            err_msg = "Event bus is already started!"
+            logger.error(err_msg)
+            raise EventBusError(err_msg)
 
         self._process_event_queue_loop_task = create_task_with_logging(
             self._process_event_queue_loop(),

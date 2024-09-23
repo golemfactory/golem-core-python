@@ -26,6 +26,7 @@ from golem.resources import (
     Resource,
     TResource,
 )
+from golem.utils.logging import get_trace_id_name, set_trace_id
 from golem.utils.low import ApiConfig, ApiFactory
 
 
@@ -97,8 +98,9 @@ class GolemNode:
     #   Start/stop interface
     async def __aenter__(self) -> "GolemNode":
         """Start. Initialize all the APIs and the event bus."""
-        await self.start()
-        return self
+        with set_trace_id(get_trace_id_name(self, "golem-node-start")):
+            await self.start()
+            return self
 
     async def __aexit__(self, *exc_info: Any) -> None:
         """Shutdown.
@@ -106,7 +108,8 @@ class GolemNode:
         Stop collecting yagna events, close all resources created with autoclose=True, close
         APIs etc.
         """
-        await self.aclose()
+        with set_trace_id(get_trace_id_name(self, "golem-node-shutdown")):
+            await self.aclose()
 
     async def start(self) -> None:
         await self.event_bus.start()
