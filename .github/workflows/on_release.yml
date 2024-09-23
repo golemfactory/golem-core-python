@@ -77,7 +77,7 @@ jobs:
       - uses: Gr1N/setup-poetry@v8
 
       - name: Retrieve the built package
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: dist
           path: dist
@@ -103,7 +103,7 @@ jobs:
       - uses: Gr1N/setup-poetry@v8
 
       - name: Retrieve the built package
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: dist
           path: dist
