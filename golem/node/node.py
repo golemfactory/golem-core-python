@@ -127,14 +127,15 @@ class GolemNode:
         await self.event_bus.emit(SessionStarted(self))
 
     async def aclose(self) -> None:
-        await self.event_bus.emit(ShutdownStarted(self))
-        self._set_no_more_children()
-        self._stop_event_collectors()
-        await self._close_autoclose_resources()
-        await self._close_apis()
-        await self.event_bus.emit(ShutdownFinished(self))
-
-        await self.event_bus.stop()
+        try:
+            await self.event_bus.emit(ShutdownStarted(self))
+            self._set_no_more_children()
+            self._stop_event_collectors()
+            await self._close_autoclose_resources()
+            await self._close_apis()
+            await self.event_bus.emit(ShutdownFinished(self))
+        finally:
+            await self.event_bus.stop()
 
     def _stop_event_collectors(self) -> None:
         demands = self.all_resources(Demand)
@@ -159,6 +160,9 @@ class GolemNode:
 
     async def _close_autoclose_resources(self) -> None:
         agreement_msg = "Work finished"
+        pooling_batch_tasks = [
+            r.cleanup() for r in self._autoclose_resources if isinstance(r, PoolingBatch)
+        ]
         activity_tasks = [r.destroy() for r in self._autoclose_resources if isinstance(r, Activity)]
         agreement_tasks = [
             r.terminate(agreement_msg)
@@ -170,6 +174,8 @@ class GolemNode:
             r.release() for r in self._autoclose_resources if isinstance(r, Allocation)
         ]
         network_tasks = [r.remove() for r in self._autoclose_resources if isinstance(r, Network)]
+        if pooling_batch_tasks:
+            await asyncio.gather(*pooling_batch_tasks)
         if activity_tasks:
             await asyncio.gather(*activity_tasks)
         if agreement_tasks:
@@ -396,7 +402,8 @@ class GolemNode:
         await network.add_requestor_ip(ip)
 
     def add_autoclose_resource(
-        self, resource: Union["Allocation", "Demand", "Agreement", "Activity", "Network"]
+        self,
+        resource: Union["Allocation", "Demand", "Agreement", "Activity", "Network", "PoolingBatch"],
     ) -> None:
         self._autoclose_resources.add(resource)
 

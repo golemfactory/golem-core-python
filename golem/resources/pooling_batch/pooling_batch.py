@@ -12,6 +12,7 @@ from golem.resources.pooling_batch.exceptions import (
     CommandCancelled,
     CommandFailed,
 )
+from golem.utils.asyncio import ensure_cancelled
 from golem.utils.low import ActivityApi, YagnaEventCollector
 
 if TYPE_CHECKING:
@@ -41,6 +42,7 @@ class PoolingBatch(
 
         self.finished_event = asyncio.Event()
         self._futures: Optional[List[asyncio.Future[models.ExeScriptCommandResult]]] = None
+        self._execute_after_task: Optional[asyncio.Task] = None
 
     @property
     def done(self) -> bool:
@@ -88,6 +90,18 @@ class PoolingBatch(
         except asyncio.TimeoutError:
             assert timeout_seconds is not None  # mypy
             raise BatchTimeoutError(self, timeout_seconds)
+
+    @property
+    def execute_after_task(self) -> Optional[asyncio.Task]:
+        return self._execute_after_task
+
+    @execute_after_task.setter
+    def execute_after_task(self, task: Optional[asyncio.Task]):
+        self._execute_after_task = task
+
+    async def cleanup(self):
+        if self.execute_after_task:
+            await ensure_cancelled(self.execute_after_task)
 
     @property
     def events(self) -> List[models.ExeScriptCommandResult]:
