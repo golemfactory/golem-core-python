@@ -33,9 +33,13 @@ class ErrorReportingQueue(asyncio.Queue, Generic[TQueueItem]):
 
         error_task = asyncio.create_task(self._error_event.wait())
         get_task = asyncio.create_task(super().get())
-        done, pending = await asyncio.wait(
-            [error_task, get_task], return_when=asyncio.FIRST_COMPLETED
-        )
+        try:
+            done, pending = await asyncio.wait(
+                [error_task, get_task], return_when=asyncio.FIRST_COMPLETED
+            )
+        except asyncio.CancelledError:
+            await ensure_cancelled_many([error_task, get_task])
+            raise
 
         await ensure_cancelled_many(pending)
 

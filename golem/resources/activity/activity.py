@@ -106,6 +106,7 @@ class Activity(Resource[ActivityApi, _NULL, "Agreement", PoolingBatch, _NULL]):
         batch_id = await self.api.call_exec(self.id, script, _request_timeout=timeout)
         batch = PoolingBatch(self.node, batch_id)
         batch.start_collecting_events()
+        self._node.add_autoclose_resource(batch)
         self.add_child(batch)
         self.running_batch_counter += 1
         return batch
@@ -133,7 +134,7 @@ class Activity(Resource[ActivityApi, _NULL, "Agreement", PoolingBatch, _NULL]):
             await batch.wait(ignore_errors=True)
             await asyncio.gather(*[c.after() for c in commands])
 
-        asyncio.create_task(execute_after())
+        batch.execute_after_task = asyncio.create_task(execute_after())
         return batch
 
     async def execute_script(self, script: "Script") -> PoolingBatch:
