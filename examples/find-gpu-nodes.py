@@ -1,5 +1,5 @@
 import asyncio
-import json
+
 from tabulate import tabulate  # You may need to install this: pip install tabulate
 
 from golem.node import GolemNode
