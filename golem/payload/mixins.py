@@ -2,7 +2,7 @@ import datetime
 import enum
 import inspect
 from dataclasses import Field
-from typing import Any
+from typing import Any, Type, cast
 
 from golem.utils.typing import match_type_union_aware
 
@@ -30,14 +30,20 @@ class PropsConsSerializerMixin:
 
         Intended to be overriden with additional type serialisation methods.
         """
-        if matched_type := match_type_union_aware(
-            field.type, lambda t: inspect.isclass(t) and issubclass(t, datetime.datetime)
-        ):
-            return matched_type.fromtimestamp(int(float(value) * 0.001), datetime.timezone.utc)
+        field_type = field.type
+        # Only attempt match_type_union_aware if field_type is a proper Type
+        if isinstance(field_type, type) or hasattr(field_type, "__origin__"):
+            # Use cast to help mypy understand the type
+            type_obj = cast(Type[Any], field_type)
 
-        if matched_type := match_type_union_aware(
-            field.type, lambda t: inspect.isclass(t) and issubclass(t, enum.Enum)
-        ):
-            return matched_type(value)
+            if matched_type := match_type_union_aware(
+                type_obj, lambda t: inspect.isclass(t) and issubclass(t, datetime.datetime)
+            ):
+                return matched_type.fromtimestamp(int(float(value) * 0.001), datetime.timezone.utc)
+
+            if matched_type := match_type_union_aware(
+                type_obj, lambda t: inspect.isclass(t) and issubclass(t, enum.Enum)
+            ):
+                return matched_type(value)
 
         return value

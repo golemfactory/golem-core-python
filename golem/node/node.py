@@ -1,9 +1,12 @@
 import asyncio
+import json
 from collections import defaultdict
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Set, Type, Union
+from typing import Any, AsyncIterator, DefaultDict, Dict, Iterable, List, Optional, Set, Type, Union
 from uuid import uuid4
+
+from ya_market import ApiClient
 
 from golem.event_bus import EventBus
 from golem.event_bus.in_memory import InMemoryEventBus
@@ -26,6 +29,7 @@ from golem.resources import (
     Resource,
     TResource,
 )
+from golem.resources.scan import ScanOfferEvent
 from golem.utils.logging import get_trace_id_name, set_trace_id
 from golem.utils.low import ApiConfig, ApiFactory
 
@@ -410,6 +414,69 @@ class GolemNode:
     def all_resources(self, cls: Type[TResource]) -> List[TResource]:
         """Return all known resources of a given type."""
         return list(self._resources[cls].values())  # type: ignore
+
+    async def scan(
+        self, *, timeout: int = 300, constraints: Optional[str] = None, quick_scan=False
+    ) -> AsyncIterator[ScanOfferEvent]:
+        """Scan the market for proposals (offers).
+
+        Args:
+            timeout: Time in seconds for how long to keep the subscription alive.
+                Defaults to 300 seconds (5 minutes).
+            constraints: Optional constraints expression to filter offers.
+            quick_scan: If True, returns only the initial batch of proposals without
+                continuous polling. Defaults to False.
+
+        Yields:
+            Proposal objects for each offer found in the market.
+        """
+        scan_id = None
+        try:
+            # Create scan subscription
+            api: ApiClient = self._ya_market_api
+            body = {"timeout": timeout, "type": "offer"}
+            if constraints is not None:
+                body["constraints"] = constraints
+
+            (scan_id, rc, headers) = await api.call_api(
+                "/scan", "POST", body=body, response_type=str
+            )
+
+            while True:
+                # Fetch events in batches
+                (events_bytes, rc, headers) = await api.call_api(
+                    "/scan/{scan_id}/events",
+                    "GET",
+                    path_params={"scan_id": scan_id},
+                    query_params=[("timeout", 5), ("maxEvents", 100)],
+                    response_type=bytes,
+                )
+                events = []
+                if rc == 200 and events_bytes:
+                    events = (
+                        json.loads(events_bytes) if type(events_bytes) is bytes else events_bytes
+                    )
+                    # print('events=', events)
+
+                if not events:
+                    if quick_scan:
+                        break
+                    await asyncio.sleep(0.5)
+                    continue
+
+                for event in events:
+                    yield ScanOfferEvent.model_validate(event)
+
+        finally:
+            # Ensure we clean up the subscription
+            if scan_id:
+                try:
+                    await api.call_api(
+                        "/scan/{scan_id}", "DELETE", path_params={"scan_id": scan_id}
+                    )
+                except Exception:
+                    # Best effort cleanup
+                    pass
 
     def __str__(self) -> str:
         lines = [
