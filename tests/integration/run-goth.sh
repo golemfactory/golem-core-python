@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Capture host/daemon diagnostics; the goth network depends on docker state
+# that is otherwise invisible from the pytest output.
+_diag_dir="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=/dev/null
+[ -f "$_diag_dir/diagnostics.sh" ] && . "$_diag_dir/diagnostics.sh" && diag_run /tmp/goth-diagnostics-boot.txt
+
 echo REMOVING OLD GOTH ENV CONFIG
 rm /tmp/goth_interactive.env
 
@@ -42,3 +48,7 @@ done
 
 echo STARTUP COMPLETED
 cat /tmp/goth_interactive.env
+
+# Capture diagnostics again now that the network is running (container state,
+# mounted yagna data and daemon configuration are only meaningful at this point).
+diag_run /tmp/goth-diagnostics-network.txt 2>/dev/null || true
