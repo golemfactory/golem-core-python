@@ -2,7 +2,7 @@
 
 ## Install
 
-This project uses [Poetry](https://python-poetry.org/) for management, which needs to be installed to run following instructions.
+This project uses [Poetry](https://python-poetry.org/) for management, which needs to be installed to run the following instructions.
 Checkout the repository and run:
 
 ```bash
@@ -11,7 +11,7 @@ poetry install
 
 ## Examples
 
-To run examples you need invoke them via poetry:
+To run examples you need to invoke them via poetry:
 
 ```bash
 poetry run python examples/rate_providers/rate_providers.py
